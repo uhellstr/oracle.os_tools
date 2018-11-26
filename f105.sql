@@ -27,7 +27,7 @@ prompt APPLICATION 105 - OS_TOOLS_APP
 -- Application Export:
 --   Application:     105
 --   Name:            OS_TOOLS_APP
---   Date and Time:   10:40 Monday November 26, 2018
+--   Date and Time:   10:53 Monday November 26, 2018
 --   Exported By:     UHELLSTR
 --   Flashback:       0
 --   Export Type:     Application Export
@@ -104,7 +104,7 @@ wwv_flow_api.create_flow(
 ,p_rejoin_existing_sessions=>'N'
 ,p_csv_encoding=>'Y'
 ,p_last_updated_by=>'UHELLSTR'
-,p_last_upd_yyyymmddhh24miss=>'20181126103958'
+,p_last_upd_yyyymmddhh24miss=>'20181126105217'
 ,p_file_prefix => nvl(wwv_flow_application_install.get_static_app_file_prefix,'')
 ,p_ui_type_name => null
 );
@@ -9434,12 +9434,12 @@ wwv_flow_api.create_page(
 '    color: #fff;',
 '}'))
 ,p_page_template_options=>'#DEFAULT#'
-,p_last_updated_by=>'HELLSULF'
-,p_last_upd_yyyymmddhh24miss=>'20180807154858'
+,p_last_updated_by=>'UHELLSTR'
+,p_last_upd_yyyymmddhh24miss=>'20181126105217'
 );
 wwv_flow_api.create_page_plug(
  p_id=>wwv_flow_api.id(23697821899832008)
-,p_plug_name=>'Lista filer'
+,p_plug_name=>'List Files'
 ,p_region_template_options=>'#DEFAULT#:t-Region--scrollBody'
 ,p_plug_template=>wwv_flow_api.id(23744655563232803)
 ,p_plug_display_sequence=>30
@@ -9466,7 +9466,7 @@ unistr('       f_permission as beh\00F6righet'),
 unistr('       ,f_user as anv\00E4ndare'),
 '       ,f_group as grupp',
 '       ,f_size atorlek',
-'       ,to_date(f_date,''MON DD HH24:MI'',''NLS_DATE_LANGUAGE = AMERICAN'') as datum',
+'       ,to_date(f_date,''DD MON HH24:MI'',''NLS_DATE_LANGUAGE = AMERICAN'') as datum',
 '       ,f_file as fil',
 'from table( os_tools.get_dir_files_list(:P4_TABLE_NAME, substr(:P4_DIRECTORY,1,instr(:P4_DIRECTORY,'';'')-1)) );'))
 ,p_plug_source_type=>'NATIVE_IG'
@@ -9474,19 +9474,19 @@ unistr('       ,f_user as anv\00E4ndare'),
 );
 wwv_flow_api.create_region_column(
  p_id=>wwv_flow_api.id(24109760641093905)
-,p_name=>unistr('BEH\00D6RIGHET')
+,p_name=>'Permission'
 ,p_source_type=>'DB_COLUMN'
 ,p_source_expression=>unistr('BEH\00D6RIGHET')
 ,p_data_type=>'VARCHAR2'
 ,p_is_query_only=>false
 ,p_item_type=>'NATIVE_TEXT_FIELD'
-,p_heading=>unistr('Beh\00F6righet')
+,p_heading=>'Permission'
 ,p_heading_alignment=>'LEFT'
 ,p_display_sequence=>20
 ,p_value_alignment=>'LEFT'
 ,p_attribute_05=>'BOTH'
 ,p_is_required=>false
-,p_max_length=>10
+,p_max_length=>44
 ,p_enable_filter=>true
 ,p_filter_operators=>'C:S:CASE_INSENSITIVE:REGEXP'
 ,p_filter_is_required=>false
@@ -9501,19 +9501,19 @@ wwv_flow_api.create_region_column(
 );
 wwv_flow_api.create_region_column(
  p_id=>wwv_flow_api.id(24109882420093906)
-,p_name=>unistr('ANV\00C4NDARE')
+,p_name=>'User'
 ,p_source_type=>'DB_COLUMN'
 ,p_source_expression=>unistr('ANV\00C4NDARE')
 ,p_data_type=>'VARCHAR2'
 ,p_is_query_only=>false
 ,p_item_type=>'NATIVE_TEXT_FIELD'
-,p_heading=>unistr('Anv\00E4ndare')
+,p_heading=>'User'
 ,p_heading_alignment=>'LEFT'
 ,p_display_sequence=>30
 ,p_value_alignment=>'LEFT'
 ,p_attribute_05=>'BOTH'
 ,p_is_required=>false
-,p_max_length=>32
+,p_max_length=>128
 ,p_enable_filter=>true
 ,p_filter_operators=>'C:S:CASE_INSENSITIVE:REGEXP'
 ,p_filter_is_required=>false
@@ -9528,19 +9528,19 @@ wwv_flow_api.create_region_column(
 );
 wwv_flow_api.create_region_column(
  p_id=>wwv_flow_api.id(24109925676093907)
-,p_name=>'GRUPP'
+,p_name=>'Group'
 ,p_source_type=>'DB_COLUMN'
 ,p_source_expression=>'GRUPP'
 ,p_data_type=>'VARCHAR2'
 ,p_is_query_only=>false
 ,p_item_type=>'NATIVE_TEXT_FIELD'
-,p_heading=>'Grupp'
+,p_heading=>'Group'
 ,p_heading_alignment=>'LEFT'
 ,p_display_sequence=>40
 ,p_value_alignment=>'LEFT'
 ,p_attribute_05=>'BOTH'
 ,p_is_required=>false
-,p_max_length=>32
+,p_max_length=>128
 ,p_enable_filter=>true
 ,p_filter_operators=>'C:S:CASE_INSENSITIVE:REGEXP'
 ,p_filter_is_required=>false
@@ -9555,19 +9555,19 @@ wwv_flow_api.create_region_column(
 );
 wwv_flow_api.create_region_column(
  p_id=>wwv_flow_api.id(24110078804093908)
-,p_name=>'ATORLEK'
+,p_name=>'Size'
 ,p_source_type=>'DB_COLUMN'
 ,p_source_expression=>'ATORLEK'
 ,p_data_type=>'VARCHAR2'
 ,p_is_query_only=>false
 ,p_item_type=>'NATIVE_TEXT_FIELD'
-,p_heading=>'Storlek'
+,p_heading=>'Size'
 ,p_heading_alignment=>'LEFT'
 ,p_display_sequence=>50
 ,p_value_alignment=>'LEFT'
 ,p_attribute_05=>'BOTH'
 ,p_is_required=>false
-,p_max_length=>30
+,p_max_length=>120
 ,p_enable_filter=>true
 ,p_filter_operators=>'C:S:CASE_INSENSITIVE:REGEXP'
 ,p_filter_is_required=>false
@@ -9582,13 +9582,13 @@ wwv_flow_api.create_region_column(
 );
 wwv_flow_api.create_region_column(
  p_id=>wwv_flow_api.id(24110160303093909)
-,p_name=>'DATUM'
+,p_name=>'Date'
 ,p_source_type=>'DB_COLUMN'
 ,p_source_expression=>'DATUM'
 ,p_data_type=>'DATE'
 ,p_is_query_only=>false
 ,p_item_type=>'NATIVE_DATE_PICKER'
-,p_heading=>'Datum'
+,p_heading=>'Date'
 ,p_heading_alignment=>'CENTER'
 ,p_display_sequence=>60
 ,p_value_alignment=>'LEFT'
@@ -9608,17 +9608,18 @@ wwv_flow_api.create_region_column(
 );
 wwv_flow_api.create_region_column(
  p_id=>wwv_flow_api.id(24110346659093911)
-,p_name=>'FIL'
+,p_name=>'File'
 ,p_source_type=>'DB_COLUMN'
 ,p_source_expression=>'FIL'
 ,p_data_type=>'VARCHAR2'
 ,p_is_query_only=>false
 ,p_item_type=>'NATIVE_LINK'
-,p_heading=>'Fil'
+,p_heading=>'File'
 ,p_heading_alignment=>'LEFT'
 ,p_display_sequence=>70
 ,p_value_alignment=>'LEFT'
-,p_link_target=>'f?p=&APP_ID.:5:&SESSION.::&DEBUG.:RP:P5_FIL,P5_DIRECTORY:&FIL.,&P4_DIRECTORY.'
+,p_link_target=>'f?p=&APP_ID.:5:&SESSION.::&DEBUG.:RP:P5_FIL,P5_DIRECTORY:&FILE.,&P4_DIRECTORY.'
+,p_link_text=>'&"File".'
 ,p_enable_filter=>true
 ,p_filter_operators=>'C:S:CASE_INSENSITIVE:REGEXP'
 ,p_filter_is_required=>false
@@ -9637,7 +9638,6 @@ wwv_flow_api.create_interactive_grid(
 ,p_is_editable=>false
 ,p_lazy_loading=>false
 ,p_requires_filter=>false
-,p_max_row_count=>100000
 ,p_show_nulls_as=>'-'
 ,p_fixed_row_height=>true
 ,p_pagination_type=>'SCROLL'
@@ -9726,7 +9726,7 @@ wwv_flow_api.create_ig_report_column(
 );
 wwv_flow_api.create_page_plug(
  p_id=>wwv_flow_api.id(23835697241805868)
-,p_plug_name=>'Kataloger'
+,p_plug_name=>'Directories'
 ,p_region_template_options=>'#DEFAULT#:t-Region--scrollBody'
 ,p_plug_template=>wwv_flow_api.id(23744655563232803)
 ,p_plug_display_sequence=>10
@@ -9738,7 +9738,7 @@ wwv_flow_api.create_page_plug(
 );
 wwv_flow_api.create_page_plug(
  p_id=>wwv_flow_api.id(23835888096805870)
-,p_plug_name=>'Kataloginformation'
+,p_plug_name=>'Directory'
 ,p_region_template_options=>'#DEFAULT#:t-Region--scrollBody'
 ,p_plug_template=>wwv_flow_api.id(23744655563232803)
 ,p_plug_display_sequence=>20
