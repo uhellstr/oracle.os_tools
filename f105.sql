@@ -27,7 +27,7 @@ prompt APPLICATION 105 - OS_TOOLS_APP
 -- Application Export:
 --   Application:     105
 --   Name:            OS_TOOLS_APP
---   Date and Time:   10:53 Monday November 26, 2018
+--   Date and Time:   13:21 Wednesday November 28, 2018
 --   Exported By:     UHELLSTR
 --   Flashback:       0
 --   Export Type:     Application Export
@@ -94,17 +94,19 @@ wwv_flow_api.create_flow(
 ,p_populate_roles=>'A'
 ,p_application_tab_set=>0
 ,p_logo_image=>'TEXT:OS_TOOLS_APP'
+,p_public_user=>'APEX_PUBLIC_USER'
 ,p_proxy_server=>nvl(wwv_flow_application_install.get_proxy,'')
 ,p_no_proxy_domains=>nvl(wwv_flow_application_install.get_no_proxy_domains,'')
 ,p_flow_version=>'release 1.0'
 ,p_flow_status=>'AVAILABLE_W_EDIT_LINK'
+,p_flow_unavailable_text=>'This application is currently unavailable at this time.'
 ,p_exact_substitutions_only=>'Y'
 ,p_browser_cache=>'N'
 ,p_browser_frame=>'D'
 ,p_rejoin_existing_sessions=>'N'
 ,p_csv_encoding=>'Y'
 ,p_last_updated_by=>'UHELLSTR'
-,p_last_upd_yyyymmddhh24miss=>'20181126105217'
+,p_last_upd_yyyymmddhh24miss=>'20181128132044'
 ,p_file_prefix => nvl(wwv_flow_application_install.get_static_app_file_prefix,'')
 ,p_ui_type_name => null
 );
@@ -120,32 +122,32 @@ wwv_flow_api.create_list(
 wwv_flow_api.create_list_item(
  p_id=>wwv_flow_api.id(23779654451232891)
 ,p_list_item_display_sequence=>10
-,p_list_item_link_text=>'Hem'
-,p_list_item_link_target=>'f?p=&APP_ID.:1:&APP_SESSION.::&DEBUG.:'
+,p_list_item_link_text=>'Home'
+,p_list_item_link_target=>'f?p=&APP_ID.:1:&SESSION.::&DEBUG.::::'
 ,p_list_item_current_type=>'COLON_DELIMITED_PAGE_LIST'
 ,p_list_item_current_for_pages=>'1,4'
 );
 wwv_flow_api.create_list_item(
  p_id=>wwv_flow_api.id(23780182518232893)
 ,p_list_item_display_sequence=>20
-,p_list_item_link_text=>'Ladda upp fil'
-,p_list_item_link_target=>'f?p=&APP_ID.:2:&APP_SESSION.::&DEBUG.:'
+,p_list_item_link_text=>'Upload'
+,p_list_item_link_target=>'f?p=&APP_ID.:2:&SESSION.::&DEBUG.::::'
 ,p_list_item_current_type=>'COLON_DELIMITED_PAGE_LIST'
 ,p_list_item_current_for_pages=>'2'
 );
 wwv_flow_api.create_list_item(
  p_id=>wwv_flow_api.id(23807360246909377)
 ,p_list_item_display_sequence=>30
-,p_list_item_link_text=>'Ladda ner fil'
-,p_list_item_link_target=>'f?p=&APP_ID.:4:&SESSION.::&DEBUG.'
+,p_list_item_link_text=>'Download'
+,p_list_item_link_target=>'f?p=&APP_ID.:4:&SESSION.::&DEBUG.::::'
 ,p_list_item_current_type=>'COLON_DELIMITED_PAGE_LIST'
 ,p_list_item_current_for_pages=>'4'
 );
 wwv_flow_api.create_list_item(
  p_id=>wwv_flow_api.id(24201707164985959)
 ,p_list_item_display_sequence=>40
-,p_list_item_link_text=>'Alert vy'
-,p_list_item_link_target=>'f?p=&APP_ID.:7:&SESSION.::&DEBUG.'
+,p_list_item_link_text=>'View Alertlog'
+,p_list_item_link_target=>'f?p=&APP_ID.:7:&SESSION.::&DEBUG.::::'
 ,p_list_item_current_type=>'COLON_DELIMITED_PAGE_LIST'
 ,p_list_item_current_for_pages=>'7'
 );
@@ -8950,7 +8952,7 @@ wwv_flow_api.create_page(
 ,p_autocomplete_on_off=>'OFF'
 ,p_page_template_options=>'#DEFAULT#'
 ,p_last_updated_by=>'UHELLSTR'
-,p_last_upd_yyyymmddhh24miss=>'20181126102717'
+,p_last_upd_yyyymmddhh24miss=>'20181128131253'
 );
 wwv_flow_api.create_page_plug(
  p_id=>wwv_flow_api.id(23697252859832002)
@@ -8966,7 +8968,7 @@ wwv_flow_api.create_page_plug(
 );
 wwv_flow_api.create_report_region(
  p_id=>wwv_flow_api.id(23697502711832004)
-,p_name=>'Instans'
+,p_name=>'Database'
 ,p_template=>wwv_flow_api.id(23744655563232803)
 ,p_display_sequence=>20
 ,p_include_in_reg_disp_sel_yn=>'Y'
@@ -9054,7 +9056,7 @@ wwv_flow_api.create_report_columns(
 wwv_flow_api.create_page_plug(
  p_id=>wwv_flow_api.id(23780015510232893)
 ,p_plug_name=>'Breadcrumbs'
-,p_region_template_options=>'#DEFAULT#:t-BreadcrumbRegion--useBreadcrumbTitle'
+,p_region_template_options=>'t-BreadcrumbRegion--useBreadcrumbTitle'
 ,p_component_template_options=>'#DEFAULT#'
 ,p_plug_template=>wwv_flow_api.id(23749104726232806)
 ,p_plug_display_sequence=>10
@@ -9062,6 +9064,7 @@ wwv_flow_api.create_page_plug(
 ,p_menu_id=>wwv_flow_api.id(23779544720232889)
 ,p_plug_source_type=>'NATIVE_BREADCRUMB'
 ,p_menu_template_id=>wwv_flow_api.id(23767972828232826)
+,p_plug_query_options=>'DERIVED_REPORT_COLUMNS'
 );
 end;
 /
@@ -9071,13 +9074,13 @@ wwv_flow_api.create_page(
  p_id=>2
 ,p_user_interface_id=>wwv_flow_api.id(23778309866232855)
 ,p_name=>'Upload'
-,p_step_title=>'Upload'
+,p_step_title=>'Upload File'
 ,p_step_sub_title=>'Ladda upp fil'
 ,p_step_sub_title_type=>'TEXT_WITH_SUBSTITUTIONS'
 ,p_autocomplete_on_off=>'OFF'
 ,p_page_template_options=>'#DEFAULT#'
 ,p_last_updated_by=>'UHELLSTR'
-,p_last_upd_yyyymmddhh24miss=>'20181126103827'
+,p_last_upd_yyyymmddhh24miss=>'20181128131334'
 );
 wwv_flow_api.create_page_plug(
  p_id=>wwv_flow_api.id(23695162626831981)
@@ -9169,14 +9172,16 @@ wwv_flow_api.create_report_columns(
 wwv_flow_api.create_page_plug(
  p_id=>wwv_flow_api.id(23780521756232894)
 ,p_plug_name=>'Breadcrumbs'
-,p_region_template_options=>'#DEFAULT#:t-BreadcrumbRegion--useBreadcrumbTitle'
+,p_region_template_options=>'t-BreadcrumbRegion--useBreadcrumbTitle'
 ,p_component_template_options=>'#DEFAULT#'
 ,p_plug_template=>wwv_flow_api.id(23749104726232806)
 ,p_plug_display_sequence=>10
+,p_include_in_reg_disp_sel_yn=>'Y'
 ,p_plug_display_point=>'REGION_POSITION_01'
 ,p_menu_id=>wwv_flow_api.id(23779544720232889)
 ,p_plug_source_type=>'NATIVE_BREADCRUMB'
 ,p_menu_template_id=>wwv_flow_api.id(23767972828232826)
+,p_plug_query_options=>'DERIVED_REPORT_COLUMNS'
 );
 wwv_flow_api.create_page_button(
  p_id=>wwv_flow_api.id(23695416949831984)
@@ -9204,6 +9209,7 @@ wwv_flow_api.create_page_button(
 ,p_button_image_alt=>'View File'
 ,p_button_position=>'REGION_TEMPLATE_CLOSE'
 ,p_button_redirect_url=>'f?p=&APP_ID.:3:&SESSION.::&DEBUG.:RP:P3_FILNAMN:&P2_FILNAMN.'
+,p_grid_new_grid=>false
 );
 wwv_flow_api.create_page_item(
  p_id=>wwv_flow_api.id(23695366950831983)
@@ -9226,7 +9232,7 @@ wwv_flow_api.create_page_process(
 ,p_process_sequence=>10
 ,p_process_point=>'ON_SUBMIT_BEFORE_COMPUTATION'
 ,p_process_type=>'NATIVE_PLSQL'
-,p_process_name=>'Upload'
+,p_process_name=>'UploadFile'
 ,p_process_sql_clob=>wwv_flow_string.join(wwv_flow_t_varchar2(
 'declare',
 '',
@@ -9369,6 +9375,7 @@ wwv_flow_api.create_page_button(
 ,p_button_image_alt=>'Back'
 ,p_button_position=>'REGION_TEMPLATE_PREVIOUS'
 ,p_button_redirect_url=>'f?p=&APP_ID.:2:&SESSION.::&DEBUG.:RP::'
+,p_grid_new_grid=>false
 );
 wwv_flow_api.create_page_item(
  p_id=>wwv_flow_api.id(23696329656831993)
@@ -9420,8 +9427,8 @@ begin
 wwv_flow_api.create_page(
  p_id=>4
 ,p_user_interface_id=>wwv_flow_api.id(23778309866232855)
-,p_name=>'Ladda ner fil'
-,p_step_title=>'Ladda ner fil'
+,p_name=>'Download '
+,p_step_title=>'Download'
 ,p_step_sub_title_type=>'TEXT_WITH_SUBSTITUTIONS'
 ,p_autocomplete_on_off=>'OFF'
 ,p_inline_css=>wwv_flow_string.join(wwv_flow_t_varchar2(
@@ -9435,7 +9442,7 @@ wwv_flow_api.create_page(
 '}'))
 ,p_page_template_options=>'#DEFAULT#'
 ,p_last_updated_by=>'UHELLSTR'
-,p_last_upd_yyyymmddhh24miss=>'20181126105217'
+,p_last_upd_yyyymmddhh24miss=>'20181128132044'
 );
 wwv_flow_api.create_page_plug(
  p_id=>wwv_flow_api.id(23697821899832008)
@@ -9638,6 +9645,7 @@ wwv_flow_api.create_interactive_grid(
 ,p_is_editable=>false
 ,p_lazy_loading=>false
 ,p_requires_filter=>false
+,p_max_row_count=>100000
 ,p_show_nulls_as=>'-'
 ,p_fixed_row_height=>true
 ,p_pagination_type=>'SCROLL'
@@ -9823,6 +9831,7 @@ wwv_flow_api.create_page_item(
 'select t_grantee||'';''||t_directory_name d',
 '       ,t_grantee||'';''||t_directory_name r',
 'from table(os_tools.get_all_directory_names)',
+'where t_directory_name <> ''DBTOOLS_SCRIPT_DIR''',
 'order by t_grantee,t_directory_name;'))
 ,p_lov_display_null=>'YES'
 ,p_cHeight=>1
@@ -10026,14 +10035,14 @@ begin
 wwv_flow_api.create_page(
  p_id=>7
 ,p_user_interface_id=>wwv_flow_api.id(23778309866232855)
-,p_name=>'Alert vy'
-,p_step_title=>'Alert vy'
+,p_name=>'View alert log'
+,p_step_title=>'View Alert log'
 ,p_step_sub_title=>'Alert vy'
 ,p_step_sub_title_type=>'TEXT_WITH_SUBSTITUTIONS'
 ,p_autocomplete_on_off=>'OFF'
 ,p_page_template_options=>'#DEFAULT#'
-,p_last_updated_by=>'HELLSULF'
-,p_last_upd_yyyymmddhh24miss=>'20180813125121'
+,p_last_updated_by=>'UHELLSTR'
+,p_last_upd_yyyymmddhh24miss=>'20181128125313'
 );
 wwv_flow_api.create_page_plug(
  p_id=>wwv_flow_api.id(24202051372985972)
