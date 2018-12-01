@@ -1,0 +1,11 @@
+- hosts: nodes 
+  vars:
+    logfile: instance.log
+
+  tasks:
+      - name: Run orause and echo output
+        shell: "cat /etc/oratab |/usr/bin/grep -e '^[^#]'| /usr/bin/awk -F':' '{print $1}'"
+        register: out
+
+      - debug: var=out.stdout_lines
+      - local_action: copy content={{out.stdout_lines}} dest=./{{logfile}}
