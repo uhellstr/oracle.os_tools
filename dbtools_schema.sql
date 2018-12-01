@@ -11,36 +11,6 @@ set echo off
 set verify off
 
 declare
-
-  lv_antal number;
-  lv_str_1 clob;
-  lv_str_2 clob;
-  lv_str_3 clob;
-
-begin
-
-    select count(*) into lv_antal
-    from dba_directories
-    where directory_name = 'DB_DUMP';
-
-    if lv_antal > 0 then
-      lv_str_1 := 'drop directory DB_DUMP';
-      dbms_output.put_line(lv_str_1);
-      execute immediate lv_str_1;
-    end if;
-
-    -- Create or recreate the directories
-    lv_str_2 := 'create directory DB_DUMP as '||''''||'/dump/dbtools'||'''';
-    lv_str_3 := 'grant read,write on directory DB_DUMP to dbtools with grant option';
-    dbms_output.put_line(lv_str_2);
-    execute immediate lv_str_2;
-    dbms_output.put_line(lv_str_3);
-    execute immediate lv_str_3;
-
-end;
-/
-
-declare
   db_user number;
 
 begin
@@ -96,4 +66,33 @@ GRANT CREATE SYNONYM TO DBTOOLS WITH ADMIN OPTION;
 GRANT CREATE DATABASE LINK TO DBTOOLS ;
 GRANT CREATE ANY DIRECTORY TO DBTOOLS;
 GRANT UNLIMITED TABLESPACE TO DBTOOLS ;
--- This has to be done a little more efficient
+
+declare
+
+  lv_antal number;
+  lv_str_1 clob;
+  lv_str_2 clob;
+  lv_str_3 clob;
+
+begin
+
+    select count(*) into lv_antal
+    from dba_directories
+    where directory_name = 'DB_DUMP';
+
+    if lv_antal > 0 then
+      lv_str_1 := 'drop directory DB_DUMP';
+      dbms_output.put_line(lv_str_1);
+      execute immediate lv_str_1;
+    end if;
+
+    -- Create or recreate the directories
+    lv_str_2 := 'create directory DB_DUMP as '||''''||'/dump/dbtools'||'''';
+    lv_str_3 := 'grant read,write on directory DB_DUMP to dbtools with grant option';
+    dbms_output.put_line(lv_str_2);
+    execute immediate lv_str_2;
+    dbms_output.put_line(lv_str_3);
+    execute immediate lv_str_3;
+
+end;
+/
