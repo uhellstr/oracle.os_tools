@@ -14,55 +14,55 @@ def sql_template():
 from (
 select *
 from ( select dbtools.os_tools.get_host_name as hostname from dual),
-     ( select substr(dbtools.os_tools.get_container_name,1,length(dbtools.os_tools.get_container_name)-2) as container from dual),
+     ( select dbtools.os_tools.get_container_name as container from dual),
      ( select dbtools.os_tools.get_pdb_name as pdb from dual),
      ( select 'oracle_home' as typ ,dbtools.os_tools.get_oracle_home as varde from dual)
 union
 select *
 from ( select dbtools.os_tools.get_host_name as hostname from dual),
-     ( select substr(dbtools.os_tools.get_container_name,1,length(dbtools.os_tools.get_container_name)-2) as container from dual),
+     ( select dbtools.os_tools.get_container_name as container from dual),
      ( select dbtools.os_tools.get_pdb_name as pdb from dual),
      ( select 'oracle_base',dbtools.os_tools.get_ora_base from dual)
 union
 select *
 from ( select dbtools.os_tools.get_host_name as hostname from dual),
-     ( select substr(dbtools.os_tools.get_container_name,1,length(dbtools.os_tools.get_container_name)-2) as container from dual),
+     ( select dbtools.os_tools.get_container_name as container from dual),
      ( select dbtools.os_tools.get_pdb_name as pdb from dual),
      (select 'service_names',t_name as varde from table(dbtools.os_tools.get_service_names))
 union
 select *
 from ( select dbtools.os_tools.get_host_name as hostname from dual),
-     ( select substr(dbtools.os_tools.get_container_name,1,length(dbtools.os_tools.get_container_name)-2) as container from dual),
+     ( select dbtools.os_tools.get_container_name as container from dual),
      ( select dbtools.os_tools.get_pdb_name as pdb from dual),
      ( select 'charset' as typ ,value as varde from nls_database_parameters where parameter = 'NLS_CHARACTERSET')
 union
 select *
 from ( select dbtools.os_tools.get_host_name as hostname from dual),
-     ( select substr(dbtools.os_tools.get_container_name,1,length(dbtools.os_tools.get_container_name)-2) as container from dual),
+     ( select dbtools.os_tools.get_container_name as container from dual),
      ( select dbtools.os_tools.get_pdb_name as pdb from dual),
      ( select 'db_totalsize_mb' as typ, to_char(round(sum(bytes)/1024/1024)) as varde from dba_data_files )
 union
 select *
 from ( select dbtools.os_tools.get_host_name as hostname from dual),
-     ( select substr(dbtools.os_tools.get_container_name,1,length(dbtools.os_tools.get_container_name)-2) as container from dual),
+     ( select dbtools.os_tools.get_container_name as container from dual),
      ( select dbtools.os_tools.get_pdb_name as pdb from dual),
      ( select 'db_allocatedsize_mb' as typ, to_char(round(sum(bytes)/1024/1024)) as varde from dba_segments )
 union
 select *
 from ( select dbtools.os_tools.get_host_name as hostname from dual),
-     ( select substr(dbtools.os_tools.get_container_name,1,length(dbtools.os_tools.get_container_name)-2) as container from dual),
+     ( select dbtools.os_tools.get_container_name as container from dual),
      ( select dbtools.os_tools.get_pdb_name as pdb from dual),
      (select 'db_allocated_sga_mb' as typ,to_char(round(sum(value)/1024/1024)) as varde from v$sga)
 union
 select *
 from ( select dbtools.os_tools.get_host_name as hostname from dual),
-     ( select substr(dbtools.os_tools.get_container_name,1,length(dbtools.os_tools.get_container_name)-2) as container from dual),
+     ( select dbtools.os_tools.get_container_name as container from dual),
      ( select dbtools.os_tools.get_pdb_name as pdb from dual),
      ( select 'db_allocated_pga_mb' as typ, to_char(round(value/1024/1024)) as varde from v$pgastat where name like 'total PGA a%')
 union
 select *
 from ( select dbtools.os_tools.get_host_name as hostname from dual),
-     ( select substr(dbtools.os_tools.get_container_name,1,length(dbtools.os_tools.get_container_name)-2) as container from dual),
+     ( select dbtools.os_tools.get_container_name as container from dual),
      ( select dbtools.os_tools.get_pdb_name as pdb from dual),
      ( select 'archive_log' as typ, log_mode as varde from v$database )
 )"""
