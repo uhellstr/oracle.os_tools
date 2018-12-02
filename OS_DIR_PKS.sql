@@ -9,6 +9,12 @@ as
              );
 
   procedure maintain_dirs;
+  
+  procedure setup_credentials
+             (
+               p_in_ora_pwd in varchar2
+             );
+             
 
 end os_dir;
 
