@@ -49,9 +49,9 @@ DECLARE
 BEGIN
 
   P_IN_TNS_ENTRY := null;
-  P_IN_HOST := 'td02-scan.systest.receptpartner.se';
+  P_IN_HOST := 'localhost';
   P_IN_SERVICE_NAME := null;
-  P_IN_PORTNO := 1521;
+  P_IN_PORTNO := 1522;
 
   for rec in (select t_name as tns_names from table(os_tools.get_service_names) where t_name not in('OS_BATCH')) loop
 
@@ -84,7 +84,7 @@ from table(os_tools.get_directory_names);
 
 select t_directory_name as directory, 
        t_path as path
-from table(os_tools.get_directory_names('ETCDBA'));
+from table(os_tools.get_directory_names('DBTOOLS'));
 
 --
 -- Get all directories with grantee , directory and path
@@ -116,7 +116,7 @@ from
     f_user,
     f_group,
     f_size,
-    to_date(f_date,'MON DD HH24:MI','NLS_DATE_LANGUAGE = AMERICAN') as f_date,
+    to_date(f_date,'DD MON HH24:MI','NLS_DATE_LANGUAGE = AMERICAN') as f_date,
     f_file
   from trace_dir_1_ext_tab
   where (instr(f_file,'.trc') > 0 or instr(f_file,'.log') > 0)
@@ -130,12 +130,12 @@ select f_permission
        ,f_user
        ,f_group
        ,f_size
-       ,to_date(f_date,'MON DD HH24:MI','NLS_DATE_LANGUAGE = AMERICAN') as f_date
+       ,to_date(f_date,'DD MON HH24:MI','NLS_DATE_LANGUAGE = AMERICAN') as f_date
        ,f_file
-from table( os_tools.get_dir_files_list('UTV_DUMP_EXT_TAB','ETCDBA') );
+from table( os_tools.get_dir_files_list('DB_DUMP_EXT_TAB','DBTOOLS') );
 
 --
--- Example:  copy file from trace directory on td02db01 to UTV_DUMP. Se how to query alert.log on how to find trace files
+-- Example:  copy file from trace directory to DB_DUMP
 --
 
 DECLARE
@@ -146,7 +146,7 @@ DECLARE
 BEGIN
   P_INDIR := 'TRACE_DIR_1';
   P_INFILENAME := 'alert_NLLISO_1.log';
-  P_OUTDIR := 'UTV_DUMP';
+  P_OUTDIR := 'DB_DUMP';
   P_OUTFILENAME := 'ULF_NLLISO_alert.log';
 
   OS_TOOLS.COPY_FILE(
@@ -172,8 +172,8 @@ DECLARE
   
 BEGIN
 
-  P_DIR := 'UTV_DUMP';
-  P_FILENAME := 'RFC_INSERT_FORS.txt';
+  P_DIR := 'DB_DUMP';
+  P_FILENAME := 'test.txt';
 
   OS_TOOLS.LOG_OS_FILE_TO_TABLE(
     P_DIR => P_DIR
@@ -213,7 +213,7 @@ DECLARE
   P_SEQ NUMBER;
   P_FILENAME VARCHAR2(200);
 BEGIN
-  P_DIR := 'UTV_DUMP';
+  P_DIR := 'DB_DUMP';
   P_SEQ := 22;
   P_FILENAME := 'ulftest.txt';
 
@@ -235,7 +235,7 @@ set serveroutput on
 declare
   lv_dir_exists boolean;
 begin
-   lv_dir_exists := os_tools.check_if_os_directory_exists('TRACE_DIR_1');
+   lv_dir_exists := os_tools.check_if_os_directory_exists('DBTOOLS_SCRIPT_DIR');
    if lv_dir_exists then
      dbms_output.put_line('Directory exists on O/S level');
    else
@@ -252,7 +252,7 @@ set serveroutput on
 declare
   FileAttr   os_tools.fgetattr_t;
 begin
-  FileAttr := os_tools.get_file_attributes('UTV_DUMP','files.txt');
+  FileAttr := os_tools.get_file_attributes('DB_DUMP','files.txt');
   if (FileAttr.fexists) then
     dbms_output.put_line('File exists');
   else
@@ -267,16 +267,16 @@ end;
 /
 
 --
--- Example: Create an external table to list all files in Oracle Directory UTV_DUMP for ETCDBA
+-- Example: Create an external table to list all files in Oracle Directory DB_DUMP for schema DEMO
 --
--- This will create external UTV_DUMP_EXT_TAB that lists all files in Oracle Directory UTV_DUMP
+-- This will create external DB_DUMP_EXT_TAB that lists all files in Oracle Directory DB_DUMP
 --
 
 set serveroutput on
 begin
   os_tools.list_files_in_dir(
-    p_in_dir=>'UTV_DUMP'
-    ,p_in_owner=>'ETCDBA'
+    p_in_dir=>'DB_DUMP'
+    ,p_in_owner=>'DEMO'
   );
 end;
 /
