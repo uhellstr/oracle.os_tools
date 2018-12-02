@@ -6,4 +6,4 @@ REM
 @dbtools_directories.sql
 @setup_alrt_log_view.sql
 @dbtools_objs.sql
-
+@setup_credentials.sql
