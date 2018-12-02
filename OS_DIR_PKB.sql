@@ -338,6 +338,59 @@ as
   end clean_os_file_log;
 
   --*=============================================================================
+  
+  procedure setup_credentials
+             (
+               p_in_ora_pwd in varchar2
+             ) 
+  is
+  
+    lv_dir_exists boolean;
+    lv_job_exists number  := 0;
+    lv_path clob;
+    lv_template clob := q'[#!/bin/bash]'||chr(10)||
+    q'[export PATH=$PATH:/bin]'||chr(10)||
+    q'[chmod 755 {$1}]'||chr(10);  
+    
+  begin
+   lv_dir_exists := dbtools.os_tools.check_if_os_directory_exists('DBTOOLS_SCRIPT_DIR');
+   
+   if lv_dir_exists then
+   
+     select t_path into lv_path
+     from table(dbtools.os_tools.get_directory_names('DBTOOLS'))
+     where t_directory_name = 'DBTOOLS_SCRIPT_DIR';
+
+     dbms_output.put_line(lv_path);
+     lv_template := replace(lv_template,'{$1}',lv_path||'/*.sh');     
+     dbms_output.put_line(lv_template);
+     
+     dbms_credential.create_credential
+             (
+               credential_name => 'oracle_shell_executable_perm',
+               username        => 'oracle',
+               password        => p_in_ora_pwd
+             );
+                          
+      DBMS_SCHEDULER.create_job
+             (
+               job_name        => 'DBTOOLS.SET_EXECFLAG_DBTOOLS_SCRIPT_DIR',
+               job_type        => 'EXTERNAL_SCRIPT',
+               job_action      => '/bin/ksh '||lv_template,
+               credential_name => 'oracle_shell_executable_perm',
+               start_date => NULL,
+               repeat_interval => 'FREQ=MINUTELY;BYHOUR=8,9,10,11,12,13,14,15,16,17,18,19,20,21;BYDAY=MON,TUE,WED,THU,FRI,SAT,SUN',
+               end_date => NULL,
+               enabled => TRUE,
+               auto_drop => FALSE,
+               comments => 'Set executable permissions on scripts in DBTOOLS_SCRIPT_DIR'
+             );
+                         
+    end if;  
+    
+  end setup_credentials;
+  
+  --*=============================================================================  
 
   procedure maintain_dirs
   as
