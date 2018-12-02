@@ -1,6 +1,7 @@
 
 GRANT UNLIMITED TABLESPACE TO DBTOOLS ;
 grant create job to DBTOOLS ;
+grant create credential to DBTOOLS;
 GRANT CREATE EXTERNAL JOB TO DBTOOLS ;
 grant select on dba_external_tables to DBTOOLS ;
 grant select on dba_external_locations to DBTOOLS ;
