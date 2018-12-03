@@ -46,4 +46,5 @@
 # prodservers
 #
 [nodes]
-localhost
+test1
+test2

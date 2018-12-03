@@ -4,7 +4,7 @@
 
   tasks:
       - name: Run orause and echo output
-        shell: "cat /etc/oratab |/usr/bin/grep -e '^[^#]'| /usr/bin/awk -F':' '{print $1}'"
+        shell: "cat /etc/oratab |grep -e '^[^#]'|awk -F':' '{print $1}'"
         register: out
 
       - debug: var=out.stdout_lines
