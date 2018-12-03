@@ -1,13 +1,18 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # coding: UTF-8
 
 from __future__ import print_function
+
 import cx_Oracle
 import re
 import base64
 import getpass
 import os
-import ConfigParser
+import sys
+try:
+    import ConfigParser
+except ImportError:
+    import configparser
 
 def sql_template():
 
@@ -157,8 +162,12 @@ def update_db_info(catalog_instance,tns,port,password):
 if __name__ == "__main__":
     os.system('cls' if os.name == 'nt' else 'clear')
     # Pick upp tns,port and instance from db_info.cfg
-    config = ConfigParser.ConfigParser()
-    config.readfp(open(r'db_info.cfg'))
+    if sys.version_info[0] < 3:
+        config = ConfigParser.ConfigParser()
+        config.readfp(open(r'db_info.cfg'))
+    else:
+        config = configparser.ConfigParser()
+        config.read('db_info.cfg')
     tns = config.get('oraconfig','tns')
     port = config.get('oraconfig','port')
     catalog_info = config.get('oraconfig','catalog_info')
