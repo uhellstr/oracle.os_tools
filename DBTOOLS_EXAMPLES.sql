@@ -1,11 +1,11 @@
 REM
 REM This is a example file on how to use the OS_TOOLS package to find out information and manipulate files 
 REM 
+REM  Run this as DBTOOLS schema.
+REM
 
 --
 -- Example: Get host_name
--- td02db01 TRACE_DIR_1
--- td02db02 TRACE_DIR_2
 --
 select os_tools.get_host_name from dual;
 
@@ -96,12 +96,6 @@ select t_grantee as grantee
 from table(os_tools.get_all_directory_names)
 order by grantee,directory;
 
---
--- Example: How to read alert.log for current CDB
---
-
-select * from v_alert_log;
-select * from v_alert_log where message_text like'%.trc%';
 
 --
 -- Example: Select all trc files  and alert from TRACE_DIR_1_EXT_TAB and sort them by Oracle Date order desc
@@ -116,7 +110,7 @@ from
     f_user,
     f_group,
     f_size,
-    to_date(f_date,'DD MON HH24:MI','NLS_DATE_LANGUAGE = AMERICAN') as f_date,
+    to_date(f_date,'RRRR-MM-DD HH24:MI:SS') as f_date,
     f_file
   from trace_dir_1_ext_tab
   where (instr(f_file,'.trc') > 0 or instr(f_file,'.log') > 0)
@@ -130,106 +124,10 @@ select f_permission
        ,f_user
        ,f_group
        ,f_size
-       ,to_date(f_date,'DD MON HH24:MI','NLS_DATE_LANGUAGE = AMERICAN') as f_date
+       ,to_date(f_date,'RRRR-MM-DD HH24:MI:SS') as f_date
        ,f_file
 from table( os_tools.get_dir_files_list('DB_DUMP_EXT_TAB','DBTOOLS') );
 
---
--- Example:  copy file from trace directory to DB_DUMP
---
-
-DECLARE
-  P_INDIR VARCHAR2(200);
-  P_INFILENAME VARCHAR2(200);
-  P_OUTDIR VARCHAR2(200);
-  P_OUTFILENAME VARCHAR2(200);
-BEGIN
-  P_INDIR := 'TRACE_DIR_1';
-  P_INFILENAME := 'alert_NLLISO_1.log';
-  P_OUTDIR := 'DB_DUMP';
-  P_OUTFILENAME := 'ULF_NLLISO_alert.log';
-
-  OS_TOOLS.COPY_FILE(
-    P_INDIR => P_INDIR,
-    P_INFILENAME => P_INFILENAME,
-    P_OUTDIR => P_OUTDIR,
-    P_OUTFILENAME => P_OUTFILENAME
-  );
---rollback; 
-END;
-/
-
---
--- Example: store external file into a table for later query
---
-
-set serveroutput on
-DECLARE
-
-  P_DIR VARCHAR2(200);
-  P_FILENAME VARCHAR2(200);
-  P_SEQ  NUMBER;
-  
-BEGIN
-
-  P_DIR := 'DB_DUMP';
-  P_FILENAME := 'test.txt';
-
-  OS_TOOLS.LOG_OS_FILE_TO_TABLE(
-    P_DIR => P_DIR
-    ,P_FILENAME => P_FILENAME
-    ,P_SEQ => P_SEQ
-  );
-  dbms_output.put_line('Fil lagrad med sekvensnummer : '||P_SEQ);  
---rollback;
-END;
-/
-
---
--- Example: Find id for file store in table
---
-
-select file_sequence 
-from os_file_log
-where filename = 'dumma_uffe.txt'
-and date_loaded > trunc(sysdate);
-
---
--- Example: Get the content for file with file_sequene = 21
---
-
-select row_num,text
-from os_file_log_details
-where file_sequence = 22
-order by row_num asc;
-
---
--- Example: Write back a logged file to operating system
---          We use the file_sequence in os_file_log as 
---          input to procedure.
-
-DECLARE
-  P_DIR VARCHAR2(200);
-  P_SEQ NUMBER;
-  P_FILENAME VARCHAR2(200);
-BEGIN
-  P_DIR := 'DB_DUMP';
-  P_SEQ := 22;
-  P_FILENAME := 'ulftest.txt';
-
-  OS_TOOLS.WRITE_LOGGED_FILE_TO_OS(
-    P_DIR => P_DIR,
-    P_SEQ => P_SEQ,
-    P_FILENAME => P_FILENAME
-  );
---rollback; 
-END;
-/
-
---
--- Example: Check if a Oracle directory REALLY exists on O/S level.
--- This can be handy to verify that a Directory created within Oracle really has the corresponding O/S path setup.
---
 
 set serveroutput on
 declare
@@ -266,18 +164,123 @@ begin
 end;
 /
 
+
+--%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% Other samples for manipulat files %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+--%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% NOT PART OF TEST SUITE           %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+----
+---- Example: How to read alert.log for current CDB
+----
 --
--- Example: Create an external table to list all files in Oracle Directory DB_DUMP for schema DEMO
+--select * from v_alert_log;
+--select * from v_alert_log where message_text like'%.trc%';
+----
+---- Example: Create an external table to list all files in Oracle Directory DB_DUMP for schema DEMO
+----
+---- This will create external DB_DUMP_EXT_TAB that lists all files in Oracle Directory DB_DUMP
+----
 --
--- This will create external DB_DUMP_EXT_TAB that lists all files in Oracle Directory DB_DUMP
+--set serveroutput on
+--begin
+--  os_tools.list_files_in_dir(
+--    p_in_dir=>'DB_DUMP'
+--    ,p_in_owner=>'DEMO'
+--  );
+--end;
+--/
+
+--
+-- Example:  copy file from trace directory to DB_DUMP
 --
 
-set serveroutput on
-begin
-  os_tools.list_files_in_dir(
-    p_in_dir=>'DB_DUMP'
-    ,p_in_owner=>'DEMO'
-  );
-end;
-/
+--DECLARE
+--  P_INDIR VARCHAR2(200);
+--  P_INFILENAME VARCHAR2(200);
+--  P_OUTDIR VARCHAR2(200);
+--  P_OUTFILENAME VARCHAR2(200);
+--BEGIN
+--  P_INDIR := 'TRACE_DIR_1';
+--  P_INFILENAME := 'alert_NLLISO_1.log';
+--  P_OUTDIR := 'DB_DUMP';
+--  P_OUTFILENAME := 'ULF_NLLISO_alert.log';
+--
+--  OS_TOOLS.COPY_FILE(
+--    P_INDIR => P_INDIR,
+--    P_INFILENAME => P_INFILENAME,
+--    P_OUTDIR => P_OUTDIR,
+--    P_OUTFILENAME => P_OUTFILENAME
+--  );
+----rollback; 
+--END;
+--/
+--
+----
+---- Example: store external file into a table for later query
+----
+--
+--set serveroutput on
+--DECLARE
+--
+--  P_DIR VARCHAR2(200);
+--  P_FILENAME VARCHAR2(200);
+--  P_SEQ  NUMBER;
+--  
+--BEGIN
+--
+--  P_DIR := 'DB_DUMP';
+--  P_FILENAME := 'test.txt';
+--
+--  OS_TOOLS.LOG_OS_FILE_TO_TABLE(
+--    P_DIR => P_DIR
+--    ,P_FILENAME => P_FILENAME
+--    ,P_SEQ => P_SEQ
+--  );
+--  dbms_output.put_line('Fil lagrad med sekvensnummer : '||P_SEQ);  
+----rollback;
+--END;
+--/
+--
+----
+---- Example: Find id for file store in table
+----
+--
+--select file_sequence 
+--from os_file_log
+--where filename = 'dumma_uffe.txt'
+--and date_loaded > trunc(sysdate);
+--
+----
+---- Example: Get the content for file with file_sequene = 21
+----
+--
+--select row_num,text
+--from os_file_log_details
+--where file_sequence = 22
+--order by row_num asc;
+--
+----
+---- Example: Write back a logged file to operating system
+----          We use the file_sequence in os_file_log as 
+----          input to procedure.
+--
+--DECLARE
+--  P_DIR VARCHAR2(200);
+--  P_SEQ NUMBER;
+--  P_FILENAME VARCHAR2(200);
+--BEGIN
+--  P_DIR := 'DB_DUMP';
+--  P_SEQ := 22;
+--  P_FILENAME := 'ulftest.txt';
+--
+--  OS_TOOLS.WRITE_LOGGED_FILE_TO_OS(
+--    P_DIR => P_DIR,
+--    P_SEQ => P_SEQ,
+--    P_FILENAME => P_FILENAME
+--  );
+----rollback; 
+--END;
+--/
 
+--
+-- Example: Check if a Oracle directory REALLY exists on O/S level.
+-- This can be handy to verify that a Directory created within Oracle really has the corresponding O/S path setup.
+--
