@@ -47,7 +47,7 @@ as
   as
 
     lv_script clob := '#!/bin/bash'||chr(10)||
-                      q'[/bin/ls -ltrh  {$0} | /bin/awk '{if(NR>1)print  $1 "|" $2 "|" $3 "|" $4 "|" $5 "|" $6 " " $7 " " $8 "|" $9;}']';
+                      q'[/bin/ls -ltrh --time-style="+%Y-%m-%d %H:%M:%S" {$0} | /bin/awk '{if(NR>1)print  $1 "|" $2 "|" $3 "|" $4 "|" $5 "|" $6 " " $7 "|" $8;}']';
     lv_path clob;
     lv_file_name clob;
     FileAttr   os_tools.fgetattr_t;
@@ -217,7 +217,7 @@ as
                        q'[  f_user varchar2(32 char),]'||chr(10)||
                        q'[  f_group varchar2(32 char),]'||chr(10)||
                        q'[  f_size  varchar2(30 char),]'||chr(10)||
-                       q'[  f_date  varchar2(20 char),]'||chr(10)||
+                       q'[  f_date  varchar2(30 char),]'||chr(10)||
                        q'[  f_file varchar2(4000 char)]'||chr(10)||
                        q'[) ORGANIZATION EXTERNAL]'||chr(10)||
                        q'[(]'||chr(10)||
@@ -338,40 +338,40 @@ as
   end clean_os_file_log;
 
   --*=============================================================================
-  
+
   procedure setup_credentials
              (
                p_in_ora_pwd in varchar2
-             ) 
+             )
   is
-  
+
     lv_dir_exists boolean;
     lv_job_exists number  := 0;
     lv_path clob;
     lv_template clob := q'[#!/bin/bash]'||chr(10)||
     q'[export PATH=$PATH:/bin]'||chr(10)||
-    q'[chmod 755 {$1}]'||chr(10);  
-    
+    q'[chmod 755 {$1}]'||chr(10);
+
   begin
    lv_dir_exists := dbtools.os_tools.check_if_os_directory_exists('DBTOOLS_SCRIPT_DIR');
-   
+
    if lv_dir_exists then
-   
+
      select t_path into lv_path
      from table(dbtools.os_tools.get_directory_names('DBTOOLS'))
      where t_directory_name = 'DBTOOLS_SCRIPT_DIR';
 
      dbms_output.put_line(lv_path);
-     lv_template := replace(lv_template,'{$1}',lv_path||'/*.sh');     
+     lv_template := replace(lv_template,'{$1}',lv_path||'/*.sh');
      dbms_output.put_line(lv_template);
-     
+
      dbms_credential.create_credential
              (
                credential_name => 'oracle_shell_executable_perm',
                username        => 'oracle',
                password        => p_in_ora_pwd
              );
-                          
+
       DBMS_SCHEDULER.create_job
              (
                job_name        => 'DBTOOLS.SET_EXECFLAG_DBTOOLS_SCRIPT_DIR',
@@ -385,12 +385,12 @@ as
                auto_drop => FALSE,
                comments => 'Set executable permissions on scripts in DBTOOLS_SCRIPT_DIR'
              );
-                         
-    end if;  
-    
+
+    end if;
+
   end setup_credentials;
-  
-  --*=============================================================================  
+
+  --*=============================================================================
 
   procedure maintain_dirs
   as
