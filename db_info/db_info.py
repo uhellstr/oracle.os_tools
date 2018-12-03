@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python
 # coding: UTF-8
 
 from __future__ import print_function
@@ -7,76 +7,61 @@ import re
 import base64
 import getpass
 import os
+import ConfigParser
 
 def sql_template():
 
-    stmt="""select hostname||'|'||container||'|'||pdb||'|'||typ||'|'||varde
+    stmt="""select host||'|'||container||'|'||pdb||'|'||typ||'|'||varde
 from (
+with db_info as
+(
+  select *
+  from
+  ( select host_name as host from v$instance ),
+  ( select instance_name as container from sys.v_$instance ),
+  ( select sys_context('USERENV','DB_NAME') as pdb from dual )
+)
 select *
-from ( select dbtools.os_tools.get_host_name as hostname from dual),
-     ( select dbtools.os_tools.get_container_name as container from dual),
-     ( select dbtools.os_tools.get_pdb_name as pdb from dual),
-     ( select 'oracle_home' as typ ,dbtools.os_tools.get_oracle_home as varde from dual)
+from db_info,(select 'oracle_home' as typ,SYS_CONTEXT('USERENV','ORACLE_HOME') as varde from dual)
 union
 select *
-from ( select dbtools.os_tools.get_host_name as hostname from dual),
-     ( select dbtools.os_tools.get_container_name as container from dual),
-     ( select dbtools.os_tools.get_pdb_name as pdb from dual),
-     ( select 'oracle_base',dbtools.os_tools.get_ora_base from dual)
+from db_info,(select 'oracle_base' as typ,substr(SYS_CONTEXT('USERENV','ORACLE_HOME'),1,instr(SYS_CONTEXT ('USERENV','ORACLE_HOME'),'product')-2) as varde from dual)
 union
 select *
-from ( select dbtools.os_tools.get_host_name as hostname from dual),
-     ( select dbtools.os_tools.get_container_name as container from dual),
-     ( select dbtools.os_tools.get_pdb_name as pdb from dual),
-     (select 'service_names',t_name as varde from table(dbtools.os_tools.get_service_names))
+from db_info,(select 'service_names' as typ, name as varde from v$services where upper(substr(name,1,3)) not in ('SYS'))
 union
 select *
-from ( select dbtools.os_tools.get_host_name as hostname from dual),
-     ( select dbtools.os_tools.get_container_name as container from dual),
-     ( select dbtools.os_tools.get_pdb_name as pdb from dual),
-     ( select 'charset' as typ ,value as varde from nls_database_parameters where parameter = 'NLS_CHARACTERSET')
+from db_info,(select 'charset' as typ ,value as varde from nls_database_parameters where parameter = 'NLS_CHARACTERSET')
 union
 select *
-from ( select dbtools.os_tools.get_host_name as hostname from dual),
-     ( select dbtools.os_tools.get_container_name as container from dual),
-     ( select dbtools.os_tools.get_pdb_name as pdb from dual),
-     ( select 'db_totalsize_mb' as typ, to_char(round(sum(bytes)/1024/1024)) as varde from dba_data_files )
+from db_info,(select 'db_totalsize_mb' as typ, to_char(round(sum(bytes)/1024/1024)) as varde from dba_data_files )
 union
 select *
-from ( select dbtools.os_tools.get_host_name as hostname from dual),
-     ( select dbtools.os_tools.get_container_name as container from dual),
-     ( select dbtools.os_tools.get_pdb_name as pdb from dual),
-     ( select 'db_allocatedsize_mb' as typ, to_char(round(sum(bytes)/1024/1024)) as varde from dba_segments )
+from db_info,( select 'db_allocatedsize_mb' as typ, to_char(round(sum(bytes)/1024/1024)) as varde from dba_segments )
 union
 select *
-from ( select dbtools.os_tools.get_host_name as hostname from dual),
-     ( select dbtools.os_tools.get_container_name as container from dual),
-     ( select dbtools.os_tools.get_pdb_name as pdb from dual),
-     (select 'db_allocated_sga_mb' as typ,to_char(round(sum(value)/1024/1024)) as varde from v$sga)
+from db_info,( select 'db_allocated_sga_mb' as typ,to_char(round(sum(value)/1024/1024)) as varde from v$sga)
 union
 select *
-from ( select dbtools.os_tools.get_host_name as hostname from dual),
-     ( select dbtools.os_tools.get_container_name as container from dual),
-     ( select dbtools.os_tools.get_pdb_name as pdb from dual),
-     ( select 'db_allocated_pga_mb' as typ, to_char(round(value/1024/1024)) as varde from v$pgastat where name like 'total PGA a%')
+from db_info,( select 'db_allocated_pga_mb' as typ, to_char(round(value/1024/1024)) as varde from v$pgastat where name like 'total PGA a%' )
 union
 select *
-from ( select dbtools.os_tools.get_host_name as hostname from dual),
-     ( select dbtools.os_tools.get_container_name as container from dual),
-     ( select dbtools.os_tools.get_pdb_name as pdb from dual),
-     ( select 'archive_log' as typ, log_mode as varde from v$database )
+from db_info,( select 'archive_log' as typ, log_mode as varde from v$database )
+union
+select *
+from db_info, ( select 'apex_installed' as typ, version as varde from dba_registry where comp_id = 'APEX')
 )"""
 
     return stmt
 
-def get_pdbs(cdb_name,password):
+def get_pdbs(cdb_name,tns,port,password):
 
     pdb_list = []
+    tnsalias = tns + ":" + port + "/" + cdb_name
+    print(tnsalias)
 
-    tns = "localhost:1522/" + cdb_name
-    print(tns)
     try:
-        connection = cx_Oracle.connect("sys", password, tns, mode=cx_Oracle.SYSDBA)
+        connection = cx_Oracle.connect("sys", password, tnsalias, mode=cx_Oracle.SYSDBA)
     except cx_Oracle.DatabaseError as e:
         print (cdb_name + "Unreachable, the reason is ".format(e))
     else:
@@ -96,12 +81,15 @@ def get_pdbs(cdb_name,password):
         connection.close()
         return pdb_list
 
-def get_pdb_info(cdb_name, pdb_name, password):
+def get_pdb_info(cdb_name,tns,port,pdb_name,password):
 
     pdb_info = []
-    tns = "localhost:1522/" + cdb_name
+
+    tnsalias = tns + ":" + port + "/" + cdb_name
+    print(tnsalias)
+
     try:
-        connection = cx_Oracle.connect("sys", password, tns, mode=cx_Oracle.SYSDBA)
+        connection = cx_Oracle.connect("sys", password, tnsalias, mode=cx_Oracle.SYSDBA)
     except cx_Oracle.DatabaseError as e:
         print (cdb_name + "Unreachable, the reason is ".format(e))
     else:
@@ -126,16 +114,17 @@ def get_pdb_info(cdb_name, pdb_name, password):
             c2.close()
             connection.close()
 
-def update_db_info(password):
+def update_db_info(catalog_instance,tns,port,password):
 
-    cdb_name = "xepdb1"
+    cdb_name = catalog_instance
     delstr = 'delete from dbtools.db_info'
-    tns = "localhost:1522/" + cdb_name
+    tnsalias = tns + ":" + port + "/" + cdb_name
+    print(tnsalias)
 
     print(tns)
 
     try:
-        connection = cx_Oracle.connect("sys", password, tns, mode=cx_Oracle.SYSDBA)
+        connection = cx_Oracle.connect("sys", password, tnsalias, mode=cx_Oracle.SYSDBA)
     except cx_Oracle.DatabaseError as e:
         print (cdb_name + "Unreachable, the reason is ".format(e))
     else:
@@ -167,6 +156,14 @@ def update_db_info(password):
 
 if __name__ == "__main__":
     os.system('cls' if os.name == 'nt' else 'clear')
+    # Pick upp tns,port and instance from db_info.cfg
+    config = ConfigParser.ConfigParser()
+    config.readfp(open(r'db_info.cfg'))
+    tns = config.get('oraconfig','tns')
+    port = config.get('oraconfig','port')
+    catalog_info = config.get('oraconfig','catalog_info')
+    catalog_tns = config.get('oraconfig','catalog_tns')
+    catalog_port = config.get('oraconfig','catalog_port')
     # Get password and encrypt it
     pwd = getpass.getpass(prompt="Please give SYS pwd: ")
     pwd =  base64.urlsafe_b64encode(pwd.encode('UTF-8)')).decode('ascii')
@@ -182,18 +179,18 @@ if __name__ == "__main__":
     for val in file_list:
         input_file = open(val,'r')
         for line in input_file:
-            cdb = line[:-3]
-            if cdb in ('AS','ASM'):
+            cdb = line
+            if cdb.startswith("+ASM"):
                 print('Not connecting or collecting ASM')
             else:
                 print(cdb)
-                list_of_pdbs = get_pdbs(cdb,base64.urlsafe_b64decode(os.environ["DB_INFO"].encode('UTF-8')).decode('ascii'))
+                list_of_pdbs = get_pdbs(cdb,tns,port,base64.urlsafe_b64decode(os.environ["DB_INFO"].encode('UTF-8')).decode('ascii'))
                 for val in list_of_pdbs:
                     #print(type(val))
                     print(val)
-                    get_pdb_info(cdb,val,base64.urlsafe_b64decode(os.environ["DB_INFO"].encode('UTF-8')).decode('ascii'))
+                    get_pdb_info(cdb,tns,port,val,base64.urlsafe_b64decode(os.environ["DB_INFO"].encode('UTF-8')).decode('ascii'))
     #for listval in info_list:
     #    print(listval)
     outfile = open(resultfile,'w')
     outfile.write("\n".join(info_list))
-    update_db_info(base64.urlsafe_b64decode(os.environ["DB_INFO"].encode('UTF-8')).decode('ascii'))
+    update_db_info(catalog_info,catalog_tns,catalog_port,base64.urlsafe_b64decode(os.environ["DB_INFO"].encode('UTF-8')).decode('ascii'))
