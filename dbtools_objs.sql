@@ -147,7 +147,6 @@ create or replace type DBTOOLS.t_tab_arr is table of t_tab_name;
 @OS_DIR_PKB.sql
 @OS_TOOLS_PKS.sql
 @OS_TOOLS_PKB.sql
-@DBTOOLS_DRIFT_DBA_PKG.sql
 alter package DBTOOLS.os_dir compile;
 alter package DBTOOLS.os_tools compile;
 @dbtools_scheduled_job.sql
