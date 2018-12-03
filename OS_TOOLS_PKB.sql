@@ -348,7 +348,7 @@ as
 
      type lv_cur_type is REF CURSOR;
      lv_cur lv_cur_type;
-          
+
      type file_lst is record
        (
          f_permission varchar2(11 char),
@@ -356,12 +356,12 @@ as
          f_user varchar2( 32 char),
          f_group varchar2(32 char),
          f_size varchar2(30 char),
-         f_date varchar2(20 char),
-         f_file varchar2(4000 char)       
+         f_date varchar2(30 char),
+         f_file varchar2(4000 char)
        );
-       
-     lv_rec file_lst;  
-       
+
+     lv_rec file_lst;
+
 
      lv_stmt clob := q'[  select]'||chr(10)||
                      q'[  f_permission,]'||chr(10)||
@@ -374,13 +374,13 @@ as
                      q'[  from {$0}.{$1}]';
 
    begin
-    
+
     dbms_output.put_line(p_in_directory_name);
     dbms_output.put_line(p_in_owner);
     lv_stmt := replace(lv_stmt,'{$0}',p_in_owner);
     lv_stmt := replace(lv_stmt,'{$1}',p_in_directory_name);
     dbms_output.put_line(lv_stmt);
-        
+
     if check_ext_tab_exists
         (
           p_in_tablename => upper(p_in_directory_name)
