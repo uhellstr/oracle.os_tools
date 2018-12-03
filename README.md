@@ -6,6 +6,8 @@
 | |_| |___) |  | || |_| | |_| | |___ ___) |
  \___/|____/___|_| \___/ \___/|_____|____/
           |_____|
+          
+          
 
 Access (download/upload) files and list directories on Oracle DB Server thru API and WebApp (Apex)
 
