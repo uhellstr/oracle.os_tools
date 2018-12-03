@@ -126,7 +126,7 @@ create or replace type DBTOOLS.t_directory_file as object
       ,f_user      varchar2(32 CHAR)
       ,f_group     varchar2(32 CHAR)
       ,f_size      varchar2(30 CHAR)
-      ,f_date      varchar2(20 CHAR)
+      ,f_date      varchar2(30 CHAR)
       ,f_file      varchar2(4000 CHAR)
 );
 /
