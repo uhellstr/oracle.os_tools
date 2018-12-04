@@ -431,6 +431,7 @@ as
       and a.table_name in
      (select directory_name
       from sys.dba_directories)
+    and a.grantee = p_in_user
     order by a.table_name asc;
 
   begin

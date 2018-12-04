@@ -55,36 +55,42 @@ as
   begin
 
     -- build shell script with help of template and path taken from Oracle dictionary
-    select t_path into lv_path
-    from table(os_tools.get_directory_names(upper(p_in_owner)))
-    where t_directory_name = upper(p_in_dir);
+    begin
+      select t_path into lv_path
+      from table(os_tools.get_directory_names(upper(p_in_owner)))
+      where t_directory_name = upper(p_in_dir);
+    exception
+      when no_data_found then
+        lv_path := 'MISSINGDIR';
+    end;  
 
-    lv_script := replace(lv_script,'{$0}',lv_path);
-
-    dbms_output.put_line(lv_script);
-
-    lv_file_name := gen_ls_file_name
+    if lv_path = 'MISSINGDIR' then
+      dbms_output.put_line(p_in_owner||':'||p_in_dir||' No such O/S directory skipping.');
+    else
+      lv_script := replace(lv_script,'{$0}',lv_path);
+      dbms_output.put_line(lv_script);
+      lv_file_name := gen_ls_file_name
                      (
                        p_in_dir => p_in_dir
                        ,p_in_owner => p_in_owner
                      );
+    
+      dbms_output.put_line(lv_file_name);
 
-    dbms_output.put_line(lv_file_name);
-
-    -- check that file not already exist on disk
-    -- if not then write the script to disk
-    FileAttr := os_tools.get_file_attributes('DBTOOLS_SCRIPT_DIR',lv_file_name);
-    if (FileAttr.fexists) then
-      null; -- Not do anything.
-    else
-      os_tools.write_clob_to_file
-        (
-          p_dir=>'DBTOOLS_SCRIPT_DIR'
-          ,p_filename=>lv_file_name
-          ,p_clob=>lv_script
-        );
+      -- check that file not already exist on disk
+      -- if not then write the script to disk
+      FileAttr := os_tools.get_file_attributes('DBTOOLS_SCRIPT_DIR',lv_file_name);
+      if (FileAttr.fexists) then
+        null; -- Not do anything.
+      else
+        os_tools.write_clob_to_file
+          (
+            p_dir=>'DBTOOLS_SCRIPT_DIR'
+            ,p_filename=>lv_file_name
+            ,p_clob=>lv_script
+          );
+      end if;
     end if;
-
   end gen_ls_file;
 
   --*=============================================================================
@@ -103,32 +109,40 @@ as
     FileAttr   os_tools.fgetattr_t;
 
   begin
-
-    select t_path into lv_path
-    from table(os_tools.get_directory_names(upper(p_in_owner)))
-    where t_directory_name = upper(p_in_dir);
-
-   -- create files.txt in p_in_dir if it does not exist
-    FileAttr := os_tools.get_file_attributes(p_in_dir,lv_file_name);
-    if (FileAttr.fexists) then
-      null; -- Not do anything.
+    -- nvl() not working against pipe function
+    begin
+      select t_path into lv_path
+      from table(os_tools.get_directory_names(upper(p_in_owner)))
+      where t_directory_name = upper(p_in_dir);
+    exception
+      when no_data_found then
+        lv_path := 'MISSINGDIR';
+    end;
+    -- create files.txt in p_in_dir if it does not exist
+    if lv_path = 'MISSINGDIR' then
+      dbms_output.put_line(p_in_owner||':'||p_in_dir||' has no O/S path skipping.');
     else
-      -- check that os directory does exist
-      dbms_output.put_line(p_in_owner||':'||p_in_dir||':'||lv_path);
+      FileAttr := os_tools.get_file_attributes(p_in_dir,lv_file_name);
+      if (FileAttr.fexists) then
+        null; -- Not do anything.
+      else
+        -- check that os directory does exist
+        dbms_output.put_line(p_in_owner||':'||p_in_dir||':'||lv_path);
 
-      if os_tools.check_if_os_directory_exists
-           (
-              p_indir => p_in_dir
-            ) then
-              -- if directory exist then write files.txt
-              os_tools.write_clob_to_file
-                (
-                  p_dir=> p_in_dir
-                  ,p_filename=>lv_file_name
-                  ,p_clob=>lv_script
-                );
+        if os_tools.check_if_os_directory_exists
+             (
+                p_indir => p_in_dir
+              ) then
+                -- if directory exist then write files.txt
+                os_tools.write_clob_to_file
+                   (
+                    p_dir=> p_in_dir
+                    ,p_filename=>lv_file_name
+                    ,p_clob=>lv_script
+                  );
+        end if; 
       end if;
-    end if;
+    end if;  
   end gen_files_file;
 
   --*=============================================================================
