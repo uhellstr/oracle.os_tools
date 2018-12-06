@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python
 # coding: UTF-8
 
 from __future__ import print_function
@@ -16,7 +16,7 @@ except ImportError:
 
 def sql_template():
 
-    stmt="""select host||'|'||container||'|'||pdb||'|'||typ||'|'||varde
+    stmt="""select host||'|'||container||'|'||pdb||'|'||created||'|'||typ||'|'||varde
 from (
 with db_info as
 (
@@ -24,7 +24,9 @@ with db_info as
   from
   ( select host_name as host from v$instance ),
   ( select instance_name as container from sys.v_$instance ),
-  ( select sys_context('USERENV','DB_NAME') as pdb from dual )
+  ( select sys_context('USERENV','DB_NAME') as pdb from dual ),
+  ( select cdb  from v$database),
+  ( select created from v$database)
 )
 select *
 from db_info,(select 'oracle_home' as typ,SYS_CONTEXT('USERENV','ORACLE_HOME') as varde from dual)
@@ -145,29 +147,33 @@ def update_db_info(catalog_instance,tns,port,password):
             nod = data[0]
             cdb = data[1]
             pdb = data[2]
-            param = data[3]
-            varde = data[4]
+            created = data[3]
+            param = data[4]
+            varde = data[5]
 
             cur = connection.cursor()
-            cur.callproc('dbtools.db_info_pkg.upsert_db_info', (nod,cdb,pdb,param,varde))
+            cur.callproc('dbtools.db_info_pkg.upsert_db_info', (nod,cdb,pdb,created,param,varde))
             cur.close()
             print(data[0])
             print(data[1])
             print(data[2])
             print(data[3])
             print(data[4])
+            print(data[5])
 
         connection.close()
 
 if __name__ == "__main__":
     os.system('cls' if os.name == 'nt' else 'clear')
     # Pick upp tns,port and instance from db_info.cfg
+    # configparser checks against python2 and python3
     if sys.version_info[0] < 3:
         config = ConfigParser.ConfigParser()
         config.readfp(open(r'db_info.cfg'))
     else:
         config = configparser.ConfigParser()
         config.read('db_info.cfg')
+    #Setup configparameters for connecting to Oracle
     tns = config.get('oraconfig','tns')
     port = config.get('oraconfig','port')
     catalog_info = config.get('oraconfig','catalog_info')
@@ -177,7 +183,6 @@ if __name__ == "__main__":
     pwd = getpass.getpass(prompt="Please give SYS pwd: ")
     pwd =  base64.urlsafe_b64encode(pwd.encode('UTF-8)')).decode('ascii')
     os.environ["DB_INFO"] = pwd
-
     # list of cdbs from ansile-playbook sar-orause-test.sh
     file_list = ['cdb.log']
     resultfile = 'db_info.txt'
@@ -198,8 +203,8 @@ if __name__ == "__main__":
                     #print(type(val))
                     print(val)
                     get_pdb_info(cdb,tns,port,val,base64.urlsafe_b64decode(os.environ["DB_INFO"].encode('UTF-8')).decode('ascii'))
-    #for listval in info_list:
-    #    print(listval)
+    #  Write collected info to file
     outfile = open(resultfile,'w')
     outfile.write("\n".join(info_list))
+    # Update Oracle info repository with collected data
     update_db_info(catalog_info,catalog_tns,catalog_port,base64.urlsafe_b64decode(os.environ["DB_INFO"].encode('UTF-8')).decode('ascii'))

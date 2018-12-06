@@ -14,9 +14,9 @@ begin
 wwv_flow_api.import_begin (
  p_version_yyyy_mm_dd=>'2016.08.24'
 ,p_release=>'5.1.2.00.09'
-,p_default_workspace_id=>10640332318511240
+,p_default_workspace_id=>18420543809256584
 ,p_default_application_id=>113
-,p_default_owner=>'EHMDBA'
+,p_default_owner=>'DBTOOLS'
 );
 end;
 /
@@ -27,7 +27,7 @@ prompt APPLICATION 113 - Databasinfo
 -- Application Export:
 --   Application:     113
 --   Name:            Databasinfo
---   Date and Time:   10:23 Thursday November 15, 2018
+--   Date and Time:   13:28 Thursday December 6, 2018
 --   Exported By:     HELLSULF
 --   Flashback:       0
 --   Export Type:     Application Export
@@ -80,7 +80,7 @@ begin
 wwv_flow_api.create_flow(
  p_id=>wwv_flow.g_flow_id
 ,p_display_id=>nvl(wwv_flow_application_install.get_application_id,113)
-,p_owner=>nvl(wwv_flow_application_install.get_schema,'EHMDBA')
+,p_owner=>nvl(wwv_flow_application_install.get_schema,'DBTOOLS')
 ,p_name=>nvl(wwv_flow_application_install.get_application_name,'Databasinfo')
 ,p_alias=>nvl(wwv_flow_application_install.get_application_alias,'F_113')
 ,p_page_view_logging=>'YES'
@@ -104,8 +104,8 @@ wwv_flow_api.create_flow(
 ,p_browser_frame=>'D'
 ,p_rejoin_existing_sessions=>'N'
 ,p_csv_encoding=>'Y'
-,p_last_updated_by=>'HELLSULF'
-,p_last_upd_yyyymmddhh24miss=>'20181115101601'
+,p_last_updated_by=>'ETCDBA'
+,p_last_upd_yyyymmddhh24miss=>'20181206105832'
 ,p_file_prefix => nvl(wwv_flow_application_install.get_static_app_file_prefix,'')
 ,p_ui_type_name => null
 );
@@ -8815,69 +8815,130 @@ wwv_flow_api.create_page(
 ,p_overwrite_navigation_list=>'N'
 ,p_page_is_public_y_n=>'N'
 ,p_cache_mode=>'NOCACHE'
-,p_last_updated_by=>'HELLSULF'
-,p_last_upd_yyyymmddhh24miss=>'20181115101601'
+,p_last_updated_by=>'ETCDBA'
+,p_last_upd_yyyymmddhh24miss=>'20181206105832'
 );
-wwv_flow_api.create_report_region(
+wwv_flow_api.create_page_plug(
  p_id=>wwv_flow_api.id(11197539878432230)
-,p_name=>'Sammanfattning'
-,p_template=>wwv_flow_api.id(18250195719206569)
-,p_display_sequence=>10
-,p_include_in_reg_disp_sel_yn=>'Y'
+,p_plug_name=>'Sammanfattning'
 ,p_region_template_options=>'#DEFAULT#'
-,p_component_template_options=>'#DEFAULT#:t-Report--altRowsDefault:t-Report--rowHighlight'
-,p_display_point=>'BODY'
-,p_source=>wwv_flow_string.join(wwv_flow_t_varchar2(
-'select container,nod,databaser',
+,p_plug_template=>wwv_flow_api.id(18250195719206569)
+,p_plug_display_sequence=>10
+,p_include_in_reg_disp_sel_yn=>'Y'
+,p_plug_display_point=>'BODY'
+,p_plug_source=>wwv_flow_string.join(wwv_flow_t_varchar2(
+'select container as container,nod, charset,about,databaser',
 'from',
 '(',
-'select distinct cdb as container,nod as nod, count( distinct pdb) as databaser',
-'from db_info',
-'group by cdb,nod',
-') order by container asc'))
-,p_source_type=>'NATIVE_SQL_REPORT'
-,p_ajax_enabled=>'Y'
-,p_query_row_template=>wwv_flow_api.id(18260635241206576)
-,p_query_num_rows=>15
-,p_query_options=>'DERIVED_REPORT_COLUMNS'
-,p_query_show_nulls_as=>'-'
-,p_query_num_rows_type=>'ROW_RANGES_IN_SELECT_LIST'
-,p_pagination_display_position=>'BOTTOM_RIGHT'
-,p_csv_output=>'N'
-,p_prn_output=>'N'
-,p_sort_null=>'L'
-,p_plug_query_strip_html=>'N'
+'select distinct a.cdb as container',
+'       ,a.nod as nod',
+'       , ( select distinct b.varde from v_db_info b where b.parameter = ''charset'' and b.cdb = a.cdb) as charset',
+'       ,c.about',
+'       , count( distinct a.pdb) as databaser',
+'from v_db_info a',
+'inner join db_about c',
+'on replace(regexp_replace(a.cdb, ''[0-9]'', ''''),''_'','''') = c.db_name',
+'where a.cdb not like ''PDB%''',
+'group by a.cdb,a.nod,c.about',
+') order by container asc;'))
+,p_plug_source_type=>'NATIVE_IR'
+,p_plug_query_options=>'DERIVED_REPORT_COLUMNS'
+,p_prn_content_disposition=>'ATTACHMENT'
+,p_prn_document_header=>'APEX'
+,p_prn_units=>'INCHES'
+,p_prn_paper_size=>'LETTER'
+,p_prn_width=>8.5
+,p_prn_height=>11
+,p_prn_orientation=>'HORIZONTAL'
+,p_prn_page_header_font_color=>'#000000'
+,p_prn_page_header_font_family=>'Helvetica'
+,p_prn_page_header_font_weight=>'normal'
+,p_prn_page_header_font_size=>'12'
+,p_prn_page_footer_font_color=>'#000000'
+,p_prn_page_footer_font_family=>'Helvetica'
+,p_prn_page_footer_font_weight=>'normal'
+,p_prn_page_footer_font_size=>'12'
+,p_prn_header_bg_color=>'#9bafde'
+,p_prn_header_font_color=>'#000000'
+,p_prn_header_font_family=>'Helvetica'
+,p_prn_header_font_weight=>'normal'
+,p_prn_header_font_size=>'10'
+,p_prn_body_bg_color=>'#efefef'
+,p_prn_body_font_color=>'#000000'
+,p_prn_body_font_family=>'Helvetica'
+,p_prn_body_font_weight=>'normal'
+,p_prn_body_font_size=>'10'
+,p_prn_border_width=>.5
+,p_prn_page_header_alignment=>'CENTER'
+,p_prn_page_footer_alignment=>'CENTER'
 );
-wwv_flow_api.create_report_columns(
- p_id=>wwv_flow_api.id(18313972677349421)
-,p_query_column_id=>1
-,p_column_alias=>'CONTAINER'
-,p_column_display_sequence=>1
-,p_column_heading=>'Container'
+wwv_flow_api.create_worksheet(
+ p_id=>wwv_flow_api.id(10843137679591024)
+,p_max_row_count=>'1000000'
+,p_show_nulls_as=>'-'
+,p_pagination_type=>'ROWS_X_TO_Y'
+,p_pagination_display_pos=>'BOTTOM_RIGHT'
+,p_report_list_mode=>'TABS'
+,p_show_detail_link=>'N'
+,p_show_notify=>'Y'
+,p_download_formats=>'CSV:HTML:EMAIL:XLS:PDF:RTF'
+,p_owner=>'HELLSULF'
+,p_internal_uid=>10843137679591024
+);
+wwv_flow_api.create_worksheet_column(
+ p_id=>wwv_flow_api.id(10843259422591025)
+,p_db_column_name=>'CONTAINER'
+,p_display_order=>10
+,p_column_identifier=>'A'
+,p_column_label=>'Container'
 ,p_column_link=>'f?p=&APP_ID.:3:&SESSION.::&DEBUG.:RP:P3_CONTAINER:#CONTAINER#'
 ,p_column_linktext=>'#CONTAINER#'
-,p_derived_column=>'N'
-,p_include_in_export=>'Y'
+,p_column_type=>'STRING'
 );
-wwv_flow_api.create_report_columns(
- p_id=>wwv_flow_api.id(18314089054349422)
-,p_query_column_id=>2
-,p_column_alias=>'NOD'
-,p_column_display_sequence=>2
-,p_column_heading=>'Nod'
-,p_use_as_row_header=>'N'
-,p_derived_column=>'N'
-,p_include_in_export=>'Y'
+wwv_flow_api.create_worksheet_column(
+ p_id=>wwv_flow_api.id(10843390835591026)
+,p_db_column_name=>'NOD'
+,p_display_order=>20
+,p_column_identifier=>'B'
+,p_column_label=>'Nod'
+,p_column_type=>'STRING'
 );
-wwv_flow_api.create_report_columns(
- p_id=>wwv_flow_api.id(18314164253349423)
-,p_query_column_id=>3
-,p_column_alias=>'DATABASER'
-,p_column_display_sequence=>3
-,p_column_heading=>'Databaser'
-,p_use_as_row_header=>'N'
-,p_derived_column=>'N'
-,p_include_in_export=>'Y'
+wwv_flow_api.create_worksheet_column(
+ p_id=>wwv_flow_api.id(10843401469591027)
+,p_db_column_name=>'CHARSET'
+,p_display_order=>30
+,p_column_identifier=>'C'
+,p_column_label=>'Charset'
+,p_column_type=>'STRING'
+);
+wwv_flow_api.create_worksheet_column(
+ p_id=>wwv_flow_api.id(10843593491591028)
+,p_db_column_name=>'ABOUT'
+,p_display_order=>40
+,p_column_identifier=>'D'
+,p_column_label=>'About'
+,p_column_type=>'STRING'
+);
+wwv_flow_api.create_worksheet_column(
+ p_id=>wwv_flow_api.id(10843625977591029)
+,p_db_column_name=>'DATABASER'
+,p_display_order=>50
+,p_column_identifier=>'E'
+,p_column_label=>'Databaser'
+,p_column_type=>'NUMBER'
+,p_column_alignment=>'RIGHT'
+);
+wwv_flow_api.create_worksheet_rpt(
+ p_id=>wwv_flow_api.id(18445033723808449)
+,p_application_user=>'APXWS_DEFAULT'
+,p_report_seq=>10
+,p_report_alias=>'184451'
+,p_status=>'PUBLIC'
+,p_is_default=>'Y'
+,p_display_rows=>50
+,p_report_columns=>'CONTAINER:NOD:CHARSET:ABOUT:DATABASER'
+,p_sum_columns_on_break=>'DATABASER'
+,p_flashback_enabled=>'N'
 );
 wwv_flow_api.create_page_plug(
  p_id=>wwv_flow_api.id(18286597441206639)
@@ -8912,7 +8973,7 @@ wwv_flow_api.create_page(
 ,p_page_is_public_y_n=>'N'
 ,p_cache_mode=>'NOCACHE'
 ,p_last_updated_by=>'HELLSULF'
-,p_last_upd_yyyymmddhh24miss=>'20181106125700'
+,p_last_upd_yyyymmddhh24miss=>'20181120161316'
 );
 wwv_flow_api.create_page_plug(
  p_id=>wwv_flow_api.id(11198804240432243)
@@ -8922,6 +8983,7 @@ wwv_flow_api.create_page_plug(
 ,p_plug_display_sequence=>10
 ,p_include_in_reg_disp_sel_yn=>'Y'
 ,p_plug_display_point=>'BODY'
+,p_plug_query_row_template=>1
 ,p_plug_query_options=>'DERIVED_REPORT_COLUMNS'
 ,p_attribute_01=>'N'
 ,p_attribute_02=>'HTML'
@@ -8940,9 +9002,10 @@ wwv_flow_api.create_page_plug(
 ,p_plug_source=>wwv_flow_string.join(wwv_flow_t_varchar2(
 'select distinct pdb, about',
 'from',
-'  db_info',
+'  v_db_info',
 'where cdb = :P3_CONTAINER'))
 ,p_plug_source_type=>'NATIVE_IG'
+,p_plug_query_row_template=>1
 ,p_plug_query_options=>'DERIVED_REPORT_COLUMNS'
 );
 wwv_flow_api.create_region_column(
@@ -8988,6 +9051,7 @@ wwv_flow_api.create_region_column(
 ,p_attribute_03=>'N'
 ,p_attribute_04=>'BOTH'
 ,p_is_required=>false
+,p_max_length=>100
 ,p_enable_filter=>true
 ,p_filter_operators=>'C:S:CASE_INSENSITIVE:REGEXP'
 ,p_filter_is_required=>false
@@ -9005,7 +9069,9 @@ wwv_flow_api.create_interactive_grid(
 ,p_is_editable=>false
 ,p_lazy_loading=>false
 ,p_requires_filter=>false
+,p_max_row_count=>100000
 ,p_show_nulls_as=>'-'
+,p_fixed_row_height=>true
 ,p_pagination_type=>'SCROLL'
 ,p_show_total_row_count=>true
 ,p_show_toolbar=>true
@@ -9063,6 +9129,7 @@ wwv_flow_api.create_page_button(
 ,p_button_image_alt=>'Tillbaka'
 ,p_button_position=>'REGION_TEMPLATE_PREVIOUS'
 ,p_button_redirect_url=>'f?p=&APP_ID.:2:&SESSION.::&DEBUG.:RP::'
+,p_grid_new_grid=>false
 );
 wwv_flow_api.create_page_item(
  p_id=>wwv_flow_api.id(11198915685432244)
@@ -9107,6 +9174,7 @@ wwv_flow_api.create_page_plug(
 ,p_plug_display_sequence=>10
 ,p_include_in_reg_disp_sel_yn=>'Y'
 ,p_plug_display_point=>'BODY'
+,p_plug_query_row_template=>1
 ,p_plug_query_options=>'DERIVED_REPORT_COLUMNS'
 ,p_attribute_01=>'N'
 ,p_attribute_02=>'HTML'
@@ -9128,6 +9196,7 @@ wwv_flow_api.create_page_plug(
 'where cdb = :P5_CONTAINER',
 '  and pdb = :P5_PDB'))
 ,p_plug_source_type=>'NATIVE_IG'
+,p_plug_query_row_template=>1
 ,p_plug_query_options=>'DERIVED_REPORT_COLUMNS'
 );
 wwv_flow_api.create_region_column(
@@ -9190,7 +9259,9 @@ wwv_flow_api.create_interactive_grid(
 ,p_is_editable=>false
 ,p_lazy_loading=>false
 ,p_requires_filter=>false
+,p_max_row_count=>100000
 ,p_show_nulls_as=>'-'
+,p_fixed_row_height=>true
 ,p_pagination_type=>'SCROLL'
 ,p_show_total_row_count=>true
 ,p_show_toolbar=>true
@@ -9245,6 +9316,7 @@ wwv_flow_api.create_page_button(
 ,p_button_image_alt=>'Tillbaka'
 ,p_button_position=>'REGION_TEMPLATE_PREVIOUS'
 ,p_button_redirect_url=>'f?p=&APP_ID.:3:&SESSION.::&DEBUG.:RP::'
+,p_grid_new_grid=>false
 );
 wwv_flow_api.create_page_item(
  p_id=>wwv_flow_api.id(18312461390349406)
