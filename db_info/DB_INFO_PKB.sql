@@ -13,7 +13,7 @@ as
  as
 
    lv_cnt pls_integer := 0;
-
+      
  begin
 
 
@@ -24,8 +24,35 @@ as
   commit;
 
  end upsert_db_info;
+ 
+ 
+ procedure update_db_about 
+ is
+ 
+   cursor cur_check_db_about is
+   select pdb as db_name 
+   from db_info 
+   where pdb not in (select db_name from db_about where db_name = pdb)
+   union 
+   select replace(regexp_replace(cdb, '[0-9]', ''),'_','') as db_name
+   from db_info 
+   where replace(regexp_replace(cdb, '[0-9]', ''),'_','') 
+   not in (select db_name from db_about where db_name = replace(regexp_replace(cdb, '[0-9]', ''),'_',''));
+   
+ begin
+   
+   for rec in cur_check_db_about loop
+   
+     insert into db_about ( db_name,about)
+     values (rec.db_name,null);
+   
+   end loop;
+   
+   commit;
+   
+ end update_db_about;
 
-  procedure gen_tnsnames_file
+ procedure gen_tnsnames_file
               (
                 p_in_client_only in boolean default false
               )

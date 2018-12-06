@@ -11,6 +11,8 @@ as
                p_in_parameter in varchar2,
                p_in_varde in varchar2
               );
+              
+  procedure update_db_about;            
 
   procedure gen_tnsnames_file
               (
