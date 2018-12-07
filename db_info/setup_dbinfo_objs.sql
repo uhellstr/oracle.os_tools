@@ -1,3 +1,4 @@
 @DB_INFO_TBL.sql
+@DB_ABOUT.sql
 @DB_INFO_PKS.sql
 @DB_INFO_PKB.sql

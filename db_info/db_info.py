@@ -142,6 +142,7 @@ def update_db_info(catalog_instance,tns,port,password):
         c1.execute(delstr)
         c1.close();
 
+        print('Updating dbtools.db_info')
         for val in info_list:
             data = val.split('|')
             nod = data[0]
@@ -160,6 +161,11 @@ def update_db_info(catalog_instance,tns,port,password):
             print(data[3])
             print(data[4])
             print(data[5])
+
+        print('Updating dbtools.db_about')
+        cur = connection.cursor()
+        cur.callproc('dbtools.db_info_pkg.update_db_about')
+        cur.close()    
 
         connection.close()
 
