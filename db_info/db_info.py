@@ -70,7 +70,10 @@ def get_pdbs(cdb_name,tns,port,password):
     try:
         connection = cx_Oracle.connect("sys", password, tnsalias, mode=cx_Oracle.SYSDBA)
     except cx_Oracle.DatabaseError as e:
-        print (cdb_name + "Unreachable, the reason is ".format(e))
+            error, = e.args
+            print(error.code)
+            print(error.message)
+            print(error.context)
     else:
         print('Connection Ok ' + cdb_name)
         print('Getting PDBs')
@@ -90,15 +93,16 @@ def get_pdbs(cdb_name,tns,port,password):
 
 def get_pdb_info(cdb_name,tns,port,pdb_name,password):
 
-    pdb_info = []
-
     tnsalias = tns + ":" + port + "/" + cdb_name
     print(tnsalias)
 
     try:
         connection = cx_Oracle.connect("sys", password, tnsalias, mode=cx_Oracle.SYSDBA)
     except cx_Oracle.DatabaseError as e:
-        print (cdb_name + "Unreachable, the reason is ".format(e))
+            error, = e.args
+            print(error.code)
+            print(error.message)
+            print(error.context)
     else:
         try:
             print('Getting info in CDB: ' + cdb_name)
@@ -107,7 +111,10 @@ def get_pdb_info(cdb_name,tns,port,pdb_name,password):
             c1 = connection.cursor()
             c1.execute(c1str)
         except cx_Oracle.DatabaseError as e:
-            print (cdb_name + "Unreachable, the reason is ".format(e))
+            error, = e.args
+            print(error.code)
+            print(error.message)
+            print(error.context)
         else:
             print('Connection successfull')
             c2str = sql_template()
@@ -133,14 +140,17 @@ def update_db_info(catalog_instance,tns,port,password):
     try:
         connection = cx_Oracle.connect("sys", password, tnsalias, mode=cx_Oracle.SYSDBA)
     except cx_Oracle.DatabaseError as e:
-        print (cdb_name + "Unreachable, the reason is ".format(e))
+            error, = e.args
+            print(error.code)
+            print(error.message)
+            print(error.context)
     else:
 
         print("Delete from dbtools.db_info")
 
         c1 = connection.cursor()
         c1.execute(delstr)
-        c1.close();
+        c1.close()
 
         print('Updating dbtools.db_info')
         for val in info_list:
