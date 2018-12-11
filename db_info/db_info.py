@@ -47,28 +47,31 @@ select *
 from db_info,( select 'db_allocatedsize_mb' as typ, to_char(round(sum(bytes)/1024/1024)) as varde from dba_segments )
 union
 select *
-from db_info,( select 'db_allocated_sga_mb' as typ,to_char(round(sum(value)/1024/1024)) as varde from v$sga)
-union
-select *
-from db_info,( select 'db_allocated_pga_mb' as typ, to_char(round(value/1024/1024)) as varde from v$pgastat where name like 'total PGA a%' )
+from db_info, ( select name as typ, display_value as varde from v$parameter where isdefault = 'FALSE' )
 union
 select *
 from db_info,( select 'archive_log' as typ, log_mode as varde from v$database )
 union
 select *
 from db_info, ( select 'apex_installed' as typ, version as varde from dba_registry where comp_id = 'APEX')
+union
+select *
+from db_info, (select 'db_version' as typ, version as varde from dba_registry where comp_id = 'CATALOG')
 )"""
 
     return stmt
 
-def get_pdbs(cdb_name,tns,port,password):
+def get_pdbs(cdb_name,tns,port,user,password):
 
     pdb_list = []
     tnsalias = tns + ":" + port + "/" + cdb_name
     print(tnsalias)
 
     try:
-        connection = cx_Oracle.connect("sys", password, tnsalias, mode=cx_Oracle.SYSDBA)
+        if user.upper() == 'SYS':
+            connection = cx_Oracle.connect("sys", password, tnsalias, mode=cx_Oracle.SYSDBA)
+        else:
+            connection = cx_Oracle.connect(user,password,tnsalias)
     except cx_Oracle.DatabaseError as e:
             error, = e.args
             print(error.code)
@@ -91,13 +94,16 @@ def get_pdbs(cdb_name,tns,port,password):
         connection.close()
         return pdb_list
 
-def get_pdb_info(cdb_name,tns,port,pdb_name,password):
+def get_pdb_info(cdb_name,tns,port,pdb_name,user,password):
 
     tnsalias = tns + ":" + port + "/" + cdb_name
     print(tnsalias)
 
     try:
-        connection = cx_Oracle.connect("sys", password, tnsalias, mode=cx_Oracle.SYSDBA)
+        if user.upper() == 'SYS':
+            connection = cx_Oracle.connect("sys", password, tnsalias, mode=cx_Oracle.SYSDBA)
+        else:
+            connection = cx_Oracle.connect(user,password,tnsalias)
     except cx_Oracle.DatabaseError as e:
             error, = e.args
             print(error.code)
@@ -128,7 +134,7 @@ def get_pdb_info(cdb_name,tns,port,pdb_name,password):
             c2.close()
             connection.close()
 
-def update_db_info(catalog_instance,tns,port,password):
+def update_db_info(catalog_instance,tns,port,user,password):
 
     cdb_name = catalog_instance
     delstr = 'delete from dbtools.db_info'
@@ -138,7 +144,10 @@ def update_db_info(catalog_instance,tns,port,password):
     print(tns)
 
     try:
-        connection = cx_Oracle.connect("sys", password, tnsalias, mode=cx_Oracle.SYSDBA)
+        if user.upper() == 'SYS':
+            connection = cx_Oracle.connect("sys", password, tnsalias, mode=cx_Oracle.SYSDBA)
+        else:
+            connection = cx_Oracle.connect(user,password,tnsalias)
     except cx_Oracle.DatabaseError as e:
             error, = e.args
             print(error.code)
@@ -178,7 +187,7 @@ def update_db_info(catalog_instance,tns,port,password):
         cur.close()    
         connection.close()
 
-def get_about_info(catalog_instance,tns,port,password):
+def get_about_info(catalog_instance,tns,port,user,password):
 
     cdb_name = catalog_instance
     sqlstr = """select db_name||'|'||about from dbtools.db_about"""
@@ -187,7 +196,10 @@ def get_about_info(catalog_instance,tns,port,password):
     print(tns)
 
     try:
-        connection = cx_Oracle.connect("sys", password, tnsalias, mode=cx_Oracle.SYSDBA)
+        if user.upper() == 'SYS':
+            connection = cx_Oracle.connect("sys", password, tnsalias, mode=cx_Oracle.SYSDBA)
+        else:
+            connection = cx_Oracle.connect(user,password,tnsalias)    
     except cx_Oracle.DatabaseError as e:
             error, = e.args
             print(error.code)
@@ -221,8 +233,10 @@ if __name__ == "__main__":
     catalog_info = config.get('oraconfig','catalog_info')
     catalog_tns = config.get('oraconfig','catalog_tns')
     catalog_port = config.get('oraconfig','catalog_port')
+    # Get oracle user name (SYS,DBINFO)
+    user = raw_input("Oracle Username (e.g like SYS): ")
     # Get password and encrypt it
-    pwd = getpass.getpass(prompt="Please give SYS pwd: ")
+    pwd = getpass.getpass(prompt="Please give " +user + " password: ")
     pwd =  base64.urlsafe_b64encode(pwd.encode('UTF-8)')).decode('ascii')
     os.environ["DB_INFO"] = pwd
     # list of cdbs from ansile-playbook sar-orause-test.sh
@@ -242,19 +256,19 @@ if __name__ == "__main__":
                 print('Not connecting or collecting ASM')
             else:
                 print(cdb)
-                list_of_pdbs = get_pdbs(cdb,tns,port,base64.urlsafe_b64decode(os.environ["DB_INFO"].encode('UTF-8')).decode('ascii'))
+                list_of_pdbs = get_pdbs(cdb,tns,port,user,base64.urlsafe_b64decode(os.environ["DB_INFO"].encode('UTF-8')).decode('ascii'))
                 for val in list_of_pdbs:
                     #print(type(val))
                     print(val)
-                    get_pdb_info(cdb,tns,port,val,base64.urlsafe_b64decode(os.environ["DB_INFO"].encode('UTF-8')).decode('ascii'))
+                    get_pdb_info(cdb,tns,port,val,user,base64.urlsafe_b64decode(os.environ["DB_INFO"].encode('UTF-8')).decode('ascii'))
     #  Write collected info to file
     outfile = open(resultfile,'w')
     outfile.write("\n".join(info_list))
     outfile.close()
     # Update Oracle info repository with collected data
-    update_db_info(catalog_info,catalog_tns,catalog_port,base64.urlsafe_b64decode(os.environ["DB_INFO"].encode('UTF-8')).decode('ascii'))
+    update_db_info(catalog_info,catalog_tns,catalog_port,user,base64.urlsafe_b64decode(os.environ["DB_INFO"].encode('UTF-8')).decode('ascii'))
     # Get out info from db_about to save to disk as backup
-    get_about_info(catalog_info,catalog_tns,catalog_port,base64.urlsafe_b64decode(os.environ["DB_INFO"].encode('UTF-8')).decode('ascii'))
+    get_about_info(catalog_info,catalog_tns,catalog_port,user,base64.urlsafe_b64decode(os.environ["DB_INFO"].encode('UTF-8')).decode('ascii'))
     outfile = open(aboutfile,'w')
     outfile.write("\n".join(about_list))
     outfile.close()
