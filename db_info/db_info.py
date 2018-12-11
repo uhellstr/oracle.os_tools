@@ -234,7 +234,10 @@ if __name__ == "__main__":
     catalog_tns = config.get('oraconfig','catalog_tns')
     catalog_port = config.get('oraconfig','catalog_port')
     # Get oracle user name (SYS,DBINFO)
-    user = raw_input("Oracle Username (e.g like SYS): ")
+    if sys.version_info[0] < 3:
+        user = raw_input("Oracle Username (e.g like SYS): ")
+    else:
+        user = input("Oracle Username (e.g like SYS): ")    
     # Get password and encrypt it
     pwd = getpass.getpass(prompt="Please give " +user + " password: ")
     pwd =  base64.urlsafe_b64encode(pwd.encode('UTF-8)')).decode('ascii')
