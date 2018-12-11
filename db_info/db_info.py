@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python
 # coding: UTF-8
 
 from __future__ import print_function
@@ -176,8 +176,34 @@ def update_db_info(catalog_instance,tns,port,password):
         cur = connection.cursor()
         cur.callproc('dbtools.db_info_pkg.update_db_about')
         cur.close()    
-
         connection.close()
+
+def get_about_info(catalog_instance,tns,port,password):
+
+    cdb_name = catalog_instance
+    sqlstr = """select db_name||'|'||about from dbtools.db_about"""
+    tnsalias = tns + ":" + port + "/" + cdb_name
+    print(tnsalias)
+    print(tns)
+
+    try:
+        connection = cx_Oracle.connect("sys", password, tnsalias, mode=cx_Oracle.SYSDBA)
+    except cx_Oracle.DatabaseError as e:
+            error, = e.args
+            print(error.code)
+            print(error.message)
+            print(error.context)
+    else:
+        print('Connection successfull')
+        c1 = connection.cursor()
+        c1.execute(sqlstr)
+        for info in c1:
+            str = ''.join(info) # make tuple to string
+            print(str)
+            about_list.append(str)
+
+    c1.close()
+    connection.close()
 
 if __name__ == "__main__":
     os.system('cls' if os.name == 'nt' else 'clear')
@@ -202,8 +228,10 @@ if __name__ == "__main__":
     # list of cdbs from ansile-playbook sar-orause-test.sh
     file_list = ['cdb.log']
     resultfile = 'db_info.txt'
+    aboutfile = 'db_about.txt'
     list_of_pdbs = []
     info_list = []
+    about_list = []
     # For each container loop over it and get the pdbs
     # For each PDB we run the SQL in get_pdb_info()
     for val in file_list:
@@ -222,5 +250,11 @@ if __name__ == "__main__":
     #  Write collected info to file
     outfile = open(resultfile,'w')
     outfile.write("\n".join(info_list))
+    outfile.close()
     # Update Oracle info repository with collected data
     update_db_info(catalog_info,catalog_tns,catalog_port,base64.urlsafe_b64decode(os.environ["DB_INFO"].encode('UTF-8')).decode('ascii'))
+    # Get out info from db_about to save to disk as backup
+    get_about_info(catalog_info,catalog_tns,catalog_port,base64.urlsafe_b64decode(os.environ["DB_INFO"].encode('UTF-8')).decode('ascii'))
+    outfile = open(aboutfile,'w')
+    outfile.write("\n".join(about_list))
+    outfile.close()
