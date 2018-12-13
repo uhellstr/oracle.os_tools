@@ -1,11 +1,22 @@
-- hosts: nodes 
-  vars:
-    logfile: instance.log
+- name: orause
+  hosts: nodes 
+  serial: 1
 
   tasks:
+
+      - name: create file
+        file:
+           dest: ./instance.log
+           state: touch
+        delegate_to: localhost
+
       - name: Run orause and echo output
         shell: "cat /etc/oratab |grep -e '^[^#]'|awk -F':' '{print $1}'"
         register: out
 
-      - debug: var=out.stdout_lines
-      - local_action: copy content={{out.stdout_lines}} dest=./{{logfile}}
+      - name: append
+        lineinfile:
+          dest: ./instance.log
+          line: "{{ out }}"
+          insertafter: EOF
+        delegate_to: localhost 
