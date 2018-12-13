@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # coding: UTF-8
 
 from __future__ import print_function
@@ -14,6 +14,12 @@ try:
 except ImportError:
     import configparser
 
+"""
+    sql_template()
+    Function that returns a sql statement
+    Author: Ulf Hellstrom, oraminute@gmail.com
+
+"""
 def sql_template():
 
     stmt="""select host||'|'||container||'|'||pdb||'|'||created||'|'||typ||'|'||varde
@@ -61,6 +67,44 @@ from db_info, (select 'db_version' as typ, version as varde from dba_registry wh
 
     return stmt
 
+"""
+   get_version_info()
+   Function that returns version number eg 11,12,18 from the database.
+   Used to determine if we have Multitenant or not.
+   Author: Ulf Hellstrom, oraminute@gmail.com
+"""
+def get_version_info(db_name,tns,port,user,password):
+
+    tnsalias = tns + ":" + port + "/" + db_name
+    print(tnsalias)
+
+    try:
+        if user.upper() == 'SYS':
+            connection = cx_Oracle.connect("sys", password, tnsalias, mode=cx_Oracle.SYSDBA)
+        else:
+            connection = cx_Oracle.connect(user,password,tnsalias)
+    except cx_Oracle.DatabaseError as e:
+            error, = e.args
+            print(error.code)
+            print(error.message)
+            print(error.context)
+    else:
+        print('Checking Oracle version.')
+        c1 = connection.cursor()
+        c1.execute("""select to_number(substr(version,1,2)) as dbver from dba_registry where comp_id = 'CATALOG'""")
+        ver = c1.fetchone()[0]
+        print('Oracle version: ',ver)
+
+    c1.close()
+    connection.close()
+    return ver    
+
+"""
+    get_pdbs()
+    Returns a list of active and open PDBS in a multitentant enviroronment.
+    Used if Multitenant is used and Oracle version > 11
+    Author: Ulf Hellstrom, oraminute@gmail.com
+"""
 def get_pdbs(cdb_name,tns,port,user,password):
 
     pdb_list = []
@@ -94,9 +138,47 @@ def get_pdbs(cdb_name,tns,port,user,password):
         connection.close()
         return pdb_list
 
-def get_pdb_info(cdb_name,tns,port,pdb_name,user,password):
+"""
+    get_db_info()
+    Collects info from a standalone Database e.g < verions 12 of Oracle
+    Auhtor: Ulf Hellstrom, oraminute@gmail.com
+"""
+def get_db_info(db_name,tns,port,user,password):
 
-    tnsalias = tns + ":" + port + "/" + cdb_name
+    tnsalias = tns + ":" + port + "/" + db_name
+    print(tnsalias)
+
+    try:
+        if user.upper() == 'SYS':
+            connection = cx_Oracle.connect("sys", password, tnsalias, mode=cx_Oracle.SYSDBA)
+        else:
+            connection = cx_Oracle.connect(user,password,tnsalias)
+    except cx_Oracle.DatabaseError as e:
+            error, = e.args
+            print(error.code)
+            print(error.message)
+            print(error.context)
+    else:
+        print('Getting info for Database: ' + db_name)
+        sqlstr = sql_template()
+        c1 = connection.cursor()
+        c1.execute(sqlstr)
+        for info in c1:
+            str = ''.join(info) # make tuple to string
+            #print(str) #
+            info_list.append(str)
+
+        c1.close()
+        connection.close()        
+
+"""
+    get_pdb_info
+    Collects information from a Pluggable database in a Multitenant environment.
+    Author: Ulf Hellstrom, oraminute@gmail.com
+"""    
+def get_pdb_info(db_name,tns,port,pdb_name,user,password):
+
+    tnsalias = tns + ":" + port + "/" + db_name
     print(tnsalias)
 
     try:
@@ -111,7 +193,7 @@ def get_pdb_info(cdb_name,tns,port,pdb_name,user,password):
             print(error.context)
     else:
         try:
-            print('Getting info in CDB: ' + cdb_name)
+            print('Getting info for Database Container: ' + db_name)
             c1str = 'alter session set container = ' + pdb_name
             print(c1str)
             c1 = connection.cursor()
@@ -134,6 +216,11 @@ def get_pdb_info(cdb_name,tns,port,pdb_name,user,password):
             c2.close()
             connection.close()
 
+"""
+    update_db_info()
+    Updates DBTOOLS.DB_INFO table in database setup as repository for collecting info about databases
+    Author: Ulf Hellstrom, oraminute@gmail.com
+"""
 def update_db_info(catalog_instance,tns,port,user,password):
 
     cdb_name = catalog_instance
@@ -187,6 +274,13 @@ def update_db_info(catalog_instance,tns,port,user,password):
         cur.close()    
         connection.close()
 
+"""
+    get_about_info()
+    Select information from DBTOOLS.DB_ABOUT table for spooling to pipe separated file
+    This so we have a backup outside database if all should be lost we can recover
+    the information in text format.
+    Author: Ulf Hellstrom, oraminute@gmail.com
+"""
 def get_about_info(catalog_instance,tns,port,user,password):
 
     cdb_name = catalog_instance
@@ -217,6 +311,9 @@ def get_about_info(catalog_instance,tns,port,user,password):
     c1.close()
     connection.close()
 
+"""
+    Main starts here. Eg this is where we run the code
+"""
 if __name__ == "__main__":
     os.system('cls' if os.name == 'nt' else 'clear')
     # Pick upp tns,port and instance from db_info.cfg
@@ -246,7 +343,7 @@ if __name__ == "__main__":
     file_list = ['cdb.log']
     resultfile = 'db_info.txt'
     aboutfile = 'db_about.txt'
-    list_of_pdbs = []
+    list_of_dbs = []
     info_list = []
     about_list = []
     # For each container loop over it and get the pdbs
@@ -254,16 +351,21 @@ if __name__ == "__main__":
     for val in file_list:
         input_file = open(val,'r')
         for line in input_file:
-            cdb = line
-            if cdb.startswith("+ASM"):
+            db_name = line
+            if db_name.startswith("+ASM"):
                 print('Not connecting or collecting ASM')
             else:
-                print(cdb)
-                list_of_pdbs = get_pdbs(cdb,tns,port,user,base64.urlsafe_b64decode(os.environ["DB_INFO"].encode('UTF-8')).decode('ascii'))
-                for val in list_of_pdbs:
-                    #print(type(val))
-                    print(val)
-                    get_pdb_info(cdb,tns,port,val,user,base64.urlsafe_b64decode(os.environ["DB_INFO"].encode('UTF-8')).decode('ascii'))
+                print(db_name)
+                # Check the version of Oracle. Less then 12 then no Multitenant option
+                ver = get_version_info(db_name,tns,port,user,base64.urlsafe_b64decode(os.environ["DB_INFO"].encode('UTF-8')).decode('ascii'))
+                if ver > 11:
+                    list_of_dbs = get_pdbs(db_name,tns,port,user,base64.urlsafe_b64decode(os.environ["DB_INFO"].encode('UTF-8')).decode('ascii'))
+                    for val in list_of_dbs:
+                        #print(type(val))
+                        print(val)
+                        get_pdb_info(db_name,tns,port,val,user,base64.urlsafe_b64decode(os.environ["DB_INFO"].encode('UTF-8')).decode('ascii'))
+                else:
+                    get_db_info(db_name,tns,port,user,base64.urlsafe_b64decode(os.environ["DB_INFO"].encode('UTF-8')).decode('ascii'))
     #  Write collected info to file
     outfile = open(resultfile,'w')
     outfile.write("\n".join(info_list))
