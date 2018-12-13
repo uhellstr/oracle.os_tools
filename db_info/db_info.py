@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python
 # coding: UTF-8
 
 from __future__ import print_function
@@ -16,11 +16,11 @@ except ImportError:
 
 """
     sql_template()
-    Function that returns a sql statement
+    Function that returns a sql statement for Oracle version 12c and higher
     Author: Ulf Hellstrom, oraminute@gmail.com
 
 """
-def sql_template():
+def sql_template_pdb():
 
     stmt="""select host||'|'||container||'|'||pdb||'|'||created||'|'||typ||'|'||varde
 from (
@@ -66,6 +66,59 @@ from db_info, (select 'db_version' as typ, version as varde from dba_registry wh
 )"""
 
     return stmt
+
+"""
+    sql_template()
+    Function that returns a sql statement for Oracle version 11g.
+    Author: Ulf Hellstrom, oraminute@gmail.com
+
+"""
+def sql_template_standalone_11g():
+
+    stmt="""select host||'|'||container||'|'||pdb||'|'||created||'|'||typ||'|'||varde
+from (
+with db_info as
+(
+  select *
+  from
+  ( select host_name as host from v$instance ),
+  ( select instance_name as container from sys.v_$instance ),
+  ( select null as pdb from dual ),
+  ( select instance_name as cdb from v$instance),
+  ( select created from v$database)
+)
+select *
+from db_info,(select 'oracle_home' as typ,null  as varde from dual)
+union
+select *
+from db_info,(select 'oracle_base' as typ, null as varde from dual)
+union
+select *
+from db_info,(select 'service_names' as typ, name as varde from v$services where upper(substr(name,1,3)) not in ('SYS'))
+union
+select *
+from db_info,(select 'charset' as typ ,value as varde from nls_database_parameters where parameter = 'NLS_CHARACTERSET')
+union
+select *
+from db_info,(select 'db_totalsize_mb' as typ, to_char(round(sum(bytes)/1024/1024)) as varde from dba_data_files )
+union
+select *
+from db_info,( select 'db_allocatedsize_mb' as typ, to_char(round(sum(bytes)/1024/1024)) as varde from dba_segments )
+union
+select *
+from db_info, ( select name as typ, display_value as varde from v$parameter where isdefault = 'FALSE' )
+union
+select *
+from db_info,( select 'archive_log' as typ, log_mode as varde from v$database )
+union
+select *
+from db_info, ( select 'apex_installed' as typ, version as varde from dba_registry where comp_id = 'APEX')
+union
+select *
+from db_info, (select 'db_version' as typ, version as varde from dba_registry where comp_id = 'CATALOG')
+)"""
+
+    return stmt    
 
 """
    get_version_info()
@@ -160,7 +213,7 @@ def get_db_info(db_name,tns,port,user,password):
             print(error.context)
     else:
         print('Getting info for Database: ' + db_name)
-        sqlstr = sql_template()
+        sqlstr = sql_template_standalone_11g()
         c1 = connection.cursor()
         c1.execute(sqlstr)
         for info in c1:
@@ -205,9 +258,9 @@ def get_pdb_info(db_name,tns,port,pdb_name,user,password):
             print(error.context)
         else:
             print('Connection successfull')
-            c2str = sql_template()
+            sqlstr = sql_template_pdb()
             c2 = connection.cursor()
-            c2.execute(c2str)
+            c2.execute(sqlstr)
             for info in c2:
                 str = ''.join(info) # make tuple to string
                 #print(str) #
