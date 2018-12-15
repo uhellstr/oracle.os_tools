@@ -15,10 +15,36 @@ except ImportError:
     import configparser
 
 """
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    get_oracle_connection()
+    Function that returns a connection for Oracle database instance.
+    Author: Ulf Hellstrom, oraminute@gmail.com
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+"""
+def get_oracle_connection(db_name,tns,port,user,password):
+
+    tnsalias = tns + ":" + port + "/" + db_name
+    print(tnsalias)
+
+    try:
+        if user.upper() == 'SYS':
+            connection = cx_Oracle.connect("sys", password, tnsalias, mode=cx_Oracle.SYSDBA)
+        else:
+            connection = cx_Oracle.connect(user,password,tnsalias)
+    except cx_Oracle.DatabaseError as e:
+            error, = e.args
+            print(error.code)
+            print(error.message)
+            print(error.context)
+    
+    return connection
+
+"""
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     sql_template()
     Function that returns a sql statement for Oracle version 12c and higher
     Author: Ulf Hellstrom, oraminute@gmail.com
-
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 """
 def sql_template_pdb():
 
@@ -68,10 +94,11 @@ from db_info, (select 'db_version' as typ, version as varde from dba_registry wh
     return stmt
 
 """
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     sql_template()
     Function that returns a sql statement for Oracle version 11g.
     Author: Ulf Hellstrom, oraminute@gmail.com
-
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 """
 def sql_template_standalone_11g():
 
@@ -121,251 +148,192 @@ from db_info, (select 'db_version' as typ, version as varde from dba_registry wh
     return stmt    
 
 """
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
    get_version_info()
    Function that returns version number eg 11,12,18 from the database.
    Used to determine if we have Multitenant or not.
    Author: Ulf Hellstrom, oraminute@gmail.com
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 """
 def get_version_info(db_name,tns,port,user,password):
 
-    tnsalias = tns + ":" + port + "/" + db_name
-    print(tnsalias)
+    connection = get_oracle_connection(db_name,tns,port,user,password)
 
-    try:
-        if user.upper() == 'SYS':
-            connection = cx_Oracle.connect("sys", password, tnsalias, mode=cx_Oracle.SYSDBA)
-        else:
-            connection = cx_Oracle.connect(user,password,tnsalias)
-    except cx_Oracle.DatabaseError as e:
-            error, = e.args
-            print(error.code)
-            print(error.message)
-            print(error.context)
-    else:
-        print('Checking Oracle version.')
-        c1 = connection.cursor()
-        c1.execute("""select to_number(substr(version,1,2)) as dbver from dba_registry where comp_id = 'CATALOG'""")
-        ver = c1.fetchone()[0]
-        print('Oracle version: ',ver)
+    print('Checking Oracle version.')
+    c1 = connection.cursor()
+    c1.execute("""select to_number(substr(version,1,2)) as dbver from dba_registry where comp_id = 'CATALOG'""")
+    ver = c1.fetchone()[0]
+    print('Oracle version: ',ver)
 
     c1.close()
     connection.close()
     return ver    
 
 """
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     get_pdbs()
     Returns a list of active and open PDBS in a multitentant enviroronment.
     Used if Multitenant is used and Oracle version > 11
     Author: Ulf Hellstrom, oraminute@gmail.com
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 """
 def get_pdbs(cdb_name,tns,port,user,password):
 
     pdb_list = []
-    tnsalias = tns + ":" + port + "/" + cdb_name
-    print(tnsalias)
+    connection = get_oracle_connection(cdb_name,tns,port,user,password)
 
-    try:
-        if user.upper() == 'SYS':
-            connection = cx_Oracle.connect("sys", password, tnsalias, mode=cx_Oracle.SYSDBA)
-        else:
-            connection = cx_Oracle.connect(user,password,tnsalias)
-    except cx_Oracle.DatabaseError as e:
-            error, = e.args
-            print(error.code)
-            print(error.message)
-            print(error.context)
-    else:
-        print('Connection Ok ' + cdb_name)
-        print('Getting PDBs')
-        c1 = connection.cursor()
-        c1.execute("""
-            select name
-            from v$pdbs
-            where open_mode = 'READ WRITE'
-              and name <> 'PDB$SEED'
-            order by name""")
-        for name in c1:
-            val = ''.join(name) # make tuple to string
-            pdb_list.append(val) # append string to list
-        c1.close()
-        connection.close()
-        return pdb_list
+    print('Connection Ok ' + cdb_name)
+    print('Getting PDBs')
+    c1 = connection.cursor()
+    c1.execute("""
+        select name
+        from v$pdbs
+        where open_mode = 'READ WRITE'
+          and name <> 'PDB$SEED'
+        order by name""")
+    for name in c1:
+        val = ''.join(name) # make tuple to string
+        pdb_list.append(val) # append string to list
+        
+    c1.close()
+    connection.close()
+    return pdb_list
 
 """
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     get_db_info()
     Collects info from a standalone Database e.g < verions 12 of Oracle
     Auhtor: Ulf Hellstrom, oraminute@gmail.com
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%    
 """
 def get_db_info(db_name,tns,port,user,password):
 
-    tnsalias = tns + ":" + port + "/" + db_name
-    print(tnsalias)
+    connection = get_oracle_connection(db_name,tns,port,user,password)
 
+    print('Getting info for Database: ' + db_name)
+    sqlstr = sql_template_standalone_11g()
+    c1 = connection.cursor()
+    c1.execute(sqlstr)
+    for info in c1:
+        str = ''.join(info) # make tuple to string
+        #print(str) #
+        info_list.append(str)
+
+    c1.close()
+    connection.close()        
+
+"""
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    get_pdb_info
+    Collects information from a Pluggable database in a Multitenant environment.
+    Author: Ulf Hellstrom, oraminute@gmail.com
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%   
+"""    
+def get_pdb_info(db_name,tns,port,pdb_name,user,password):
+
+    connection = get_oracle_connection(db_name,tns,port,user,password)
+    
     try:
-        if user.upper() == 'SYS':
-            connection = cx_Oracle.connect("sys", password, tnsalias, mode=cx_Oracle.SYSDBA)
-        else:
-            connection = cx_Oracle.connect(user,password,tnsalias)
-    except cx_Oracle.DatabaseError as e:
-            error, = e.args
-            print(error.code)
-            print(error.message)
-            print(error.context)
-    else:
-        print('Getting info for Database: ' + db_name)
-        sqlstr = sql_template_standalone_11g()
+        print('Getting info for Database Container: ' + db_name)
+        c1str = 'alter session set container = ' + pdb_name
+        print(c1str)
         c1 = connection.cursor()
-        c1.execute(sqlstr)
-        for info in c1:
+        c1.execute(c1str)
+    except cx_Oracle.DatabaseError as e:
+        error, = e.args
+        print(error.code)
+        print(error.message)
+        print(error.context)
+    else:
+        print('Connection successfull')
+        sqlstr = sql_template_pdb()
+        c2 = connection.cursor()
+        c2.execute(sqlstr)
+        for info in c2:
             str = ''.join(info) # make tuple to string
             #print(str) #
             info_list.append(str)
 
         c1.close()
-        connection.close()        
+        c2.close()
+        connection.close()
 
 """
-    get_pdb_info
-    Collects information from a Pluggable database in a Multitenant environment.
-    Author: Ulf Hellstrom, oraminute@gmail.com
-"""    
-def get_pdb_info(db_name,tns,port,pdb_name,user,password):
-
-    tnsalias = tns + ":" + port + "/" + db_name
-    print(tnsalias)
-
-    try:
-        if user.upper() == 'SYS':
-            connection = cx_Oracle.connect("sys", password, tnsalias, mode=cx_Oracle.SYSDBA)
-        else:
-            connection = cx_Oracle.connect(user,password,tnsalias)
-    except cx_Oracle.DatabaseError as e:
-            error, = e.args
-            print(error.code)
-            print(error.message)
-            print(error.context)
-    else:
-        try:
-            print('Getting info for Database Container: ' + db_name)
-            c1str = 'alter session set container = ' + pdb_name
-            print(c1str)
-            c1 = connection.cursor()
-            c1.execute(c1str)
-        except cx_Oracle.DatabaseError as e:
-            error, = e.args
-            print(error.code)
-            print(error.message)
-            print(error.context)
-        else:
-            print('Connection successfull')
-            sqlstr = sql_template_pdb()
-            c2 = connection.cursor()
-            c2.execute(sqlstr)
-            for info in c2:
-                str = ''.join(info) # make tuple to string
-                #print(str) #
-                info_list.append(str)
-            c1.close()
-            c2.close()
-            connection.close()
-
-"""
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     update_db_info()
-    Updates DBTOOLS.DB_INFO table in database setup as repository for collecting info about databases
+    Updates DBTOOLS.DB_INFO table in database setup as repository for 
+    collecting info about databases.
     Author: Ulf Hellstrom, oraminute@gmail.com
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%    
 """
 def update_db_info(catalog_instance,tns,port,user,password):
 
     cdb_name = catalog_instance
     delstr = 'delete from dbtools.db_info'
-    tnsalias = tns + ":" + port + "/" + cdb_name
-    print(tnsalias)
+    connection = get_oracle_connection(cdb_name,tns,port,user,password)
 
-    print(tns)
+    print("Delete from dbtools.db_info")
 
-    try:
-        if user.upper() == 'SYS':
-            connection = cx_Oracle.connect("sys", password, tnsalias, mode=cx_Oracle.SYSDBA)
-        else:
-            connection = cx_Oracle.connect(user,password,tnsalias)
-    except cx_Oracle.DatabaseError as e:
-            error, = e.args
-            print(error.code)
-            print(error.message)
-            print(error.context)
-    else:
+    c1 = connection.cursor()
+    c1.execute(delstr)
+    c1.close()
 
-        print("Delete from dbtools.db_info")
+    print('Updating dbtools.db_info')
+    for val in info_list:
+        data = val.split('|')
+        nod = data[0]
+        cdb = data[1]
+        pdb = data[2]
+        created = data[3]
+        param = data[4]
+        varde = data[5]
 
-        c1 = connection.cursor()
-        c1.execute(delstr)
-        c1.close()
-
-        print('Updating dbtools.db_info')
-        for val in info_list:
-            data = val.split('|')
-            nod = data[0]
-            cdb = data[1]
-            pdb = data[2]
-            created = data[3]
-            param = data[4]
-            varde = data[5]
-
-            cur = connection.cursor()
-            cur.callproc('dbtools.db_info_pkg.upsert_db_info', (nod,cdb,pdb,created,param,varde))
-            cur.close()
-            print(data[0])
-            print(data[1])
-            print(data[2])
-            print(data[3])
-            print(data[4])
-            print(data[5])
-
-        print('Updating dbtools.db_about')
         cur = connection.cursor()
-        cur.callproc('dbtools.db_info_pkg.update_db_about')
-        cur.close()    
-        connection.close()
+        cur.callproc('dbtools.db_info_pkg.upsert_db_info', (nod,cdb,pdb,created,param,varde))
+        cur.close()
+        print(data[0])
+        print(data[1])
+        print(data[2])
+        print(data[3])
+        print(data[4])
+        print(data[5])
+
+    print('Updating dbtools.db_about')
+    cur = connection.cursor()
+    cur.callproc('dbtools.db_info_pkg.update_db_about')
+    cur.close()    
+    connection.close()
 
 """
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     get_about_info()
     Select information from DBTOOLS.DB_ABOUT table for spooling to pipe separated file
     This so we have a backup outside database if all should be lost we can recover
     the information in text format.
     Author: Ulf Hellstrom, oraminute@gmail.com
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%    
 """
 def get_about_info(catalog_instance,tns,port,user,password):
 
     cdb_name = catalog_instance
     sqlstr = """select db_name||'|'||about from dbtools.db_about"""
-    tnsalias = tns + ":" + port + "/" + cdb_name
-    print(tnsalias)
-    print(tns)
+    connection = get_oracle_connection(cdb_name,tns,port,user,password)
 
-    try:
-        if user.upper() == 'SYS':
-            connection = cx_Oracle.connect("sys", password, tnsalias, mode=cx_Oracle.SYSDBA)
-        else:
-            connection = cx_Oracle.connect(user,password,tnsalias)    
-    except cx_Oracle.DatabaseError as e:
-            error, = e.args
-            print(error.code)
-            print(error.message)
-            print(error.context)
-    else:
-        print('Connection successfull')
-        c1 = connection.cursor()
-        c1.execute(sqlstr)
-        for info in c1:
-            str = ''.join(info) # make tuple to string
-            print(str)
-            about_list.append(str)
+    print('Connection successfull')
+    c1 = connection.cursor()
+    c1.execute(sqlstr)
+    for info in c1:
+        str = ''.join(info) # make tuple to string
+        print(str)
+        about_list.append(str)
 
     c1.close()
     connection.close()
 
 """
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     Main starts here. Eg this is where we run the code
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%    
 """
 if __name__ == "__main__":
     os.system('cls' if os.name == 'nt' else 'clear')
