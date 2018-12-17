@@ -1,4 +1,4 @@
-- name: orause
+- name: collect
   hosts: nodes 
   serial: 1
 
@@ -10,7 +10,7 @@
            state: touch
         delegate_to: localhost
 
-      - name: Run orause and echo output
+      - name: Run collect and echo output
         shell: "cat /etc/oratab |grep -e '^[^#]'|awk -F':' '{print $1}'"
         register: out
 
