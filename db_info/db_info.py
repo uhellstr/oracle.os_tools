@@ -1,14 +1,15 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python
 # coding: UTF-8
 
 from __future__ import print_function
-
 import cx_Oracle
-import re
-import base64
 import getpass
+import getopt
 import os
 import sys
+import re
+import base64
+
 try:
     import ConfigParser
 except ImportError:
@@ -266,19 +267,19 @@ def get_pdb_info(db_name,tns,port,pdb_name,user,password):
     Author: Ulf Hellstrom, oraminute@gmail.com
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%    
 """
-def update_db_info(catalog_instance,tns,port,user,password):
+def update_db_info(catalog_instance,tns,port,user,password,env):
 
     cdb_name = catalog_instance
-    delstr = 'delete from dbtools.db_info'
+    delstr = """delete from dbtools.db_info where env = upper('"""+env+"""')"""
     connection = get_oracle_connection(cdb_name,tns,port,user,password)
 
-    print("Delete from dbtools.db_info")
+    print('Delete from dbtools.db_info for environment: ',env)
 
     c1 = connection.cursor()
     c1.execute(delstr)
     c1.close()
 
-    print('Updating dbtools.db_info')
+    print('Updating dbtools.db_info for environment')
     for val in info_list:
         data = val.split('|')
         nod = data[0]
@@ -286,10 +287,10 @@ def update_db_info(catalog_instance,tns,port,user,password):
         pdb = data[2]
         created = data[3]
         param = data[4]
-        varde = data[5]
+        value = data[5]
 
         cur = connection.cursor()
-        cur.callproc('dbtools.db_info_pkg.upsert_db_info', (nod,cdb,pdb,created,param,varde))
+        cur.callproc('dbtools.db_info_pkg.upsert_db_info', (nod,cdb,pdb,created,param,value,env))
         cur.close()
         print(data[0])
         print(data[1])
@@ -297,6 +298,7 @@ def update_db_info(catalog_instance,tns,port,user,password):
         print(data[3])
         print(data[4])
         print(data[5])
+        print(env)
 
     print('Updating dbtools.db_about')
     cur = connection.cursor()
@@ -332,13 +334,47 @@ def get_about_info(catalog_instance,tns,port,user,password):
 
 """
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    usage()
+    Help text for using this module
+    Author: Ulf Hellstrom, oraminute@gmail.com
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%    
+"""
+def usage():
+    os.system('cls' if os.name == 'nt' else 'clear')
+    print('Usage:')
+    print('./db_info.py -e<enviornment')
+    print('./db_info.py --environment=<environment')
+    print('where environment in utv|test|prod')
+    print('Example:')
+    print('./db_info -eutv')
+    print('/db_info --environment=utv')
+
+"""
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     Main starts here. Eg this is where we run the code
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%    
 """
-if __name__ == "__main__":
-    os.system('cls' if os.name == 'nt' else 'clear')
+def main(argv):
+    
+    # parse argument for env flag
+    try:
+        opts,args = getopt.getopt(argv,"e:",["environment="])
+    except getopt.GetoptError as err:
+        print(err)
+        usage()
+        sys.exit(2)
+    for opt, arg in opts:
+        if opt in ("-e", "--environment"):
+            env = arg
+    print("Using flag -e:",arg)
+    if env.lower() not in ('utv','test','prod'):
+        usage()
+        sys.exit(2)
+
+    os.system('cls' if os.name == 'nt' else 'clear')                
+    # Check environment flag is set
     # Pick upp tns,port and instance from db_info.cfg
-    # configparser checks against python2 and python3
+    # configparser checks against python2 and python
     if sys.version_info[0] < 3:
         config = ConfigParser.ConfigParser()
         config.readfp(open(r'db_info.cfg'))
@@ -364,17 +400,14 @@ if __name__ == "__main__":
     file_list = ['cdb.log']
     resultfile = 'db_info.txt'
     aboutfile = 'db_about.txt'
-    list_of_dbs = []
-    info_list = []
-    about_list = []
-    # For each container loop over it and get the pdbs
-    # For each PDB we run the SQL in get_pdb_info()
+    # For each database loop over and check if we have standalone or multitenant
+    # Different routes depending on db is standalone or cdb with pdb's.
     for val in file_list:
         input_file = open(val,'r')
         for line in input_file:
             db_name = line
-            if db_name.startswith("+ASM"):
-                print('Not connecting or collecting ASM')
+            if db_name.startswith("+") or db_name.startswith("-"):
+                print('Not connecting or collecting ',db_name)
             else:
                 print(db_name)
                 # Check the version of Oracle. Less then 12 then no Multitenant option
@@ -382,7 +415,6 @@ if __name__ == "__main__":
                 if ver > 11:
                     list_of_dbs = get_pdbs(db_name,tns,port,user,base64.urlsafe_b64decode(os.environ["DB_INFO"].encode('UTF-8')).decode('ascii'))
                     for val in list_of_dbs:
-                        #print(type(val))
                         print(val)
                         get_pdb_info(db_name,tns,port,val,user,base64.urlsafe_b64decode(os.environ["DB_INFO"].encode('UTF-8')).decode('ascii'))
                 else:
@@ -392,9 +424,15 @@ if __name__ == "__main__":
     outfile.write("\n".join(info_list))
     outfile.close()
     # Update Oracle info repository with collected data
-    update_db_info(catalog_info,catalog_tns,catalog_port,user,base64.urlsafe_b64decode(os.environ["DB_INFO"].encode('UTF-8')).decode('ascii'))
+    update_db_info(catalog_info,catalog_tns,catalog_port,user,base64.urlsafe_b64decode(os.environ["DB_INFO"].encode('UTF-8')).decode('ascii'),env)
     # Get out info from db_about to save to disk as backup
     get_about_info(catalog_info,catalog_tns,catalog_port,user,base64.urlsafe_b64decode(os.environ["DB_INFO"].encode('UTF-8')).decode('ascii'))
     outfile = open(aboutfile,'w')
     outfile.write("\n".join(about_list))
     outfile.close()
+
+if __name__ == "__main__":
+    list_of_dbs = []
+    info_list = []
+    about_list = []    
+    main(sys.argv[1:])

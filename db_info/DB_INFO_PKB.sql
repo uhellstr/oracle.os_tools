@@ -8,7 +8,8 @@ as
                p_in_pdb in varchar2,
                p_in_created in date,
                p_in_parameter in varchar2,
-               p_in_varde in varchar2
+               p_in_value in varchar2,
+               p_in_env in varchar2
               )
  as
 
@@ -17,8 +18,8 @@ as
  begin
 
 
-    insert into db_info (nod,cdb,pdb,created,parameter,varde)
-    values(p_in_nod,p_in_cdb,p_in_pdb,p_in_created,p_in_parameter,p_in_varde);
+    insert into db_info (nod,cdb,pdb,created,parameter,value,env)
+    values(p_in_nod,p_in_cdb,p_in_pdb,p_in_created,p_in_parameter,p_in_value,upper(p_in_env));
 
 
   commit;
@@ -84,7 +85,7 @@ as
     select cdb
           ,pdb
           ,parameter
-          ,varde
+          ,value
    from db_info
    where parameter = 'service_names'
    order by cdb,pdb asc;
@@ -143,9 +144,9 @@ as
 
       lv_tns := lv_tns||os_tools.gen_tns_entry
                    (
-                      p_in_tns_entry => rec.varde
+                      p_in_tns_entry => rec.value
                       ,p_in_host => lc_tns_host
-                      ,p_in_service_name => rec.varde
+                      ,p_in_service_name => rec.value
                       ,p_in_portno => 1521
                    )||lc_lf;
 
