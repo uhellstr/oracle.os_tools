@@ -448,8 +448,8 @@ def main(argv):
     os.environ["DB_INFO"] = pwd
     # list of cdbs from ansile-playbook sar-orause-test.sh
     file_list = ['cdb.log']
-    resultfile = 'db_info.txt'
-    aboutfile = 'db_about.txt'
+    resultfile = 'db_info_'+env+'.txt'
+    aboutfile = 'db_about_'+env+'.txt'
     # For each database loop over and check if we have standalone or multitenant
     # Different routes depending on db is standalone or cdb with pdb's.
     for val in file_list:
