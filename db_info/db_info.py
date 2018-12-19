@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # coding: UTF-8
 
 from __future__ import print_function
@@ -14,31 +14,6 @@ try:
     import ConfigParser
 except ImportError:
     import configparser
-
-"""
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-    get_oracle_connection()
-    Function that returns a connection for Oracle database instance.
-    Author: Ulf Hellstrom, oraminute@gmail.com
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-"""
-def get_oracle_connection(db_name,tns,port,user,password):
-
-    tnsalias = tns + ":" + port + "/" + db_name
-    print(tnsalias)
-
-    try:
-        if user.upper() == 'SYS':
-            connection = cx_Oracle.connect("sys", password, tnsalias, mode=cx_Oracle.SYSDBA)
-        else:
-            connection = cx_Oracle.connect(user,password,tnsalias)
-    except cx_Oracle.DatabaseError as e:
-            error, = e.args
-            print(error.code)
-            print(error.message)
-            print(error.context)
-    
-    return connection
 
 """
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -146,7 +121,64 @@ select *
 from db_info, (select 'db_version' as typ, version as varde from dba_registry where comp_id = 'CATALOG')
 )"""
 
-    return stmt    
+    return stmt
+
+"""
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+   ret_tns_string()
+   Function that returns tnn entry for connection to Oracle
+   Author: Ulf Hellstrom, oraminute@gmail.com
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+"""
+def ret_tns_string(dns,service):
+    ret_string = dns.replace("{$SERVICE_NAME}",service,1)
+    return ret_string
+
+"""
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    get_oracle_connection()
+    Function that returns a connection for Oracle database instance.
+    Author: Ulf Hellstrom, oraminute@gmail.com
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+"""
+def get_oracle_connection(db_name,tns,port,user,password):
+
+    tnsalias = tns + ":" + port + "/" + db_name
+    print("Using service name for database:",db_name)
+
+    try:
+        if user.upper() == 'SYS':
+            connection = cx_Oracle.connect("sys", password, tnsalias, mode=cx_Oracle.SYSDBA)
+        else:
+            connection = cx_Oracle.connect(user,password,tnsalias)
+    except cx_Oracle.DatabaseError as e:
+            error, = e.args
+            print(error.code)
+            print(error.message)
+            print(error.context)
+
+    return connection
+
+"""
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    get_oracle_dns_connection()
+    Function that returns a connection for Oracle database instance usint TNS entry.
+    Author: Ulf Hellstrom, oraminute@gmail.com
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+"""
+def get_oracle_dns_connection(db_name,dns,user,password):
+
+    tnsstring = user+'/'+password + ret_tns_string(dns,db_name)
+    print("Using DNS connection for database:",db_name)
+    try:
+        connection = cx_Oracle.connect(tnsstring)
+    except cx_Oracle.DatabaseError as e:
+            error, = e.args
+            print(error.code)
+            print(error.message)
+            print(error.context)
+
+    return connection
 
 """
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -156,9 +188,12 @@ from db_info, (select 'db_version' as typ, version as varde from dba_registry wh
    Author: Ulf Hellstrom, oraminute@gmail.com
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 """
-def get_version_info(db_name,tns,port,user,password):
+def get_version_info(db_name,tns,port,use_dns,dns_connect,user,password):
 
-    connection = get_oracle_connection(db_name,tns,port,user,password)
+    if use_dns.startswith('Y') or use_dns.startswith('y'):
+        connection = get_oracle_dns_connection(db_name,dns_connect,user,password)
+    else:
+        connection = get_oracle_connection(db_name,tns,port,user,password)
 
     print('Checking Oracle version.')
     c1 = connection.cursor()
@@ -168,7 +203,7 @@ def get_version_info(db_name,tns,port,user,password):
 
     c1.close()
     connection.close()
-    return ver    
+    return ver
 
 """
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -178,10 +213,14 @@ def get_version_info(db_name,tns,port,user,password):
     Author: Ulf Hellstrom, oraminute@gmail.com
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 """
-def get_pdbs(cdb_name,tns,port,user,password):
+def get_pdbs(cdb_name,tns,port,use_dns,dns_connect,user,password):
 
     pdb_list = []
-    connection = get_oracle_connection(cdb_name,tns,port,user,password)
+
+    if use_dns.startswith('Y') or use_dns.startswith('y'):
+        connection = get_oracle_dns_connection(cdb_name,dns_connect,user,password)
+    else:
+        connection = get_oracle_connection(cdb_name,tns,port,user,password)
 
     print('Connection Ok ' + cdb_name)
     print('Getting PDBs')
@@ -195,7 +234,7 @@ def get_pdbs(cdb_name,tns,port,user,password):
     for name in c1:
         val = ''.join(name) # make tuple to string
         pdb_list.append(val) # append string to list
-        
+
     c1.close()
     connection.close()
     return pdb_list
@@ -205,13 +244,17 @@ def get_pdbs(cdb_name,tns,port,user,password):
     get_db_info()
     Collects info from a standalone Database e.g < verions 12 of Oracle
     Auhtor: Ulf Hellstrom, oraminute@gmail.com
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%    
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 """
-def get_db_info(db_name,tns,port,user,password):
-
-    connection = get_oracle_connection(db_name,tns,port,user,password)
+def get_db_info(db_name,tns,port,use_dns,dns_connect,user,password):
 
     print('Getting info for Database: ' + db_name)
+
+    if use_dns.startswith('Y') or use_dns.startswith('y'):
+        connection = get_oracle_dns_connection(db_name,dns_connect,user,password)
+    else:
+        connection = get_oracle_connection(db_name,tns,port,user,password)
+
     sqlstr = sql_template_standalone_11g()
     c1 = connection.cursor()
     c1.execute(sqlstr)
@@ -221,19 +264,22 @@ def get_db_info(db_name,tns,port,user,password):
         info_list.append(str)
 
     c1.close()
-    connection.close()        
+    connection.close()
 
 """
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     get_pdb_info
     Collects information from a Pluggable database in a Multitenant environment.
     Author: Ulf Hellstrom, oraminute@gmail.com
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%   
-"""    
-def get_pdb_info(db_name,tns,port,pdb_name,user,password):
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+"""
+def get_pdb_info(db_name,tns,port,use_dns,dns_connect,pdb_name,user,password):
 
-    connection = get_oracle_connection(db_name,tns,port,user,password)
-    
+    if use_dns.startswith('Y') or use_dns.startswith('y'):
+        connection = get_oracle_dns_connection(db_name,dns_connect,user,password)
+    else:
+        connection = get_oracle_connection(db_name,tns,port,user,password)
+
     try:
         print('Getting info for Database Container: ' + db_name)
         c1str = 'alter session set container = ' + pdb_name
@@ -262,15 +308,16 @@ def get_pdb_info(db_name,tns,port,pdb_name,user,password):
 """
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     update_db_info()
-    Updates DBTOOLS.DB_INFO table in database setup as repository for 
+    Updates DBTOOLS.DB_INFO table in database setup as repository for
     collecting info about databases.
     Author: Ulf Hellstrom, oraminute@gmail.com
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%    
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 """
 def update_db_info(catalog_instance,tns,port,user,password,env):
 
     cdb_name = catalog_instance
     delstr = """delete from dbtools.db_info where env = upper('"""+env+"""')"""
+
     connection = get_oracle_connection(cdb_name,tns,port,user,password)
 
     print('Delete from dbtools.db_info for environment: ',env)
@@ -303,7 +350,7 @@ def update_db_info(catalog_instance,tns,port,user,password,env):
     print('Updating dbtools.db_about')
     cur = connection.cursor()
     cur.callproc('dbtools.db_info_pkg.update_db_about')
-    cur.close()    
+    cur.close()
     connection.close()
 
 """
@@ -313,12 +360,13 @@ def update_db_info(catalog_instance,tns,port,user,password,env):
     This so we have a backup outside database if all should be lost we can recover
     the information in text format.
     Author: Ulf Hellstrom, oraminute@gmail.com
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%    
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 """
 def get_about_info(catalog_instance,tns,port,user,password):
 
     cdb_name = catalog_instance
     sqlstr = """select db_name||'|'||about from dbtools.db_about"""
+
     connection = get_oracle_connection(cdb_name,tns,port,user,password)
 
     print('Connection successfull')
@@ -337,26 +385,26 @@ def get_about_info(catalog_instance,tns,port,user,password):
     usage()
     Help text for using this module
     Author: Ulf Hellstrom, oraminute@gmail.com
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%    
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 """
 def usage():
     os.system('cls' if os.name == 'nt' else 'clear')
     print('Usage:')
     print('./db_info.py -e<enviornment')
     print('./db_info.py --environment=<environment')
-    print('where environment in utv|test|prod')
+    print('where environment in dev|test|prod')
     print('Example:')
-    print('./db_info -eutv')
-    print('/db_info --environment=utv')
+    print('./db_info -edev')
+    print('/db_info --environment=dev')
 
 """
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     Main starts here. Eg this is where we run the code
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%    
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 """
 def main(argv):
-    
-    # parse argument for env flag
+
+    # parse argument for env flags
     try:
         opts,args = getopt.getopt(argv,"e:",["environment="])
     except getopt.GetoptError as err:
@@ -367,11 +415,11 @@ def main(argv):
         if opt in ("-e", "--environment"):
             env = arg
     print("Using flag -e:",arg)
-    if env.lower() not in ('utv','test','prod'):
+    if env.lower() not in ('dev','test','prod'):
         usage()
         sys.exit(2)
 
-    os.system('cls' if os.name == 'nt' else 'clear')                
+    os.system('cls' if os.name == 'nt' else 'clear')
     # Check environment flag is set
     # Pick upp tns,port and instance from db_info.cfg
     # configparser checks against python2 and python
@@ -382,6 +430,8 @@ def main(argv):
         config = configparser.ConfigParser()
         config.read('db_info.cfg')
     #Setup configparameters for connecting to Oracle
+    use_dns = config.get('oraconfig','use_dns')
+    dns_connect = config.get('oraconfig','dns_connect')
     tns = config.get('oraconfig','tns')
     port = config.get('oraconfig','port')
     catalog_info = config.get('oraconfig','catalog_info')
@@ -391,7 +441,7 @@ def main(argv):
     if sys.version_info[0] < 3:
         user = raw_input("Oracle Username (e.g like SYS): ")
     else:
-        user = input("Oracle Username (e.g like SYS): ")    
+        user = input("Oracle Username (e.g like SYS): ")
     # Get password and encrypt it
     pwd = getpass.getpass(prompt="Please give " +user + " password: ")
     pwd =  base64.urlsafe_b64encode(pwd.encode('UTF-8)')).decode('ascii')
@@ -406,19 +456,19 @@ def main(argv):
         input_file = open(val,'r')
         for line in input_file:
             db_name = line
-            if db_name.startswith("+") or db_name.startswith("-"):
+            if db_name.startswith("+") or db_name.startswith("-") or db_name.startswith("dbhome") or db_name.startswith("SBT"):
                 print('Not connecting or collecting ',db_name)
             else:
                 print(db_name)
                 # Check the version of Oracle. Less then 12 then no Multitenant option
-                ver = get_version_info(db_name,tns,port,user,base64.urlsafe_b64decode(os.environ["DB_INFO"].encode('UTF-8')).decode('ascii'))
+                ver = get_version_info(db_name,tns,port,use_dns,dns_connect,user,base64.urlsafe_b64decode(os.environ["DB_INFO"].encode('UTF-8')).decode('ascii'))
                 if ver > 11:
-                    list_of_dbs = get_pdbs(db_name,tns,port,user,base64.urlsafe_b64decode(os.environ["DB_INFO"].encode('UTF-8')).decode('ascii'))
+                    list_of_dbs = get_pdbs(db_name,tns,port,use_dns,dns_connect,user,base64.urlsafe_b64decode(os.environ["DB_INFO"].encode('UTF-8')).decode('ascii'))
                     for val in list_of_dbs:
                         print(val)
-                        get_pdb_info(db_name,tns,port,val,user,base64.urlsafe_b64decode(os.environ["DB_INFO"].encode('UTF-8')).decode('ascii'))
+                        get_pdb_info(db_name,tns,port,use_dns,dns_connect,val,user,base64.urlsafe_b64decode(os.environ["DB_INFO"].encode('UTF-8')).decode('ascii'))
                 else:
-                    get_db_info(db_name,tns,port,user,base64.urlsafe_b64decode(os.environ["DB_INFO"].encode('UTF-8')).decode('ascii'))
+                    get_db_info(db_name,tns,port,use_dns,dns_connect,user,base64.urlsafe_b64decode(os.environ["DB_INFO"].encode('UTF-8')).decode('ascii'))
     #  Write collected info to file
     outfile = open(resultfile,'w')
     outfile.write("\n".join(info_list))

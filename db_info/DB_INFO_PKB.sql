@@ -19,7 +19,7 @@ as
 
 
     insert into db_info (nod,cdb,pdb,created,parameter,value,env)
-    values(p_in_nod,p_in_cdb,p_in_pdb,p_in_created,p_in_parameter,p_in_value,upper(p_in_env));
+    values(p_in_nod,p_in_cdb,nvl(p_in_pdb,replace(regexp_replace(p_in_cdb, '[0-9]', ''),'_','')),p_in_created,p_in_parameter,p_in_value,upper(p_in_env));
 
 
   commit;
@@ -31,23 +31,30 @@ as
  is
  
    cursor cur_check_db_about is
-   select pdb as db_name 
-   from db_info 
-   where pdb not in (select db_name from db_about where db_name = pdb)
-   union 
-   select replace(regexp_replace(cdb, '[0-9]', ''),'_','') as db_name
-   from db_info 
-   where replace(regexp_replace(cdb, '[0-9]', ''),'_','') 
-   not in (select db_name from db_about where db_name = replace(regexp_replace(cdb, '[0-9]', ''),'_',''));
+   select db_name
+   from
+   (
+     select pdb as db_name 
+     from db_info 
+     where pdb not in (select db_name from db_about where db_name = pdb)
+     union 
+     select replace(regexp_replace(cdb, '[0-9]', ''),'_','') as db_name
+     from db_info 
+     where replace(regexp_replace(cdb, '[0-9]', ''),'_','') 
+     not in (select db_name from db_about where db_name = replace(regexp_replace(cdb, '[0-9]', ''),'_',''))
+   ) where db_name is not null; 
    
    cursor cur_get_removed_db is
-   select pdb as db_name
-   from db_info where pdb not in (select db_name from db_about where db_name = pdb)
-   minus
-   select db_name 
-   from db_about
-   where db_name not in (select replace(regexp_replace(cdb, '[0-9]', ''),'_','') from db_info where db_name = replace(regexp_replace(cdb, '[0-9]', ''),'_',''));   
-   
+   select db_name
+   from 
+   (
+    select pdb as db_name
+    from db_info where pdb not in (select db_name from db_about where db_name = pdb)
+    minus
+    select db_name 
+    from db_about
+    where db_name not in (select replace(regexp_replace(cdb, '[0-9]', ''),'_','') from db_info where db_name = replace(regexp_replace(cdb, '[0-9]', ''),'_',''))
+  ) where db_name is not null;
  begin
    
    -- Find new instances and add them to db_about

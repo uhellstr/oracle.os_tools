@@ -2,7 +2,7 @@
 clear
 if [ $# -eq 0 ] ; then
     echo "Usage:"
-    echo "collect utv|test|prod"
+    echo "collect dev|test|prod"
     echo "Example:"
     echo "./collect test (Collect info for test environment"
     exit
@@ -10,7 +10,7 @@ fi
 while test $# -gt 0
 do
     case "$1" in
-        utv) echo "Running collect for utv"
+        dev) echo "Running collect for dev"
             env=$1
             ;;
         test) echo "Running collect for test"
@@ -19,7 +19,7 @@ do
         prod) echo "Running collect fo prod"
             env=$1
             ;;
-        *) echo "Bad argument allowed arguments are utv|test|prod"
+        *) echo "Bad argument allowed arguments are dev|test|prod"
             exit
             ;;
     esac

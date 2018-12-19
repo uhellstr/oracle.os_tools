@@ -1,10 +1,11 @@
-CREATE OR REPLACE FORCE EDITIONABLE VIEW "DBTOOLS"."V_DB_INFO" ("NOD", "CDB", "PDB", "PARAMETER", "VARDE", "ABOUT") AS 
+CREATE OR REPLACE FORCE EDITIONABLE VIEW "DBTOOLS"."V_DB_INFO" AS 
   select
   i.nod,
   i.cdb,
   i.pdb,
   i.parameter,
-  i.varde,
+  i.value,
+  i.env,
   a.about
 from
   db_info i
