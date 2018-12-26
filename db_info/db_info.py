@@ -437,6 +437,8 @@ def main(argv):
     catalog_info = config.get('oraconfig','catalog_info')
     catalog_tns = config.get('oraconfig','catalog_tns')
     catalog_port = config.get('oraconfig','catalog_port')
+    stop_list = config.get('oraconfig','stop_list')
+
     # Get oracle user name (SYS,DBINFO)
     if sys.version_info[0] < 3:
         user = raw_input("Oracle Username (e.g like SYS): ")
@@ -456,7 +458,8 @@ def main(argv):
         input_file = open(val,'r')
         for line in input_file:
             db_name = line
-            if db_name.startswith("+") or db_name.startswith("-") or db_name.startswith("dbhome") or db_name.startswith("SBT"):
+            #if db_name.startswith("+") or db_name.startswith("-") or db_name.startswith("dbhome") or db_name.startswith("SBT"):
+            if db_name in stop_list:
                 print('Not connecting or collecting ',db_name)
             else:
                 print(db_name)
@@ -466,7 +469,10 @@ def main(argv):
                     list_of_dbs = get_pdbs(db_name,tns,port,use_dns,dns_connect,user,base64.urlsafe_b64decode(os.environ["DB_INFO"].encode('UTF-8')).decode('ascii'))
                     for val in list_of_dbs:
                         print(val)
-                        get_pdb_info(db_name,tns,port,use_dns,dns_connect,val,user,base64.urlsafe_b64decode(os.environ["DB_INFO"].encode('UTF-8')).decode('ascii'))
+                        if val not in stop_list:
+                            get_pdb_info(db_name,tns,port,use_dns,dns_connect,val,user,base64.urlsafe_b64decode(os.environ["DB_INFO"].encode('UTF-8')).decode('ascii'))
+                        else:
+                            print('Not collecting data for:',val)    
                 else:
                     get_db_info(db_name,tns,port,use_dns,dns_connect,user,base64.urlsafe_b64decode(os.environ["DB_INFO"].encode('UTF-8')).decode('ascii'))
     #  Write collected info to file
