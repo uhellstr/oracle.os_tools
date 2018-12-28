@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python
 # coding: UTF-8
 
 from __future__ import print_function
@@ -480,7 +480,8 @@ def main(argv):
         for line in input_file:
             db_name = line
             #if db_name.startswith("+") or db_name.startswith("-") or db_name.startswith("dbhome") or db_name.startswith("SBT"):
-            if db_name in stop_list:
+            print('Stop list include following:',stop_list)
+            if db_name in stop_list or db_name.startswith("+") or db_name.startswith("-"):
                 print('Not connecting or collecting ',db_name)
             else:
                 print(db_name)
