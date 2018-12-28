@@ -67,7 +67,7 @@ as
         select distinct b.pdb as db_name
         from db_info b
         union
-        select distinct c.cdb as db_name
+        select distinct replace(regexp_replace(cdb, '[0-9]', ''),'_','') as db_name
         from db_info c
       ) where a.db_name = db_name
     );
