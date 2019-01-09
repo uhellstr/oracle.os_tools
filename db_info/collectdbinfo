@@ -502,10 +502,10 @@ def main(argv):
     for val in file_list:
         input_file = open(val,'r')
         for line in input_file:
-            db_name = line
+            db_name = line.rstrip()
             #if db_name.startswith("+") or db_name.startswith("-") or db_name.startswith("dbhome") or db_name.startswith("SBT"):
             print('Stop list include following:',stop_list)
-            if db_name in stop_list or db_name.startswith("+") or db_name.startswith("-"):
+            if db_name in stop_list:
                 print('Not connecting or collecting ',db_name)
             else:
                 print(db_name)
