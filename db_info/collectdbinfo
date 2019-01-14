@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python
 # coding: UTF-8
 
 from __future__ import print_function
@@ -193,6 +193,8 @@ def get_oracle_connection(db_name,tns,port,user,password):
             print(error.code)
             print(error.message)
             print(error.context)
+            connection = "ERROR"
+            pass
 
     return connection
 
@@ -214,7 +216,9 @@ def get_oracle_dns_connection(db_name,dns,user,password):
             print(error.code)
             print(error.message)
             print(error.context)
-
+            connection = "ERROR"
+            pass
+            
     return connection
 
 """
@@ -231,15 +235,18 @@ def get_version_info(db_name,tns,port,use_dns,dns_connect,user,password):
         connection = get_oracle_dns_connection(db_name,dns_connect,user,password)
     else:
         connection = get_oracle_connection(db_name,tns,port,user,password)
+    if not connection == "ERROR":
+        print('Checking Oracle version.')
+        c1 = connection.cursor()
+        c1.execute("""select to_number(substr(version,1,2)) as dbver from dba_registry where comp_id = 'CATALOG'""")
+        ver = c1.fetchone()[0]
+        print('Oracle version: ',ver)
 
-    print('Checking Oracle version.')
-    c1 = connection.cursor()
-    c1.execute("""select to_number(substr(version,1,2)) as dbver from dba_registry where comp_id = 'CATALOG'""")
-    ver = c1.fetchone()[0]
-    print('Oracle version: ',ver)
+        c1.close()
+        connection.close()
+    else:
+        ver = "ERROR"
 
-    c1.close()
-    connection.close()
     return ver
 
 """
@@ -259,21 +266,25 @@ def get_pdbs(cdb_name,tns,port,use_dns,dns_connect,user,password):
     else:
         connection = get_oracle_connection(cdb_name,tns,port,user,password)
 
-    print('Connection Ok ' + cdb_name)
-    print('Getting PDBs')
-    c1 = connection.cursor()
-    c1.execute("""
-        select name
-        from v$pdbs
-        where open_mode = 'READ WRITE'
-          and name <> 'PDB$SEED'
-        order by name""")
-    for name in c1:
-        val = ''.join(name) # make tuple to string
-        pdb_list.append(val) # append string to list
+    if not connection == "ERROR":
+        print('Connection Ok ' + cdb_name)
+        print('Getting PDBs')
+        c1 = connection.cursor()
+        c1.execute("""
+            select name
+            from v$pdbs
+            where open_mode = 'READ WRITE'
+            and name <> 'PDB$SEED'
+            order by name""")
+        for name in c1:
+            val = ''.join(name) # make tuple to string
+            pdb_list.append(val) # append string to list
 
-    c1.close()
-    connection.close()
+        c1.close()
+        connection.close()
+    else:
+        pdb_list = "ERROR"
+
     return pdb_list
 
 """
@@ -292,16 +303,21 @@ def get_db_info(db_name,tns,port,use_dns,dns_connect,user,password):
     else:
         connection = get_oracle_connection(db_name,tns,port,user,password)
 
-    sqlstr = sql_template_standalone_11g()
-    c1 = connection.cursor()
-    c1.execute(sqlstr)
-    for info in c1:
-        str = ''.join(info) # make tuple to string
-        #print(str) #
-        info_list.append(str)
+    if not connection == "ERROR":
+        sqlstr = sql_template_standalone_11g()
+        c1 = connection.cursor()
+        c1.execute(sqlstr)
+        for info in c1:
+            str = ''.join(info) # make tuple to string
+            #print(str) #
+            info_list.append(str)
 
-    c1.close()
-    connection.close()
+        c1.close()
+        connection.close()
+    else:
+        print("Not collecting any data due to error for: ",db_name)    
+    
+
 
 """
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -317,30 +333,34 @@ def get_pdb_info(db_name,tns,port,use_dns,dns_connect,pdb_name,user,password):
     else:
         connection = get_oracle_connection(db_name,tns,port,user,password)
 
-    try:
-        print('Getting info for Database Container: ' + db_name)
-        c1str = 'alter session set container = ' + pdb_name
-        print(c1str)
-        c1 = connection.cursor()
-        c1.execute(c1str)
-    except cx_Oracle.DatabaseError as e:
-        error, = e.args
-        print(error.code)
-        print(error.message)
-        print(error.context)
-    else:
-        print('Connection successfull')
-        sqlstr = sql_template_pdb()
-        c2 = connection.cursor()
-        c2.execute(sqlstr)
-        for info in c2:
-            str = ''.join(info) # make tuple to string
-            #print(str) #
-            info_list.append(str)
+    if not connection == "ERROR":
+    
+        try:
+            print('Getting info for Database Container: ' + db_name)
+            c1str = 'alter session set container = ' + pdb_name
+            print(c1str)
+            c1 = connection.cursor()
+            c1.execute(c1str)
+        except cx_Oracle.DatabaseError as e:
+            error, = e.args
+            print(error.code)
+            print(error.message)
+            print(error.context)
+        else:
+            print('Connection successfull')
+            sqlstr = sql_template_pdb()
+            c2 = connection.cursor()
+            c2.execute(sqlstr)
+            for info in c2:
+                str = ''.join(info) # make tuple to string
+                #print(str) #
+                info_list.append(str)
 
-        c1.close()
-        c2.close()
-        connection.close()
+            c1.close()
+            c2.close()
+            connection.close()
+    else:
+        print("Not collecting any data due to errors: ",db_name)
 
 """
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -429,7 +449,7 @@ def usage():
     print('Usage:')
     print('db_info.py [optional -p<sshport>] -e<enviornment')
     print('db_info.py [optional --port=<ssh_port> --environment=<environment')
-    print('where environment in dev|test|prod')
+    print('where allowed db environments configed in db_info.cfg')
     print('Example:')
     print('db_info -edev')
     print('db_info --environment=dev')
@@ -445,26 +465,7 @@ def main(argv):
 
     # Enable logging output to log file
     sys.stdout = Logger()
-    # parse argument for env flags
-    ssh_port=22
-    try:
-        opts,args = getopt.getopt(argv,"pe:",["port","environment="])
-    except getopt.GetoptError as err:
-        print(err)
-        usage()
-        sys.exit(2)
-    for opt, arg in opts:
-        if opt in ("-p","--port"):
-            ssh_port = arg
-        if opt in ("-e", "--environment"):
-            env = arg
-    if env.lower() not in ('dev','test','prod'):
-        usage()
-        sys.exit(2)
-
-    os.system('cls' if os.name == 'nt' else 'clear')
-    # Check environment flag is set
-    # Pick upp tns,port and instance from db_info.cfg
+    # Load configuration
     # configparser checks against python2 and python
     if sys.version_info[0] < 3:
         config = ConfigParser.ConfigParser()
@@ -480,15 +481,33 @@ def main(argv):
     catalog_info = config.get('oraconfig','catalog_info')
     catalog_tns = config.get('oraconfig','catalog_tns')
     catalog_port = config.get('oraconfig','catalog_port')
-    stop_list = config.get('oraconfig','stop_list')
-    # Run ansible 
+    db_allowed_env = config.get('oraconfig','db_env')
+    stop_list = config.get('oraconfig','stop_list')    
+    # parse argument for env flags
+    ssh_port=22
+    try:
+        opts,args = getopt.getopt(argv,"pe:",["port","environment="])
+    except getopt.GetoptError as err:
+        print(err)
+        usage()
+        sys.exit(2)
+    for opt, arg in opts:
+        if opt in ("-p","--port"):
+            ssh_port = arg
+        if opt in ("-e", "--environment"):
+            env = arg
+    if env.lower() not in db_allowed_env:
+        usage()
+        sys.exit(2)
+    #Run ansible script
+    os.system('cls' if os.name == 'nt' else 'clear') 
     run_ansible(ssh_port)
     os.system('cls' if os.name == 'nt' else 'clear')
     # Get oracle user name (SYS,DBINFO)
     if sys.version_info[0] < 3:
-        user = raw_input("Oracle Username (e.g like SYS): ")
+        user = raw_input("Oracle Username: ")
     else:
-        user = input("Oracle Username (e.g like SYS): ")
+        user = input("Oracle Username: ")
     # Get password and encrypt it
     pwd = getpass.getpass(prompt="Please give " +user + " password: ")
     pwd =  base64.urlsafe_b64encode(pwd.encode('UTF-8)')).decode('ascii')
@@ -511,16 +530,20 @@ def main(argv):
                 print(db_name)
                 # Check the version of Oracle. Less then 12 then no Multitenant option
                 ver = get_version_info(db_name,tns,port,use_dns,dns_connect,user,base64.urlsafe_b64decode(os.environ["DB_INFO"].encode('UTF-8')).decode('ascii'))
-                if ver > 11:
-                    list_of_dbs = get_pdbs(db_name,tns,port,use_dns,dns_connect,user,base64.urlsafe_b64decode(os.environ["DB_INFO"].encode('UTF-8')).decode('ascii'))
-                    for val in list_of_dbs:
-                        print(val)
-                        if val not in stop_list:
-                            get_pdb_info(db_name,tns,port,use_dns,dns_connect,val,user,base64.urlsafe_b64decode(os.environ["DB_INFO"].encode('UTF-8')).decode('ascii'))
-                        else:
-                            print('Not collecting data for:',val)    
+                if ver <> "ERROR":
+                    if ver > 11:
+                        list_of_dbs = get_pdbs(db_name,tns,port,use_dns,dns_connect,user,base64.urlsafe_b64decode(os.environ["DB_INFO"].encode('UTF-8')).decode('ascii'))
+                        for val in list_of_dbs:
+                            print(val)
+                            if val not in stop_list:
+                                get_pdb_info(db_name,tns,port,use_dns,dns_connect,val,user,base64.urlsafe_b64decode(os.environ["DB_INFO"].encode('UTF-8')).decode('ascii'))
+                            else:
+                                print('Not collecting data for:',val)    
+                    else:
+                        get_db_info(db_name,tns,port,use_dns,dns_connect,user,base64.urlsafe_b64decode(os.environ["DB_INFO"].encode('UTF-8')).decode('ascii'))
                 else:
-                    get_db_info(db_name,tns,port,use_dns,dns_connect,user,base64.urlsafe_b64decode(os.environ["DB_INFO"].encode('UTF-8')).decode('ascii'))
+                    print("Could not collect any info for: ",db_name)
+                            
     #  Write collected info to file
     outfile = open(resultfile,'w')
     outfile.write("\n".join(info_list))
