@@ -250,21 +250,75 @@ as
   --*===========================================================================
   is
 
-    lv_template clob := q'[{$0} = ]'||chr(10)||
-                        q'[  (DESCRIPTION = ]'||chr(10)||
-                        q'[    (ADDRESS = (PROTOCOL = TCP)(HOST = {$1})(PORT = {$3})) ]'||chr(10)||
+   lc_lf constant char(1)  := chr(10);  -- Linux LF
+   lc_tns_host_test constant clob := '(ADDRESS = (PROTOCOL = TCP)(HOST = td02-scan.systest.receptpartner.se)(PORT = 1521))';
+   lc_tns_host_dev  constant clob := ' (ADDRESS = (PROTOCOL = TCP)(HOST = usb2ud03.systest.receptpartner.se)(PORT = 1521))'||lc_lf||
+                                     '      (ADDRESS = (PROTOCOL = TCP)(HOST = usb2ud04.systest.receptpartner.se)(PORT = 1521))';
+   lc_tns_host_ext  constant clob := '(ADDRESS = (PROTOCOL = TCP)(HOST = scan-sbxext.exttest.receptpartner.se)(PORT = 1521))';              
+   lc_tns_host_prod constant clob := ' (ADDRESS = (PROTOCOL = TCP)(HOST = pd01-scan.prod.receptpartner.se)(PORT = 1521))'||lc_lf||
+                                     '      (ADDRESS = (PROTOCOL = TCP)(HOST = pd02-scan.prod.receptpartner.se)(PORT = 1521))';
+                                     
+    lv_template   clob := null;
+    lv_tnsname varchar2(100);
+    lv_template_1 clob := q'[{$0} = ]'||lc_lf||
+                        q'[  (DESCRIPTION = ]'||lc_lf||
+                        q'[    (ADDRESS = (PROTOCOL = TCP)(HOST = {$1})(PORT = {$3})) ]'||lc_lf||
                         q'[    (CONNECT_DATA = ]'||chr(10)||
-                        q'[      (SERVER = DEDICATED ) ]'||chr(10)||
-                        q'[      (SERVICE_NAME = {$2}) ]'||chr(10)||
-                        q'[    )]'||chr(10)||
-                        q'[   )]'||chr(10);
+                        q'[      (SERVER = DEDICATED ) ]'||lc_lf||
+                        q'[      (SERVICE_NAME = {$2}) ]'||lc_lf||
+                        q'[    )]'||lc_lf||
+                        q'[   )]'||lc_lf;
+                        
+    lv_template_2 clob := q'[{$0} = ]'||lc_lf||
+                        q'[  (DESCRIPTION = ]'||lc_lf||
+                        q'[    {$1}]'||lc_lf||
+                        q'[    (CONNECT_DATA = ]'||lc_lf||
+                        q'[      (SERVER = DEDICATED ) ]'||lc_lf||
+                        q'[      (SERVICE_NAME = {$2}) ]'||lc_lf||
+                        q'[    )]'||lc_lf||
+                        q'[   )]'||lc_lf;                        
   begin
 
-    lv_template := replace(lv_template,'{$0}',upper(p_in_tns_entry));
-    lv_template := replace(lv_template,'{$1}',lower(p_in_host));
-    lv_template := replace(lv_template,'{$2}',upper(p_in_service_name));
-    lv_template := replace(lv_template,'{$3}',to_char(p_in_portno));
+    --dbms_output.put_line(p_in_host);
+    --dbms_output.put_line('TNS_ENTRY: '||upper(p_in_tns_entry));
+    
+    if p_in_host in ('DEVELOPMENT','TEST','EXTERNTEST','PRODUCTION') then
+    
+      --dbms_output.put_line('Found info in DB_INFO');
+      
+      if p_in_host = 'EXTERNTEST' then
+        lv_tnsname := substr(replace(p_in_tns_entry,'SBX',''),1,length(replace(p_in_tns_entry,'SBX',''))-1);
+      else
+        lv_tnsname := p_in_tns_entry;
+      end if;
+      
+      lv_template := lv_template_2;      
+      lv_template := replace(lv_template,'{$0}',upper(lv_tnsname));
 
+      if p_in_host = 'DEVELOPMENT' then
+        lv_template := replace(lv_template,'{$1}',lc_tns_host_dev);
+      end if;
+      if p_in_host = 'TEST' then
+        lv_template := replace(lv_template,'{$1}',lc_tns_host_test);
+      end if;
+      if p_in_host = 'EXTERNTEST' then
+        lv_template := replace(lv_template,'{$1}',lc_tns_host_ext);
+      end if;
+      if p_in_host = 'PRODUCTION' then
+        lv_template := replace(lv_template,'{$1}',lc_tns_host_prod);
+      end if;      
+      lv_template := replace(lv_template,'{$2}',upper(p_in_service_name));
+      --dbms_output.put_line(lv_template);
+      
+    else  -- parameters come from calling this procedure directly not from DB_INFO package  
+
+      lv_template := replace(lv_template_1,'{$0}',upper(p_in_tns_entry));
+      lv_template := replace(lv_template_1,'{$1}',lower(p_in_host));
+      lv_template := replace(lv_template_1,'{$2}',upper(p_in_service_name));
+      lv_template := replace(lv_template_1,'{$3}',to_char(p_in_portno));
+      --dbms_output.put_line(lv_template);
+    end if;
+    
     return lv_template;
 
   end gen_tns_entry;
@@ -361,7 +415,6 @@ as
        );
 
      lv_rec file_lst;
-
 
      lv_stmt clob := q'[  select]'||chr(10)||
                      q'[  f_permission,]'||chr(10)||
