@@ -22,7 +22,7 @@ So OEM in all it's glory I needed a simplesystem to track databases
 and especially what there are used for as a simple repository. 
 
 Also I needed this system to be able to say No, you don't need another databases
-to test this. There is already a instance XXX that are Ok for that.
+to test this. There is already a instance XXXX that are Ok for that.
 Another scenarario might be a database needed for a short period of time.
 
 So hence i developed a system mixed of ansible and python to track all
@@ -56,7 +56,7 @@ Used with ansible 2.7.X
 Prereq:
 
     * ssh using private and public keys against the datbasenodes you want to collect info from.
-      It's not necessary to be able to connect as oracle or root. A simple user that can shoe oratab file is fine.
+      It's not necessary to be able to connect as oracle or root. A simple user that can list oratab file is fine.
     * ansible must be installed on the host from where you collect the data.
     * Local hosts file in this project must be updated with correct hosts to scan and you might need to have a look
       in your local .ssh config file to match the host file included in this project.
@@ -72,8 +72,11 @@ Prereq:
 
 
 To be able to store the data collected in Oracle you need the DBTOOLS schema setup first.
+
+Navigate to sql subdir of this directory.
+
 Then you can run
-sqlplus dbtools@DB
+sqlplus dbtools@DB (or use SQLCL if prefered)
 <pwd>
 SQL>@setup_dbinfo_objs.sql
 
