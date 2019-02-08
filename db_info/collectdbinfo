@@ -155,7 +155,7 @@ from db_info, (select 'db_version' as typ, version as varde from dba_registry wh
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 """
 def run_ansible(port):
-    output = subprocess.call(["ansible-playbook ./collect.yml -i ./hosts -e ansible_ssh_port=22"],shell=True)
+    output = subprocess.call(["ansible-playbook ./collect.yml -i ./hosts -e ansible_ssh_port="+port],shell=True)
     print(output)
     output = subprocess.call(["./output.sh"],shell=True)
     print(output)
@@ -236,11 +236,11 @@ def get_version_info(db_name,tns,port,use_dns,dns_connect,user,password):
     else:
         connection = get_oracle_connection(db_name,tns,port,user,password)
     if not connection == "ERROR":
-        print('Checking Oracle version.')
+        print("Checking Oracle version.")
         c1 = connection.cursor()
         c1.execute("""select to_number(substr(version,1,2)) as dbver from dba_registry where comp_id = 'CATALOG'""")
         ver = c1.fetchone()[0]
-        print('Oracle version: ',ver)
+        print("Oracle version: ",ver)
 
         c1.close()
         connection.close()
@@ -296,7 +296,7 @@ def get_pdbs(cdb_name,tns,port,use_dns,dns_connect,user,password):
 """
 def get_db_info(db_name,tns,port,use_dns,dns_connect,user,password):
 
-    print('Getting info for Database: ' + db_name)
+    print("Getting info for Database: " + db_name)
 
     if use_dns.startswith('Y') or use_dns.startswith('y'):
         connection = get_oracle_dns_connection(db_name,dns_connect,user,password)
@@ -317,8 +317,6 @@ def get_db_info(db_name,tns,port,use_dns,dns_connect,user,password):
     else:
         print("Not collecting any data due to error for: ",db_name)    
     
-
-
 """
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     get_pdb_info
@@ -336,8 +334,8 @@ def get_pdb_info(db_name,tns,port,use_dns,dns_connect,pdb_name,user,password):
     if not connection == "ERROR":
     
         try:
-            print('Getting info for Database Container: ' + db_name)
-            c1str = 'alter session set container = ' + pdb_name
+            print("Getting info for Database Container: " + db_name)
+            c1str = "alter session set container = " + pdb_name
             print(c1str)
             c1 = connection.cursor()
             c1.execute(c1str)
@@ -347,7 +345,7 @@ def get_pdb_info(db_name,tns,port,use_dns,dns_connect,pdb_name,user,password):
             print(error.message)
             print(error.context)
         else:
-            print('Connection successfull')
+            print("Connection successfull")
             sqlstr = sql_template_pdb()
             c2 = connection.cursor()
             c2.execute(sqlstr)
@@ -377,13 +375,13 @@ def update_db_info(catalog_instance,tns,port,user,password,env):
 
     connection = get_oracle_connection(cdb_name,tns,port,user,password)
 
-    print('Delete from dbtools.db_info for environment: ',env)
+    print("Delete from dbtools.db_info for environment: ",env)
 
     c1 = connection.cursor()
     c1.execute(delstr)
     c1.close()
 
-    print('Updating dbtools.db_info for environment')
+    print("Updating dbtools.db_info for environment")
     for val in info_list:
         data = val.split('|')
         nod = data[0]
@@ -404,7 +402,7 @@ def update_db_info(catalog_instance,tns,port,user,password,env):
         print(data[5])
         print(env)
 
-    print('Updating dbtools.db_about')
+    print("Updating dbtools.db_about")
     cur = connection.cursor()
     cur.callproc('dbtools.db_info_pkg.update_db_about')
     cur.close()
@@ -426,7 +424,7 @@ def get_about_info(catalog_instance,tns,port,user,password):
 
     connection = get_oracle_connection(cdb_name,tns,port,user,password)
 
-    print('Connection successfull')
+    print("Connection successfull")
     c1 = connection.cursor()
     c1.execute(sqlstr)
     for info in c1:
@@ -446,15 +444,15 @@ def get_about_info(catalog_instance,tns,port,user,password):
 """
 def usage():
     os.system('cls' if os.name == 'nt' else 'clear')
-    print('Usage:')
-    print('db_info.py [optional -p<sshport>] -e<enviornment')
-    print('db_info.py [optional --port=<ssh_port> --environment=<environment')
-    print('where allowed db environments configed in db_info.cfg')
-    print('Example:')
-    print('db_info -edev')
-    print('db_info --environment=dev')
-    print('db_info -p22 -edev')
-    print('db_info --port=22 --environment=dev')
+    print("Usage:')
+    print("db_info.py [optional -p<sshport>] -e<enviornment")
+    print("db_info.py [optional --port=<ssh_port> --environment=<environment")
+    print("where allowed db environments configed in db_info.cfg")
+    print("Example:")
+    print("db_info -edev")
+    print("db_info --environment=dev")
+    print("db_info -p22 -edev")
+    print("db_info --port=22 --environment=dev")
 
 """
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -478,13 +476,13 @@ def main(argv):
     dns_connect = config.get('oraconfig','dns_connect')
     tns = config.get('oraconfig','tns')
     port = config.get('oraconfig','port')
+    ssh_port = config.get('oraconfig','ssh_port')
     catalog_info = config.get('oraconfig','catalog_info')
     catalog_tns = config.get('oraconfig','catalog_tns')
     catalog_port = config.get('oraconfig','catalog_port')
     db_allowed_env = config.get('oraconfig','db_env')
     stop_list = config.get('oraconfig','stop_list')    
     # parse argument for env flags
-    ssh_port=22
     try:
         opts,args = getopt.getopt(argv,"pe:",["port","environment="])
     except getopt.GetoptError as err:

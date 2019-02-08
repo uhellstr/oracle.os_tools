@@ -251,12 +251,12 @@ as
   is
 
    lc_lf constant char(1)  := chr(10);  -- Linux LF
-   lc_tns_host_test constant clob := '(ADDRESS = (PROTOCOL = TCP)(HOST = td02-scan.systest.receptpartner.se)(PORT = 1521))';
-   lc_tns_host_dev  constant clob := ' (ADDRESS = (PROTOCOL = TCP)(HOST = usb2ud03.systest.receptpartner.se)(PORT = 1521))'||lc_lf||
-                                     '      (ADDRESS = (PROTOCOL = TCP)(HOST = usb2ud04.systest.receptpartner.se)(PORT = 1521))';
-   lc_tns_host_ext  constant clob := '(ADDRESS = (PROTOCOL = TCP)(HOST = scan-sbxext.exttest.receptpartner.se)(PORT = 1521))';              
-   lc_tns_host_prod constant clob := ' (ADDRESS = (PROTOCOL = TCP)(HOST = pd01-scan.prod.receptpartner.se)(PORT = 1521))'||lc_lf||
-                                     '      (ADDRESS = (PROTOCOL = TCP)(HOST = pd02-scan.prod.receptpartner.se)(PORT = 1521))';
+   lc_tns_host_test constant clob := '(ADDRESS = (PROTOCOL = TCP)(HOST = td02-scan)(PORT = 1521))';
+   lc_tns_host_dev  constant clob := ' (ADDRESS = (PROTOCOL = TCP)(HOST = utv1)(PORT = 1521))'||lc_lf||
+                                     '      (ADDRESS = (PROTOCOL = TCP)(HOST = utv2)(PORT = 1521))';
+   lc_tns_host_ext  constant clob := '(ADDRESS = (PROTOCOL = TCP)(HOST = scan-sbxext)(PORT = 1521))';              
+   lc_tns_host_prod constant clob := ' (ADDRESS = (PROTOCOL = TCP)(HOST = pd01-scan)(PORT = 1521))'||lc_lf||
+                                     '      (ADDRESS = (PROTOCOL = TCP)(HOST = pd02-scan)(PORT = 1521))';
                                      
     lv_template   clob := null;
     lv_tnsname varchar2(100);
