@@ -429,7 +429,7 @@ def get_about_info(catalog_instance,tns,port,user,password):
     c1.execute(sqlstr)
     for info in c1:
         str = ''.join(info) # make tuple to string
-        print(str)
+        print(str) 
         about_list.append(str)
 
     c1.close()
@@ -520,7 +520,6 @@ def main(argv):
         input_file = open(val,'r')
         for line in input_file:
             db_name = line.rstrip()
-            #if db_name.startswith("+") or db_name.startswith("-") or db_name.startswith("dbhome") or db_name.startswith("SBT"):
             print('Stop list include following:',stop_list)
             if db_name in stop_list:
                 print('Not connecting or collecting ',db_name)
