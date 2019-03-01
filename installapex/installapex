@@ -1,0 +1,204 @@
+#!/usr/bin/env python
+# coding: UTF-8
+
+from __future__ import print_function
+from datetime import datetime
+import ehmorapackage
+from ehmorapackage import oramodule
+import subprocess
+import sys
+import getpass
+import getopt
+import base64
+import os
+import time
+try:
+    import ConfigParser
+except ImportError:
+    import configparser
+
+
+"""
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    sql templates used for checking if objects already are in place or not.
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%   
+"""
+
+sql_check_apex="""
+select count(*) from dba_registry
+where comp_id = 'APEX'
+"""
+
+sql_check_apex_ver="""
+select nvl(status,'0') as status,nvl(version,'0') as version from dba_registry
+where comp_id = 'APEX'
+"""
+
+"""
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    Logger()
+    Logfunction that logs all output to screen to logfile.
+    Author: Ulf Hellstrom, oraminute@gmail.com
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+"""
+class Logger(object):
+    def __init__(self):
+        logfile = datetime.now().strftime('apex_install_%Y_%m_%d_%H_%M.log')
+        self.terminal = sys.stdout
+        self.log = open(logfile, "a")
+
+    def write(self, message):
+        self.terminal.write(message)
+        self.log.write(message)  
+
+    def flush(self):
+        #this flush method is needed for python 3 compatibility.
+        #this handles the flush command by doing nothing.
+        #you might want to specify some extra behavior here.
+        pass
+
+"""
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    newest()
+    Finds the latest created file in a directory
+    Author: Ulf Hellstrom, oraminute@gmail.com
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%    
+"""
+def newest(path):
+    files = os.listdir(path)
+    paths = [os.path.join(path, basename) for basename in files]
+    return max(paths, key=os.path.getctime)
+
+"""
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+   run_ansible()
+   Shell callout running ansible playbook
+   Author: Ulf Hellstrom, oraminute@gmail.com
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+"""
+def run_ansible(port):
+    output = subprocess.call(["ansible-playbook ./collect.yml -i ./hosts -e ansible_ssh_port="+port],shell=True)
+    print(output)
+    output = subprocess.call(["./output.sh"],shell=True)
+    print(output)
+
+"""
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+gen_apex_sql_script
+Function that returns SQL to run in SQL*PLUS to install APEX
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+"""
+def gen_apex_sql_script(db_name,pdb_name,username,pwd):
+
+    templatescript=("connect "+username+"/"+pwd+"@"+db_name+" as SYSDBA"+"\n"+
+                   "alter session set container="+pdb_name+";"+"\n"+
+                   "@apexins SYSAUX SYSAUX TEMP /i182/"+"\n"
+                   "exit")    
+    
+    return templatescript
+
+"""
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    Main starts here. Eg this is where we run the code
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+"""
+def main():
+    # Enable logging output to log file
+    sys.stdout = Logger()
+    # Load configuration
+    # configparser checks against python2 and python
+    if sys.version_info[0] < 3:
+        config = ConfigParser.ConfigParser()
+        config.readfp(open(r'apex_config.cfg'))
+    else:
+        config = configparser.ConfigParser()
+        config.read('apex_config.cfg')
+    #Setup configparameters for connecting to Oracle
+    use_dns = config.get('oraconfig','use_dns')
+    dns_connect = config.get('oraconfig','dns_connect')
+    tns = config.get('oraconfig','tns')
+    port = config.get('oraconfig','port')
+    ssh_port = config.get('oraconfig','ssh_port')
+    stop_list = config.get('oraconfig','stop_list')
+    apex_release = config.get('oraconfig','apex_ver')
+    apex_path = config.get('oraconfig','apex_path')
+    # Get current workding directory
+    workingdir = os.getcwd()
+    print("current directory is : " + workingdir)
+    print("apex installation directory is: " + apex_path)
+    #Run ansible script
+    os.system('cls' if os.name == 'nt' else 'clear') 
+    run_ansible(ssh_port)
+     # Get oracle user name (SYS,DBINFO)
+    if sys.version_info[0] < 3:
+        user = raw_input("Oracle Username: ")
+    else:
+        user = input("Oracle Username: ")
+    # Get password and encrypt it
+    pwd = getpass.getpass(prompt="Please give " +user + " password: ")
+    pwd =  base64.urlsafe_b64encode(pwd.encode('UTF-8)')).decode('ascii')
+    os.environ["DB_INFO"] = pwd
+    # list of cdbs from ansile-playbook sar-orause-test.sh
+    file_list = ['cdb.log']
+    # For each database loop over and check if we have standalone or multitenant
+    # Different routes depending on db is standalone or cdb with pdb's.
+    for val in file_list:
+        input_file = open(val,'r')
+        for line in input_file:
+            db_name = line.rstrip()
+            print('Stop list include following:',stop_list)
+            if db_name in stop_list:
+                print('No setup for database ',db_name)
+            else:
+                print(db_name)
+                # Get Pluggable databases that are mounted in a Container database (CDB)
+                list_of_dbs = oramodule.get_pdbs(db_name,tns,port,use_dns,dns_connect,user,base64.urlsafe_b64decode(os.environ["DB_INFO"].encode('UTF-8')).decode('ascii'))
+                for val in list_of_dbs:
+                    print(val)
+                    # Check that plug not in stoplist
+                    if val not in stop_list:
+                        # Check if apex is installed or not and if installed version.
+                        apex_installed = oramodule.check_if_object_exists(db_name,tns,port,use_dns,dns_connect,val,user,base64.urlsafe_b64decode(os.environ["DB_INFO"].encode('UTF-8')).decode('ascii'),'APEX',sql_check_apex)
+                        if apex_installed <> "ERROR":
+                            if int(apex_installed[0]) == 0:
+                                print("Apex not installed installing...")
+                                start_time = time.time()
+                                os.chdir(apex_path)
+                                sql_script = gen_apex_sql_script(db_name,val,user,base64.urlsafe_b64decode(os.environ["DB_INFO"].encode('UTF-8')).decode('ascii'))
+                                sqlplus_output = oramodule.run_sqlplus(sql_script)
+                                #Debug output below if needed
+                                #for line in sqlplus_output:
+                                #    print(line)
+                                elapsed_time = time.time() - start_time
+                                print(time.strftime("%H:%M:S", time.gmtime(elapsed_time)))
+                                latest_apex_install_log = newest(apex_path)
+                                print("Apex installed please check " + latest_apex_install_log +" for any errors")
+                                os.chdir(workingdir)                                
+                            else:
+                                print("Apex installed checking version")
+                                apex_ver = oramodule.check_if_object_exists(db_name,tns,port,use_dns,dns_connect,val,user,base64.urlsafe_b64decode(os.environ["DB_INFO"].encode('UTF-8')).decode('ascii'),'APEX',sql_check_apex_ver)
+                                print("Apex version installed",apex_ver[1])
+                                installed_ver = int(apex_ver[1].split('.')[0])
+                                expected_ver = int(apex_release.split('.')[0])
+                                print("installed_ver: ",installed_ver)
+                                print("expected_ver :",expected_ver)
+                                if installed_ver < expected_ver:
+                                    print("Installing Apex version: ",apex_release)
+                                    start_time = time.time()
+                                    os.chdir(apex_path)
+                                    sql_script = gen_apex_sql_script(db_name,val,user,base64.urlsafe_b64decode(os.environ["DB_INFO"].encode('UTF-8')).decode('ascii'))
+                                    sqlplus_output = oramodule.run_sqlplus(sql_script)
+                                    latest_apex_install_log = newest(apex_path)
+                                    elapsed_time = time.time() - start_time
+                                    print(time.strftime("%H:%M:%S", time.gmtime(elapsed_time)))
+                                    print("Apex installed please check " + latest_apex_install_log +" for any errors")
+                                    os.chdir(workingdir)                                
+                                else:
+                                    print("Correct version already installed")    
+                        else:
+                            print("Error trying to connect to: ",val)            
+                    else:
+                        print('Not collecting data for:',val)                       
+
+if __name__ == "__main__":
+    main()
