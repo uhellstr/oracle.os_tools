@@ -1,6 +1,4 @@
-#!/usr/bin/env python
-# coding: UTF-8
-
+#!/usr/bin/env python3
 from __future__ import print_function
 import cx_Oracle
 import getpass
@@ -235,7 +233,7 @@ def get_version_info(db_name,tns,port,use_dns,dns_connect,user,password):
         connection = get_oracle_dns_connection(db_name,dns_connect,user,password)
     else:
         connection = get_oracle_connection(db_name,tns,port,user,password)
-    if not connection == "ERROR":
+    if connection is not "ERROR":
         print("Checking Oracle version.")
         c1 = connection.cursor()
         c1.execute("""select to_number(substr(version,1,2)) as dbver from dba_registry where comp_id = 'CATALOG'""")
@@ -266,7 +264,7 @@ def get_pdbs(cdb_name,tns,port,use_dns,dns_connect,user,password):
     else:
         connection = get_oracle_connection(cdb_name,tns,port,user,password)
 
-    if not connection == "ERROR":
+    if connection is not "ERROR":
         print('Connection Ok ' + cdb_name)
         print('Getting PDBs')
         c1 = connection.cursor()
@@ -303,7 +301,7 @@ def get_db_info(db_name,tns,port,use_dns,dns_connect,user,password):
     else:
         connection = get_oracle_connection(db_name,tns,port,user,password)
 
-    if not connection == "ERROR":
+    if connection is not "ERROR":
         sqlstr = sql_template_standalone_11g()
         c1 = connection.cursor()
         c1.execute(sqlstr)
@@ -331,7 +329,7 @@ def get_pdb_info(db_name,tns,port,use_dns,dns_connect,pdb_name,user,password):
     else:
         connection = get_oracle_connection(db_name,tns,port,user,password)
 
-    if not connection == "ERROR":
+    if connection is not "ERROR":
     
         try:
             print("Getting info for Database Container: " + db_name)
@@ -527,7 +525,7 @@ def main(argv):
                 print(db_name)
                 # Check the version of Oracle. Less then 12 then no Multitenant option
                 ver = get_version_info(db_name,tns,port,use_dns,dns_connect,user,base64.urlsafe_b64decode(os.environ["DB_INFO"].encode('UTF-8')).decode('ascii'))
-                if ver <> "ERROR":
+                if ver is not "ERROR":
                     if ver > 11:
                         list_of_dbs = get_pdbs(db_name,tns,port,use_dns,dns_connect,user,base64.urlsafe_b64decode(os.environ["DB_INFO"].encode('UTF-8')).decode('ascii'))
                         for val in list_of_dbs:
