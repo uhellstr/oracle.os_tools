@@ -10,6 +10,7 @@ import re
 import base64
 import subprocess
 import time
+import ast
 
 try:
     import ConfigParser
@@ -353,8 +354,8 @@ def main(argv):
     catalog_info = config.get('oraconfig','catalog_info')
     catalog_tns = config.get('oraconfig','catalog_tns')
     catalog_port = config.get('oraconfig','catalog_port')
-    db_allowed_env = config.get('oraconfig','db_env')
-    stop_list = config.get('oraconfig','stop_list')    
+    db_allowed_env = ast.literal_eval(config.get('oraconfig','db_env'))
+    stop_list = ast.literal_eval(config.get('oraconfig','stop_list'))    
     # parse argument for env flags
     try:
         opts,args = getopt.getopt(argv,"pe:",["port","environment="])
