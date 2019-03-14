@@ -12,6 +12,7 @@ import getopt
 import base64
 import os
 import time
+import ast
 try:
     import ConfigParser
 except ImportError:
@@ -88,11 +89,11 @@ gen_apex_sql_script
 Function that returns SQL to run in SQL*PLUS to install APEX
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 """
-def gen_apex_sql_script(db_name,pdb_name,username,pwd):
+def gen_apex_sql_script(db_name,pdb_name,username,pwd,image_path):
 
     templatescript=("connect "+username+"/"+pwd+"@"+db_name+" as SYSDBA"+"\n"+
                    "alter session set container="+pdb_name+";"+"\n"+
-                   "@apexins SYSAUX SYSAUX TEMP /i182/"+"\n"
+                   "@apexins SYSAUX SYSAUX TEMP " +image_path+"\n"
                    "exit")    
     
     return templatescript
@@ -119,21 +120,20 @@ def main():
     tns = config.get('oraconfig','tns')
     port = config.get('oraconfig','port')
     ssh_port = config.get('oraconfig','ssh_port')
-    stop_list = config.get('oraconfig','stop_list')
+    stop_list = ast.literal_eval(config.get('oraconfig','stop_list'))
     apex_release = config.get('oraconfig','apex_ver')
+    apex_image_path = config.get('oraconfig','apex_image_path')
     apex_path = config.get('oraconfig','apex_path')
     # Get current workding directory
     workingdir = os.getcwd()
     print("current directory is : " + workingdir)
     print("apex installation directory is: " + apex_path)
-    #Run ansible script
-    os.system('cls' if os.name == 'nt' else 'clear') 
+    #Run ansible script 
     run_ansible(ssh_port)
+    os.system('cls' if os.name == 'nt' else 'clear') 
      # Get oracle user name (SYS,DBINFO)
-    if sys.version_info[0] < 3:
-        user = raw_input("Oracle Username: ")
-    else:
-        user = input("Oracle Username: ")
+    print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
+    user = input('Oracle Username: ')
     # Get password and encrypt it
     pwd = getpass.getpass(prompt="Please give " +user + " password: ")
     pwd =  base64.urlsafe_b64encode(pwd.encode('UTF-8)')).decode('ascii')
@@ -164,6 +164,7 @@ def main():
                                 print("Apex not installed installing...")
                                 start_time = time.time()
                                 os.chdir(apex_path)
+                                #install APEX
                                 sql_script = gen_apex_sql_script(db_name,val,user,base64.urlsafe_b64decode(os.environ["DB_INFO"].encode('UTF-8')).decode('ascii'))
                                 sqlplus_output = oramodule.run_sqlplus(sql_script)
                                 #Debug output below if needed
@@ -186,7 +187,7 @@ def main():
                                     print("Installing Apex version: ",apex_release)
                                     start_time = time.time()
                                     os.chdir(apex_path)
-                                    sql_script = gen_apex_sql_script(db_name,val,user,base64.urlsafe_b64decode(os.environ["DB_INFO"].encode('UTF-8')).decode('ascii'))
+                                    sql_script = gen_apex_sql_script(db_name,val,user,base64.urlsafe_b64decode(os.environ["DB_INFO"].encode('UTF-8')).decode('ascii'),apex_image_path)
                                     sqlplus_output = oramodule.run_sqlplus(sql_script)
                                     latest_apex_install_log = newest(apex_path)
                                     elapsed_time = time.time() - start_time
@@ -198,7 +199,7 @@ def main():
                         else:
                             print("Error trying to connect to: ",val)            
                     else:
-                        print('Not collecting data for:',val)                       
+                        print('Not installing APEX in:',val)                       
 
 if __name__ == "__main__":
     main()
