@@ -133,7 +133,10 @@ def main():
     os.system('cls' if os.name == 'nt' else 'clear') 
      # Get oracle user name (SYS,DBINFO)
     print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
-    user = input('Oracle Username: ')
+    if sys.version_info[0] < 3:
+        user = raw_input("Oracle Username: ")
+    else:
+        user = input("Oracle Username: ")
     # Get password and encrypt it
     pwd = getpass.getpass(prompt="Please give " +user + " password: ")
     pwd =  base64.urlsafe_b64encode(pwd.encode('UTF-8)')).decode('ascii')
