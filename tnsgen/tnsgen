@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# coding: UTF-8
 
 r"""
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -22,7 +21,7 @@ r"""
 #               2. Check tns_config.cfg 
 #               3. Run tnsgen as $ ./tnsgen in a copied directory of this gitrepo (See README)
 #               4. Output produce logfile and tnsname.ora_<date and timestamp>
-#               5. Upload to testexa nodes if necessary (E.g new plugs or deleted plugs)
+#               5. Upload file to server if necessary.
 #               6. Merge with you own local tnsnames.ora
 #            
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -128,31 +127,6 @@ def gen_tns_entry(db_name,host,service,port,tnsfile):
     tnsfile.write('\n')
     tnsfile.write(")")
     tnsfile.write('\n')
-    tnsfile.write('\n')
-
-"""
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-    gen_proxy_entry
-    Returns a tnsentry
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-"""
-def gen_proxy_entry(tnsfile):
-
-    tnsfile.write("SBPPX =")
-    tnsfile.write('\n')
-    tnsfile.write("(DESCRIPTION =")
-    tnsfile.write('\n')
-    tnsfile.write(" (ADDRESS = (PROTOCOL = TCP)(HOST = 10.251.103.104)(PORT = 1521))")
-    tnsfile.write('\n')
-    tnsfile.write("  (CONNECT_DATA =")
-    tnsfile.write('\n')
-    tnsfile.write("    (SERVER = DEDICATED)")
-    tnsfile.write('\n')
-    tnsfile.write("    (SERVICE_NAME = SBPPX)")
-    tnsfile.write('\n')
-    tnsfile.write("  )")
-    tnsfile.write('\n')
-    tnsfile.write(")")
     tnsfile.write('\n')
 
 """
@@ -346,9 +320,6 @@ def main():
         gen_tns_header("false","true","false",db_name," ",output_file)
         gen_tns_entry(db_name,tns,db_name,port,output_file)
     input_file.close()
-    # Special handling for Proxydb
-    gen_tns_header("false","false","true","","PROXY",output_file)
-    gen_proxy_entry(output_file)
     # Back to normal plug databases.
     for val in servicename_list:
         # Split comma separated row in list to individual objects
