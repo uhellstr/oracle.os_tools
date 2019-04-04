@@ -1,5 +1,37 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python
+# coding: UTF-8
 
+r"""
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+#                                
+#    _    ____  _______  __
+#   / \  |  _ \| ____\ \/ /
+#  / _ \ | |_) |  _|  \  / 
+# / ___ \|  __/| |___ /  \ 
+#/_/   \_\_|   |_____/_/\_\install
+#   
+# The "r" on row 4 is there to make this comment
+# in raw format so that pylint not complains 
+# about strange characters within this comment :-)
+# Do not remove the leading "r"!!
+#
+#               Install APEX release X in Oracle Multitenant environment.
+#               * Requires Oracle 12c instant client or higher
+#               * ansible should be installed
+#               * Python 2.7 or higher with cx_Oracle module installed
+#               By Ulf Hellstrom,oraminute@gmail.com , EpicoTech 2019
+#
+#               How to use THE SHORT VERSION:
+#
+#               1. Check hosts file so hosts match your ssh configuration
+#               2. Check apex_config.cfg 
+#               3. Run apexinstall as $ ./apexinstall in a copied directory of this gitrepo (See README)
+#               4. Output produce logfile with current timestamp
+#               
+#               
+#            
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+"""
 
 from __future__ import print_function
 from datetime import datetime
@@ -100,6 +132,47 @@ def gen_apex_sql_script(db_name,pdb_name,username,pwd,image_path):
 
 """
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    gen_apex_rest_config_sql_script
+    Function that returns SQL to run in SQL*PLUS to install APEX
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+"""
+def gen_apex_rest_config_sql_script(db_name,pdb_name,username,pwd,apex_listener_pwd,apex_rest_public_user_pwd):
+
+    templatescript=("connect "+username+"/"+pwd+"@"+db_name+" as SYSDBA"+"\n"+
+                   "alter session set container="+pdb_name+";"+"\n"+
+                   "@apex_rest_config_core.sql @ "+apex_listener_pwd.upper()+" "+apex_rest_public_user_pwd.upper()+"\n"+
+                   "exit")    
+    
+    return templatescript
+
+"""
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    install_apex
+    Install apex and run rest_apex_config if not installed or wrong version
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+"""
+def install_apex(db_name,val,user,apex_path,apex_image_path,apex_listener_pwd,apex_rest_public_user_pwd):
+    
+    start_time = time.time()
+    os.chdir(apex_path)
+    #install APEX
+    sql_script = gen_apex_sql_script(db_name,val,user,base64.urlsafe_b64decode(os.environ["DB_INFO"].encode('UTF-8')).decode('ascii'),apex_image_path)
+    sqlplus_output = oramodule.run_sqlplus(sql_script)
+    #Debug output below if needed
+    #for line in sqlplus_output:
+    #    print(line)
+    elapsed_time = time.time() - start_time
+    print(time.strftime("%H:%M:S", time.gmtime(elapsed_time)))
+    latest_apex_install_log = newest(apex_path)
+    print("Installing apex_rest_config")
+    sql_script = gen_apex_rest_config_sql_script(db_name,val,user,base64.urlsafe_b64decode(os.environ["DB_INFO"].encode('UTF-8')).decode('ascii'),apex_listener_pwd,apex_rest_public_user_pwd)
+    print(sql_script)
+    sqlplus_output = oramodule.run_sqlplus(sql_script)
+    #print(sqlplus_output)
+    print("Apex installed please check " + latest_apex_install_log +" for any errors")
+    
+"""
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     Main starts here. Eg this is where we run the code
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 """
@@ -124,6 +197,8 @@ def main():
     apex_release = config.get('oraconfig','apex_ver')
     apex_image_path = config.get('oraconfig','apex_image_path')
     apex_path = config.get('oraconfig','apex_path')
+    apex_listener_pwd = config.get('oraconfig','apex_listener_pwd')
+    apex_rest_public_user_pwd = config.get('oraconfig','apex_rest_public_user_pwd')
     # Get current workding directory
     workingdir = os.getcwd()
     print("current directory is : " + workingdir)
@@ -165,18 +240,7 @@ def main():
                         if apex_installed is not "ERROR":
                             if int(apex_installed[0]) == 0:
                                 print("Apex not installed installing...")
-                                start_time = time.time()
-                                os.chdir(apex_path)
-                                #install APEX
-                                sql_script = gen_apex_sql_script(db_name,val,user,base64.urlsafe_b64decode(os.environ["DB_INFO"].encode('UTF-8')).decode('ascii'))
-                                sqlplus_output = oramodule.run_sqlplus(sql_script)
-                                #Debug output below if needed
-                                #for line in sqlplus_output:
-                                #    print(line)
-                                elapsed_time = time.time() - start_time
-                                print(time.strftime("%H:%M:S", time.gmtime(elapsed_time)))
-                                latest_apex_install_log = newest(apex_path)
-                                print("Apex installed please check " + latest_apex_install_log +" for any errors")
+                                install_apex(db_name,val,user,apex_path,apex_image_path,apex_listener_pwd,apex_rest_public_user_pwd)
                                 os.chdir(workingdir)                                
                             else:
                                 print("Apex installed checking version")
@@ -188,17 +252,17 @@ def main():
                                 print("expected_ver :",expected_ver)
                                 if installed_ver < expected_ver:
                                     print("Installing Apex version: ",apex_release)
-                                    start_time = time.time()
-                                    os.chdir(apex_path)
-                                    sql_script = gen_apex_sql_script(db_name,val,user,base64.urlsafe_b64decode(os.environ["DB_INFO"].encode('UTF-8')).decode('ascii'),apex_image_path)
-                                    sqlplus_output = oramodule.run_sqlplus(sql_script)
-                                    latest_apex_install_log = newest(apex_path)
-                                    elapsed_time = time.time() - start_time
-                                    print(time.strftime("%H:%M:%S", time.gmtime(elapsed_time)))
-                                    print("Apex installed please check " + latest_apex_install_log +" for any errors")
-                                    os.chdir(workingdir)                                
+                                    install_apex(db_name,val,user,apex_path,apex_image_path,apex_listener_pwd,apex_rest_public_user_pwd)
+                                    os.chdir(workingdir)
                                 else:
-                                    print("Correct version already installed")    
+                                    print("Correct version already installed")
+                                    print("Installing and verifying apex_rest_config")
+                                    os.chdir(apex_path)
+                                    sql_script = gen_apex_rest_config_sql_script(db_name,val,user,base64.urlsafe_b64decode(os.environ["DB_INFO"].encode('UTF-8')).decode('ascii'),apex_listener_pwd,apex_rest_public_user_pwd)
+                                    print(sql_script)
+                                    sqlplus_output = oramodule.run_sqlplus(sql_script)
+                                    #print(sqlplus_output)
+                                    os.chdir(workingdir)                                        
                         else:
                             print("Error trying to connect to: ",val)            
                     else:
