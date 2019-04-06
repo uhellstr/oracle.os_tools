@@ -506,18 +506,27 @@ def create_pdb_tablespace(connection,bigfile,tablespace_name):
             sql_stmt = "CREATE BIGFILE TABLESPACE "+tablespace_name.upper()
         else:
             filepath = ret_file_path(connection)
-            sql_stmt = "CREATE BIGFILE TABLESPACE "+tablespace_name.upper()+" DATAFILE '"+filepath+tablespace_name.lower()+"01.dbf' size 1G"
+            sql_stmt = "CREATE BIGFILE TABLESPACE "+tablespace_name.upper()+" DATAFILE '"+filepath+tablespace_name.lower()+"01.dbf' size 1G\n"
     else:
         if check_if_asm_is_used(connection):    
             sql_stmt = "CREATE TABLESPACE "+tablespace_name.upper()
         else:
             filepath = ret_file_path(connection)
-            sql_stmt = "CREATE TABLESPACE "+tablespace_name.upper()+" DATAFILE '"+filepath+tablespace_name.lower()+"01.dbf' size 1G"
-
+            sql_stmt = "CREATE TABLESPACE "+tablespace_name.upper()+" DATAFILE '"+filepath+tablespace_name.lower()+"01.dbf' size 1G\n"
+        
     print(sql_stmt)
     c1 = connection.cursor()
     c1.execute(sql_stmt)
     c1.close()
+    if not check_if_asm_is_used(connection):
+        filepath = ret_file_path(connection)
+        sql_stmt = ("ALTER DATABASE DATAFILE '"+filepath+tablespace_name.lower()+"01.dbf'\n"+
+                    "AUTOEXTEND ON NEXT 100M\n"+ 
+                    "MAXSIZE UNLIMITED\n")
+        print(sql_stmt)                
+        c1 = connection.cursor()
+        c1.execute(sql_stmt)
+        c1.close()                
 
 """
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
