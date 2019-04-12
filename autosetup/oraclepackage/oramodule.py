@@ -23,34 +23,6 @@ def split_list(list,separator,element):
 
 """
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-    switch_plug()
-    Function that do alter session set container.
-    Author: Ulf Hellstrom, oraminute@gmail.com
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-"""
-
-def switch_plug(pdb_name,connection):
-
-    try:
-        print('Connecting to plugdatabase: ',pdb_name)
-        c1str = 'alter session set container = ' + pdb_name
-        print(c1str)
-        c1 = connection.cursor()
-        c1.execute(c1str)
-        c1.close()
-        setdb = "SUCCESS"
-    except cx_Oracle.DatabaseError as e:
-        error, = e.args
-        print(error.code)
-        print(error.message)
-        print(error.context)
-        setdb = "ERROR"
-        pass
-
-    return setdb
-
-"""
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
    ret_tns_string()
    Function that returns tnn entry for connection to Oracle
    Author: Ulf Hellstrom, oraminute@gmail.com
@@ -163,7 +135,6 @@ def check_pdb_mode(connection,new_pdb_name):
                 "from v$pdbs"+"\n"+
                 "where name = '"+new_pdb_name.upper()+"'\n"+
                 "  and open_mode = 'READ WRITE'")
-    print(sql_stmt)
     c1 = connection.cursor()
     c1.execute(sql_stmt)
     # convert tuple to integer
@@ -193,6 +164,72 @@ def check_if_tablespace_exists(connection,tablespace_name):
         retvalue = True
     c1.close()
     return retvalue
+
+"""
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    check_if_db_user_exists
+    Boolean function that returns true if user schema exists
+    Author: Ulf Hellstrom, oraminute@gmail.com
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+"""
+def check_if_db_user_exists(connection,username):
+    
+    retvalue = False
+    sql_stmt = ("select count(*) as antal\n"+
+                "from dba_users\n"+
+                "where username = '"+username.upper()+"'\n")
+    c1 = connection.cursor()
+    c1.execute(sql_stmt)
+    value = int(c1.fetchone()[0])
+    if value > 0:
+       retvalue = True
+    c1.close()
+    return retvalue
+
+"""
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    check_if_profile_exists
+    Boolean function returning true if a profile exists
+    Author: Ulf Hellstrom, oraminute@gmail.com
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+"""
+def check_if_profile_exists(connection,profilename):
+
+    retvalue = False
+    sql_stmt = ("select count(*) from dba_profiles\n"+
+                "where profile = '"+profilename.upper()+"'\n")                
+    c1 = connection.cursor()
+    c1.execute(sql_stmt)
+    value = int(c1.fetchone()[0])
+    if value > 0:
+        retvalue = True
+    c1.close()
+
+    return retvalue
+
+"""
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    check_if_user_user_profile
+    Boolean function checking if a database schema using a given profile
+    Author: Ulf Hellstrom , oraminute@gmail.com
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+"""
+def check_if_user_use_profile(connection,username,profilename):
+
+    retvalue = False
+    sql_stmt = ("select count(*) as antal\n"+
+                "from dba_users\n"+
+                "where username = '"+username.upper()+"'\n"+
+                "and profile = '"+profilename.upper()+"'\n"+
+                "and account_status = 'OPEN'")                
+    c1 = connection.cursor()
+    c1.execute(sql_stmt)
+    value = int(c1.fetchone()[0]) 
+    if value > 0:
+        retvalue = True
+    c1.close()
+
+    return retvalue           
 
 """
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -241,28 +278,6 @@ def check_if_service_exists(connection,servicename):
 
 """
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-    check_if_asm_is_used
-    Boolean function checking wether or not +ASM is used
-    Author: Ulf Hellstrom, oraminute@gmail.com
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-"""
-def check_if_asm_is_used(connection):
-
-    retvalue = False
-    sql_stmt = ("select substr(name,1,1) as asm\n"+
-                "from v$datafile\n"+
-                "where rownum < 2")
-    c1 = connection.cursor()
-    c1.execute(sql_stmt)
-    value = (c1.fetchone()[0])
-    if value is "+":
-        retvalue = True
-    c1.close()
-
-    return retvalue
-    
-"""
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
   check_if_service_trigger_exists()
   Boolean function checking that after startup trigger TR_START_SERVICE exists
   Author: Ulf Hellstrom, oraminute@gmail.com
@@ -284,24 +299,6 @@ def check_if_service_trigger_exists(connection,pdb_name):
     c1.close()
 
     return retvalue          
-
-"""
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-    ret_file_path()
-    Function returning file path for tablespace on disk
-    Author: Ulf Hellstrom, oraminute@gmail.com
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-"""
-def ret_file_path(connection):
-
-    sql_stmt = ("select substr(name,1,instr(name,'/',-1)) as filepath\n"+ 
-                "from v$datafile\n"+
-                "where rownum < 2")
-    c1 = connection.cursor()
-    c1.execute(sql_stmt)
-    value = (c1.fetchone()[0])
-    c1.close()
-    return value
 
 """
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -353,59 +350,7 @@ def create_service_trigger(connection,pdb_name):
     c1 = connection.cursor()
     c1.execute(tmpstr)
     c1.close()
-
-"""
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-    ret_seed_file_mames
-    Function returning list with filenames from seed database
-    Author: Ulf Hellstrom, oraminute@gmail.com
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-"""
-def ret_seed_file_names(connection,pdb_name):
-    
-    filename_list = []
-    db = switch_plug("PDB$SEED",connection)
-    if db is not "ERROR":
-        sql_stmt = ("select name from v$datafile")
-        c1 = connection.cursor()
-        c1.execute(sql_stmt)
-        for name in c1:
-            val = ''.join(name) 
-            filename_list.append(val)
-        c1.close()
-        sql_stmt = ("select name from v$tempfile")
-        c1 = connection.cursor()
-        c1.execute(sql_stmt)
-        for name in c1:
-            val = ''.join(name)
-            filename_list.append(val)
-        c1.close
-        db = switch_plug("CDB$ROOT",connection)
-        return filename_list
-    else:
-        print("ERROR: Problems to connect to SEED database")
-        val = ''.join("ERROR")
-        filename_list.append(val)
-        return filename_list
-
-"""
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-    gen_file_name_convert
-    Generate filename conversion for new pluggable database if not using +ASM
-    Author: Ulf Hellstrom
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%    
-""" 
-def gen_file_name_convert(connection,pdb_name):
-    
-    file_list = []
-    tmpstring = "FILE_NAME_CONVERT=(\n"
-    file_list = ret_seed_file_names(connection,pdb_name)
-    for item in file_list:
-        tmpstring = tmpstring + "  '"+item+"', '"+item.replace("pdbseed",pdb_name.upper())+"',\n"
-    tmpstring = tmpstring[:-2]  # Remove the last ','      
-    tmpstring = tmpstring + "\n)\n"+"STORAGE UNLIMITED TEMPFILE REUSE"
-    return tmpstring
-
+                       
 """
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     create_pluggable_database
@@ -415,14 +360,12 @@ def gen_file_name_convert(connection,pdb_name):
 """
 def create_pluggable_database(connection,new_pdb_name,password):
 
-    sql_stmt = "CREATE PLUGGABLE DATABASE " + new_pdb_name.upper() +" ADMIN USER admin identified by "+password + "\n"
-    if not check_if_asm_is_used(connection):
-        tmp_string = gen_file_name_convert(connection,new_pdb_name)
-        sql_stmt = sql_stmt + tmp_string
+    sql_stmt = "CREATE PLUGGABLE DATABASE " + new_pdb_name.upper() +" ADMIN USER admin identified by "+password
     print(sql_stmt)
     c1 = connection.cursor()
     c1.execute(sql_stmt)
     c1.close()
+
 
 """
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -502,31 +445,13 @@ def open_pluggable_database(connection,new_pdb_name):
 def create_pdb_tablespace(connection,bigfile,tablespace_name):
 
     if bigfile is "Y":
-        if check_if_asm_is_used(connection): 
-            sql_stmt = "CREATE BIGFILE TABLESPACE "+tablespace_name.upper()
-        else:
-            filepath = ret_file_path(connection)
-            sql_stmt = "CREATE BIGFILE TABLESPACE "+tablespace_name.upper()+" DATAFILE '"+filepath+tablespace_name.lower()+"01.dbf' size 1G\n"
+       sql_stmt = "CREATE BIGFILE TABLESPACE "+tablespace_name.upper()
     else:
-        if check_if_asm_is_used(connection):    
-            sql_stmt = "CREATE TABLESPACE "+tablespace_name.upper()
-        else:
-            filepath = ret_file_path(connection)
-            sql_stmt = "CREATE TABLESPACE "+tablespace_name.upper()+" DATAFILE '"+filepath+tablespace_name.lower()+"01.dbf' size 1G\n"
-        
+       sql_stmt = "CREATE TABLESPACE "+tablespace_name.upper()
     print(sql_stmt)
     c1 = connection.cursor()
     c1.execute(sql_stmt)
     c1.close()
-    if not check_if_asm_is_used(connection):
-        filepath = ret_file_path(connection)
-        sql_stmt = ("ALTER DATABASE DATAFILE '"+filepath+tablespace_name.lower()+"01.dbf'\n"+
-                    "AUTOEXTEND ON NEXT 100M\n"+ 
-                    "MAXSIZE UNLIMITED\n")
-        print(sql_stmt)                
-        c1 = connection.cursor()
-        c1.execute(sql_stmt)
-        c1.close()                
 
 """
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -562,7 +487,34 @@ def create_pdb_tablespaces(connection,tablespace_list,new_pdb):
             else:
                 create_pdb_tablespace(connection,"N",tablespace_name)
         set_default_tablespace(connection,"DATA")
-    
+
+"""
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    switch_plug()
+    Function that do alter session set container.
+    Author: Ulf Hellstrom, oraminute@gmail.com
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+"""
+
+def switch_plug(pdb_name,connection):
+
+    try:
+        print('Connecting to plugdatabase: ',pdb_name)
+        c1str = 'alter session set container = ' + pdb_name
+        print(c1str)
+        c1 = connection.cursor()
+        c1.execute(c1str)
+        c1.close()
+        setdb = "SUCCESS"
+    except cx_Oracle.DatabaseError as e:
+        error, = e.args
+        print(error.code)
+        print(error.message)
+        print(error.context)
+        setdb = "ERROR"
+        pass
+
+    return setdb    
 
 """
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
