@@ -1,0 +1,180 @@
+#!/usr/bin/env python
+# coding: UTF-8
+
+from __future__ import print_function
+from datetime import datetime
+import oraclepackage
+from oraclepackage import oramodule
+import subprocess
+import sys
+import getpass
+import getopt
+import base64
+import os
+import time
+try:
+    import ConfigParser
+except ImportError:
+    import configparser
+
+"""
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    Logger()
+    Logfunction that logs all output to screen to logfile.
+    Author: Ulf Hellstrom, oraminute@gmail.com
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+"""
+class Logger(object):
+    def __init__(self):
+        logfile = datetime.now().strftime('set_profile_%Y_%m_%d_%H_%M.log')
+        self.terminal = sys.stdout
+        self.log = open(logfile, "a")
+
+    def write(self, message):
+        self.terminal.write(message)
+        self.log.write(message)  
+
+    def flush(self):
+        #this flush method is needed for python 3 compatibility.
+        #this handles the flush command by doing nothing.
+        #you might want to specify some extra behavior here.
+        pass
+
+"""
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+   run_ansible()
+   Shell callout running ansible playbook
+   Author: Ulf Hellstrom, oraminute@gmail.com
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+"""
+def run_ansible(port):
+    output = subprocess.call(["ansible-playbook ./collect.yml -i ./hosts -e ansible_ssh_port="+port],shell=True)
+    print(output)
+    output = subprocess.call(["./output.sh"],shell=True)
+    print(output)
+
+"""
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    create_unlimited_password_profile
+    Create profile for unlimited time for passwords in test that should not timeout
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+"""
+def create_unlimited_password_profile(connection,profilename):
+
+    sql_stmt=("create profile "+profilename.upper()+" LIMIT PASSWORD_LIFE_TIME UNLIMITED\n")
+    c1 = connection.cursor()
+    c1.execute(sql_stmt)
+    c1.close() 
+
+
+"""
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    set_default_pwd_profile
+    Set default profile for a db user
+    Author: Ulf Hellstrom, oraminute@gmail.com
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+"""
+def set_default_pwd_profile(connection,username,profilename):
+
+    sql_stmt=("alter user "+username.upper()+" profile "+profilename.upper())
+    c1 = connection.cursor()
+    c1.execute(sql_stmt)
+    c1.close()    
+
+"""
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    set_default_profile
+    Helper method setting up new profile and altering users to use the new profile
+    Author: Ulf Hellstrom, oraminute@gmail.com
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+"""
+def set_default_profile(connection,pdb_name,username,profilename):
+    
+    if oramodule.check_if_profile_exists(connection,profilename.upper()):
+        print("Profile "+profilename.upper()+" already exists")
+    else:    
+        print("Creating new profile "+profilename.upper())
+        create_unlimited_password_profile(connection,profilename)
+        if oramodule.check_if_profile_exists(connection,profilename.upper()):
+            print("Profile "+profilename.upper()+" created.")
+    if oramodule.check_if_db_user_exists(connection,username.upper()):
+        print("Setting default profile "+profilename.upper()+" for "+username.upper())
+        set_default_pwd_profile(connection,username.upper(),profilename)
+    else:
+        print("WARNING: "+username.upper()+" is missing in pluggable database " +pdb_name)    
+    if oramodule.check_if_user_use_profile(connection,username.upper(),profilename.upper()):
+        print(username.upper()+" now using profile "+profilename.upper())
+    else:
+        print("WARNING: "+username.upper()+" is not using profile "+profilename.upper()) 
+
+"""
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    Main starts here. Eg this is where we run the code
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+"""
+def main():
+    # Enable logging output to log file
+    sys.stdout = Logger()
+    # Load configuration
+    # configparser checks against python2 and python
+    if sys.version_info[0] < 3:
+        config = ConfigParser.ConfigParser()
+        config.readfp(open(r'apex_config.cfg'))
+    else:
+        config = configparser.ConfigParser()
+        config.read('apex_config.cfg')
+    #Setup configparameters for connecting to Oracle
+    tns = config.get('oraconfig','tns')
+    port = config.get('oraconfig','port')
+    ssh_port = config.get('oraconfig','ssh_port')
+    stop_list = config.get('oraconfig','stop_list')
+    use_dns="no"
+    dns_connect=""
+    #Run ansible script
+    os.system('cls' if os.name == 'nt' else 'clear') 
+    run_ansible(ssh_port)
+     # Get oracle user name (SYS,DBINFO)
+    if sys.version_info[0] < 3:
+        user = raw_input("Oracle Username: ")
+    else:
+        user = input("Oracle Username: ")
+    # Get password and encrypt it
+    pwd = getpass.getpass(prompt="Please give " +user + " password: ")
+    pwd =  base64.urlsafe_b64encode(pwd.encode('UTF-8)')).decode('ascii')
+    os.environ["DB_INFO"] = pwd
+    # list of cdbs from ansile-playbook sar-orause-test.sh
+    file_list = ['cdb.log']
+    # For each database loop over and check if we have standalone or multitenant
+    # Different routes depending on db is standalone or cdb with pdb's.
+    for val in file_list:
+        input_file = open(val,'r')
+        for line in input_file:
+            db_name = line.rstrip()
+            print('Stop list include following:',stop_list)
+            if db_name in stop_list:
+                print('No setup for database ',db_name)
+            else:
+                print(db_name)
+                connection = oramodule.get_oracle_connection(db_name,tns,port,user,base64.urlsafe_b64decode(os.environ["DB_INFO"].encode('UTF-8')).decode('ascii'))
+                # Get Pluggable databases that are mounted in a Container database (CDB)
+                list_of_dbs = oramodule.get_pdbs(db_name,tns,port,use_dns,dns_connect,user,base64.urlsafe_b64decode(os.environ["DB_INFO"].encode('UTF-8')).decode('ascii'))
+                for val in list_of_dbs:
+                    print(val)
+                    # Check that plug not in stoplist
+                    if val not in stop_list:
+                        # connect to current pluggable database
+                        plug = oramodule.switch_plug(val,connection)
+                        if plug is not "ERROR":
+                            # Set default profile for a number of db schemas.
+                            set_default_profile(connection,val,"APEX_PUBLIC_USER","APEX_UNLIMITED_PWD")
+                            set_default_profile(connection,val,"APEX_LISTENER","APEX_UNLIMITED_PWD")
+                            set_default_profile(connection,val,"APEX_REST_PUBLIC_USER","APEX_UNLIMITED_PWD")
+                            set_default_profile(connection,val,"ORDS_PUBLIC_USER","APEX_UNLIMITED_PWD")
+                        else:
+                            print("ERROR: Cannot swith to plugdatabase: "+val)    
+                    else:
+                        print('Not collecting data for:',val)                       
+                connection.close()
+
+if __name__ == "__main__":
+    main()
