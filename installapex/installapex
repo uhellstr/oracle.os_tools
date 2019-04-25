@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python
 # coding: UTF-8
 
 r"""
@@ -123,10 +123,15 @@ Function that returns SQL to run in SQL*PLUS to install APEX
 """
 def gen_apex_sql_script(db_name,pdb_name,username,pwd,image_path):
 
-    templatescript=("connect "+username+"/"+pwd+"@"+db_name+" as SYSDBA"+"\n"+
-                   "alter session set container="+pdb_name+";"+"\n"+
-                   "@apexins SYSAUX SYSAUX TEMP " +image_path+"\n"
-                   "exit")    
+    if pdb_name is "<12":
+        templatescript = ("connect "+username+"/"+pwd+"@"+db_name+" as SYSDBA"+"\n"+
+                          "@apexins SYSAUX SYSAUX TEMP " +image_path+"\n"
+                          "exit")
+    else:                          
+        templatescript=("connect "+username+"/"+pwd+"@"+db_name+" as SYSDBA"+"\n"+
+                        "alter session set container="+pdb_name+";"+"\n"+
+                        "@apexins SYSAUX SYSAUX TEMP " +image_path+"\n"
+                        "exit")    
     
     return templatescript
 
@@ -138,10 +143,15 @@ def gen_apex_sql_script(db_name,pdb_name,username,pwd,image_path):
 """
 def gen_apex_rest_config_sql_script(db_name,pdb_name,username,pwd,apex_listener_pwd,apex_rest_public_user_pwd):
 
-    templatescript=("connect "+username+"/"+pwd+"@"+db_name+" as SYSDBA"+"\n"+
-                   "alter session set container="+pdb_name+";"+"\n"+
-                   "@apex_rest_config_core.sql @ "+apex_listener_pwd.upper()+" "+apex_rest_public_user_pwd.upper()+"\n"+
-                   "exit")    
+    if pdb_name is "<12c":
+        templatescript=("connect "+username+"/"+pwd+"@"+db_name+" as SYSDBA"+"\n"+
+                        "@apex_rest_config_core.sql @ "+apex_listener_pwd.upper()+" "+apex_rest_public_user_pwd.upper()+"\n"+
+                        "exit")
+    else:                       
+        templatescript=("connect "+username+"/"+pwd+"@"+db_name+" as SYSDBA"+"\n"+
+                        "alter session set container="+pdb_name+";"+"\n"+
+                        "@apex_rest_config_core.sql @ "+apex_listener_pwd.upper()+" "+apex_rest_public_user_pwd.upper()+"\n"+
+                        "exit")    
     
     return templatescript
 
@@ -154,11 +164,17 @@ def gen_apex_rest_config_sql_script(db_name,pdb_name,username,pwd,apex_listener_
 """    
 def gen_apex_rest_pwd_sql_script(db_name,pdb_name,username,pwd,apex_listener_pwd,apex_rest_public_user_pwd):
 
-    templatescript = ("connect "+username+"/"+pwd+"@"+db_name+" as SYSDBA"+"\n"+
-                     "alter session set container="+pdb_name+";"+"\n"+
-                     "alter user APEX_LISTENER identified by "+apex_listener_pwd+"\n"+
-                     "alter user APEX_REST_PUBLIC_USER identified by "+apex_rest_public_user_pwd+"\n"+
-                     "exit")
+    if pdb_name is "<12c":
+        templatescript = ("connect "+username+"/"+pwd+"@"+db_name+" as SYSDBA"+"\n"+
+                          "alter user APEX_LISTENER identified by "+apex_listener_pwd+"\n"+
+                          "alter user APEX_REST_PUBLIC_USER identified by "+apex_rest_public_user_pwd+"\n"+
+                          "exit")
+    else:                      
+        templatescript = ("connect "+username+"/"+pwd+"@"+db_name+" as SYSDBA"+"\n"+
+                          "alter session set container="+pdb_name+";"+"\n"+
+                          "alter user APEX_LISTENER identified by "+apex_listener_pwd+"\n"+
+                          "alter user APEX_REST_PUBLIC_USER identified by "+apex_rest_public_user_pwd+"\n"+
+                          "exit")
 
     return templatescript
 
@@ -189,8 +205,7 @@ def install_apex(db_name,val,user,apex_path,apex_image_path,apex_listener_pwd,ap
     sql_script = gen_apex_sql_script(db_name,val,user,base64.urlsafe_b64decode(os.environ["DB_INFO"].encode('UTF-8')).decode('ascii'),apex_image_path)
     sqlplus_output = oramodule.run_sqlplus(sql_script)
     #Debug output below if needed
-    #for line in sqlplus_output:
-    #    print(line)
+    # print(sqlplus_output)
     elapsed_time = time.time() - start_time
     print(time.strftime("%H:%M:S", time.gmtime(elapsed_time)))
     latest_apex_install_log = newest(apex_path)
@@ -200,7 +215,47 @@ def install_apex(db_name,val,user,apex_path,apex_image_path,apex_listener_pwd,ap
     sqlplus_output = oramodule.run_sqlplus(sql_script)
     #print(sqlplus_output)
     print("Apex installed please check " + latest_apex_install_log +" for any errors")
-    
+
+"""
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    installer_main
+    Method that does all the heavy lifting.
+    Author: Ulf Hellström, oraminute@gmail.com
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+"""
+def installer_main(db_name,tns,port,use_dns,dns_connect,pdb_name,user,apex_release,apex_path,apex_image_path,workingdir,apex_listener_pwd,apex_rest_public_user_pwd):
+
+    # Check if apex is installed or not and if installed version.
+    apex_installed = oramodule.check_if_object_exists(db_name,tns,port,use_dns,dns_connect,pdb_name,user,base64.urlsafe_b64decode(os.environ["DB_INFO"].encode('UTF-8')).decode('ascii'),'APEX',sql_check_apex)
+    if apex_installed is not "ERROR":
+        if int(apex_installed[0]) == 0:
+            print("Apex not installed installing...")
+            os.chdir(apex_path)
+            install_apex(db_name,pdb_name,user,apex_path,apex_image_path,apex_listener_pwd,apex_rest_public_user_pwd)
+            install_apex_rest_config(db_name,pdb_name,user,apex_path,apex_image_path,apex_listener_pwd,apex_rest_public_user_pwd)
+            os.chdir(workingdir)                                
+        else:
+            print("Apex installed checking version")
+            apex_ver = oramodule.check_if_object_exists(db_name,tns,port,use_dns,dns_connect,pdb_name,user,base64.urlsafe_b64decode(os.environ["DB_INFO"].encode('UTF-8')).decode('ascii'),'APEX',sql_check_apex_ver)
+            print("Apex version installed",apex_ver[1])
+            installed_ver = int(apex_ver[1].split('.')[0])
+            expected_ver = int(apex_release.split('.')[0])
+            print("installed_ver: ",installed_ver)
+            print("expected_ver :",expected_ver)
+            if installed_ver < expected_ver:
+                os.chdir(apex_path)
+                print("Installing Apex version: ",apex_release)
+                install_apex(db_name,pdb_name,user,apex_path,apex_image_path,apex_listener_pwd,apex_rest_public_user_pwd)
+                install_apex_rest_config(db_name,pdb_name,user,apex_path,apex_image_path,apex_listener_pwd,apex_rest_public_user_pwd)
+                os.chdir(workingdir)
+            else:
+                print("Correct APEX version already installed")
+                os.chdir(apex_path)
+                install_apex_rest_config(db_name,pdb_name,user,apex_path,apex_image_path,apex_listener_pwd,apex_rest_public_user_pwd)
+                os.chdir(workingdir)                                        
+    else:
+        print("Error trying to connect to database.")            
+
 """
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     Main starts here. Eg this is where we run the code
@@ -259,44 +314,23 @@ def main():
                 print('No setup for database ',db_name)
             else:
                 print(db_name)
-                # Get Pluggable databases that are mounted in a Container database (CDB)
-                list_of_dbs = oramodule.get_pdbs(db_name,tns,port,use_dns,dns_connect,user,base64.urlsafe_b64decode(os.environ["DB_INFO"].encode('UTF-8')).decode('ascii'))
-                for val in list_of_dbs:
-                    print(val)
-                    # Check that plug not in stoplist
-                    if val not in stop_list:
-                        # Check if apex is installed or not and if installed version.
-                        apex_installed = oramodule.check_if_object_exists(db_name,tns,port,use_dns,dns_connect,val,user,base64.urlsafe_b64decode(os.environ["DB_INFO"].encode('UTF-8')).decode('ascii'),'APEX',sql_check_apex)
-                        if apex_installed is not "ERROR":
-                            if int(apex_installed[0]) == 0:
-                                print("Apex not installed installing...")
-                                os.chdir(apex_path)
-                                install_apex(db_name,val,user,apex_path,apex_image_path,apex_listener_pwd,apex_rest_public_user_pwd)
-                                install_apex_rest_config(db_name,val,user,apex_path,apex_image_path,apex_listener_pwd,apex_rest_public_user_pwd)
-                                os.chdir(workingdir)                                
+                # Check the version of Oracle. Less then 12 then no Multitenant option
+                ver = oramodule.get_version_info(db_name,tns,port,use_dns,dns_connect,user,base64.urlsafe_b64decode(os.environ["DB_INFO"].encode('UTF-8')).decode('ascii'))
+                if ver is not "ERROR":
+                    if ver < 12: 
+                        # No Multitenant
+                        print("Version of Oracle is less then 12 so no Multitenant option")
+                        installer_main(db_name,tns,port,use_dns,dns_connect,"<12c",user,apex_release,apex_path,apex_image_path,workingdir,apex_listener_pwd,apex_rest_public_user_pwd)
+                    else: # Oracle version > 11    
+                        # Get Pluggable databases that are mounted in a Container database (CDB)
+                        list_of_dbs = oramodule.get_pdbs(db_name,tns,port,use_dns,dns_connect,user,base64.urlsafe_b64decode(os.environ["DB_INFO"].encode('UTF-8')).decode('ascii'))
+                        for val in list_of_dbs:
+                            print(val)
+                            # Check that plug not in stoplist
+                            if val not in stop_list:
+                                installer_main(db_name,tns,port,use_dns,dns_connect,val,user,apex_release,apex_path,apex_image_path,workingdir,apex_listener_pwd,apex_rest_public_user_pwd)
                             else:
-                                print("Apex installed checking version")
-                                apex_ver = oramodule.check_if_object_exists(db_name,tns,port,use_dns,dns_connect,val,user,base64.urlsafe_b64decode(os.environ["DB_INFO"].encode('UTF-8')).decode('ascii'),'APEX',sql_check_apex_ver)
-                                print("Apex version installed",apex_ver[1])
-                                installed_ver = int(apex_ver[1].split('.')[0])
-                                expected_ver = int(apex_release.split('.')[0])
-                                print("installed_ver: ",installed_ver)
-                                print("expected_ver :",expected_ver)
-                                if installed_ver < expected_ver:
-                                    os.chdir(apex_path)
-                                    print("Installing Apex version: ",apex_release)
-                                    install_apex(db_name,val,user,apex_path,apex_image_path,apex_listener_pwd,apex_rest_public_user_pwd)
-                                    install_apex_rest_config(db_name,val,user,apex_path,apex_image_path,apex_listener_pwd,apex_rest_public_user_pwd)
-                                    os.chdir(workingdir)
-                                else:
-                                    print("Correct APEX version already installed")
-                                    os.chdir(apex_path)
-                                    install_apex_rest_config(db_name,val,user,apex_path,apex_image_path,apex_listener_pwd,apex_rest_public_user_pwd)
-                                    os.chdir(workingdir)                                        
-                        else:
-                            print("Error trying to connect to: ",val)            
-                    else:
-                        print('Not installing APEX in:',val)                       
+                                print('Not installing APEX in:',val)                       
 
 if __name__ == "__main__":
     main()
