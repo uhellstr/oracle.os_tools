@@ -3,8 +3,8 @@
 
 from __future__ import print_function
 from datetime import datetime
-import ehmorapackage
-from ehmorapackage import oramodule
+import oraclepackage
+from oraclepackage import oramodule
 import subprocess
 import sys
 import getpass
@@ -78,59 +78,146 @@ Function that returns SQL to run in SQL*PLUS to change admin password
 """
 def gen_apex_sql_script(schema,admin_user,admin_mail,admin_pwd,db_name,pdb_name,username,pwd):
 
-    templatescript=("connect "+username+"/"+pwd+"@"+db_name+" as SYSDBA"+"\n"+
-                   "alter session set container="+pdb_name+";"+"\n"+
-                   "col user_id       noprint new_value M_USER_ID"+"\n"+
-                   "col email_address noprint new_value M_EMAIL_ADDRESS"+"\n"+
-                   "set termout off"+"\n"+
-                   "select rtrim(min(user_id))       user_id,"+"\n"+
-                   "nvl ("+"\n"+
-                   "rtrim(min(email_address)),"+"\n"+
-                   "'ADMIN' )        email_address"+"\n"+
-                   "from "+schema+".wwv_flow_fnd_user"+"\n"+
-                   "where security_group_id = 10"+"\n"+
-                   "and user_name  = upper('"+admin_user+"')"+"\n"+
-                   "/"+"\n"+
-                   "set termout on"+"\n"+
-                   "begin"+"\n"+
-                   "  if length('&M_USER_ID.') > 0 then"+"\n"+
-                   "    sys.dbms_output.put_line('User "+admin_user+" exists.');"+"\n"+
-                   "  else"+"\n"+
-                   "    sys.dbms_output.put_line('User "+admin_user+" does not yet exist and will be created.');"+"\n"+
-                   "  end if;"+"\n"+
-                   "end;"+"\n"+
-                   "/"+"\n"+
-                   "declare"+"\n"+
-                   "  c_user_id  constant number         := to_number( '&M_USER_ID.' );"+"\n"+
-                   "  c_username constant varchar2(4000) := upper( '"+admin_user+"' );"+"\n"+
-                   "  c_email    constant varchar2(4000) := '"+admin_mail+"';"+"\n"+
-                   "  c_password constant varchar2(4000) := '"+admin_pwd+"';"+"\n"+
-                   "  c_old_sgid constant number :="+schema+".wwv_flow_security.g_security_group_id;"+"\n"+
-                   "  c_old_user constant varchar2(255) := "+schema+".wwv_flow_security.g_user;"+"\n"+
-                   "procedure cleanup"+"\n"+
-                   "is"+"\n"+
-                   "begin"+"\n"+
-                   "  "+schema+".wwv_flow_security.g_security_group_id := c_old_sgid;"+"\n"+
-                   "  "+schema+".wwv_flow_security.g_user              := c_old_user;"+"\n"+
-                   "end cleanup;"+"\n"+
-                   "begin"+"\n"+
-                   "  "+schema+".wwv_flow_security.g_security_group_id := 10;"+"\n"+
-                   "  "+schema+".wwv_flow_security.g_user              := c_username;"+"\n"+
-                   "  "+schema+".wwv_flow_fnd_user_int.create_or_update_user( p_user_id  => c_user_id,"+"\n"+
-                   "                                               p_username => c_username,"+"\n"+
-                   "                                               p_email    => c_email,"+"\n"+
-                   "                                               p_password => c_password );"+"\n"+
-                   "commit;"+"\n"+
-                   "cleanup();"+"\n"+
-                   "exception"+"\n"+
-                   "when others then"+"\n"+
-                   "  cleanup();"+"\n"+
-                   "   raise;"+"\n"+
-                   "end;"+"\n"+
-                    "/"+"\n"+                   
-                   "exit")    
+    if pdb_name == "<12c":
+        templatescript=("connect "+username+"/"+pwd+"@"+db_name+" as SYSDBA"+"\n"+
+                        "col user_id       noprint new_value M_USER_ID"+"\n"+
+                        "col email_address noprint new_value M_EMAIL_ADDRESS"+"\n"+
+                        "set termout off"+"\n"+
+                        "select rtrim(min(user_id))       user_id,"+"\n"+
+                        "nvl ("+"\n"+
+                        "rtrim(min(email_address)),"+"\n"+
+                        "'ADMIN' )        email_address"+"\n"+
+                        "from "+schema+".wwv_flow_fnd_user"+"\n"+
+                        "where security_group_id = 10"+"\n"+
+                        "and user_name  = upper('"+admin_user+"')"+"\n"+
+                        "/"+"\n"+
+                        "set termout on"+"\n"+
+                        "begin"+"\n"+
+                        "  if length('&M_USER_ID.') > 0 then"+"\n"+
+                        "    sys.dbms_output.put_line('User "+admin_user+" exists.');"+"\n"+
+                        "  else"+"\n"+
+                        "    sys.dbms_output.put_line('User "+admin_user+" does not yet exist and will be created.');"+"\n"+
+                        "  end if;"+"\n"+
+                        "end;"+"\n"+
+                        "/"+"\n"+
+                        "declare"+"\n"+
+                        "  c_user_id  constant number         := to_number( '&M_USER_ID.' );"+"\n"+
+                        "  c_username constant varchar2(4000) := upper( '"+admin_user+"' );"+"\n"+
+                        "  c_email    constant varchar2(4000) := '"+admin_mail+"';"+"\n"+
+                        "  c_password constant varchar2(4000) := '"+admin_pwd+"';"+"\n"+
+                        "  c_old_sgid constant number :="+schema+".wwv_flow_security.g_security_group_id;"+"\n"+
+                        "  c_old_user constant varchar2(255) := "+schema+".wwv_flow_security.g_user;"+"\n"+
+                        "procedure cleanup"+"\n"+
+                        "is"+"\n"+
+                        "begin"+"\n"+
+                        "  "+schema+".wwv_flow_security.g_security_group_id := c_old_sgid;"+"\n"+
+                        "  "+schema+".wwv_flow_security.g_user              := c_old_user;"+"\n"+
+                        "end cleanup;"+"\n"+
+                        "begin"+"\n"+
+                        "  "+schema+".wwv_flow_security.g_security_group_id := 10;"+"\n"+
+                        "  "+schema+".wwv_flow_security.g_user              := c_username;"+"\n"+
+                        "  "+schema+".wwv_flow_fnd_user_int.create_or_update_user( p_user_id  => c_user_id,"+"\n"+
+                        "                                               p_username => c_username,"+"\n"+
+                        "                                               p_email    => c_email,"+"\n"+
+                        "                                               p_password => c_password );"+"\n"+
+                        "commit;"+"\n"+
+                        "cleanup();"+"\n"+
+                        "exception"+"\n"+
+                        "when others then"+"\n"+
+                        "  cleanup();"+"\n"+
+                        "   raise;"+"\n"+
+                        "end;"+"\n"+
+                        "/"+"\n"+                   
+                        "exit")
+    else:
+        # We are running 12c or above
+        templatescript=("connect "+username+"/"+pwd+"@"+db_name+" as SYSDBA"+"\n"+
+                        "alter session set container="+pdb_name+";"+"\n"+
+                        "col user_id       noprint new_value M_USER_ID"+"\n"+
+                        "col email_address noprint new_value M_EMAIL_ADDRESS"+"\n"+
+                        "set termout off"+"\n"+
+                        "select rtrim(min(user_id))       user_id,"+"\n"+
+                        "nvl ("+"\n"+
+                        "rtrim(min(email_address)),"+"\n"+
+                        "'ADMIN' )        email_address"+"\n"+
+                        "from "+schema+".wwv_flow_fnd_user"+"\n"+
+                        "where security_group_id = 10"+"\n"+
+                        "and user_name  = upper('"+admin_user+"')"+"\n"+
+                        "/"+"\n"+
+                        "set termout on"+"\n"+
+                        "begin"+"\n"+
+                        "  if length('&M_USER_ID.') > 0 then"+"\n"+
+                        "    sys.dbms_output.put_line('User "+admin_user+" exists.');"+"\n"+
+                        "  else"+"\n"+
+                        "    sys.dbms_output.put_line('User "+admin_user+" does not yet exist and will be created.');"+"\n"+
+                        "  end if;"+"\n"+
+                        "end;"+"\n"+
+                        "/"+"\n"+
+                        "declare"+"\n"+
+                        "  c_user_id  constant number         := to_number( '&M_USER_ID.' );"+"\n"+
+                        "  c_username constant varchar2(4000) := upper( '"+admin_user+"' );"+"\n"+
+                        "  c_email    constant varchar2(4000) := '"+admin_mail+"';"+"\n"+
+                        "  c_password constant varchar2(4000) := '"+admin_pwd+"';"+"\n"+
+                        "  c_old_sgid constant number :="+schema+".wwv_flow_security.g_security_group_id;"+"\n"+
+                        "  c_old_user constant varchar2(255) := "+schema+".wwv_flow_security.g_user;"+"\n"+
+                        "procedure cleanup"+"\n"+
+                        "is"+"\n"+
+                        "begin"+"\n"+
+                        "  "+schema+".wwv_flow_security.g_security_group_id := c_old_sgid;"+"\n"+
+                        "  "+schema+".wwv_flow_security.g_user              := c_old_user;"+"\n"+
+                        "end cleanup;"+"\n"+
+                        "begin"+"\n"+
+                        "  "+schema+".wwv_flow_security.g_security_group_id := 10;"+"\n"+
+                        "  "+schema+".wwv_flow_security.g_user              := c_username;"+"\n"+
+                        "  "+schema+".wwv_flow_fnd_user_int.create_or_update_user( p_user_id  => c_user_id,"+"\n"+
+                        "                                               p_username => c_username,"+"\n"+
+                        "                                               p_email    => c_email,"+"\n"+
+                        "                                               p_password => c_password );"+"\n"+
+                        "commit;"+"\n"+
+                        "cleanup();"+"\n"+
+                        "exception"+"\n"+
+                        "when others then"+"\n"+
+                        "  cleanup();"+"\n"+
+                        "   raise;"+"\n"+
+                        "end;"+"\n"+
+                        "/"+"\n"+                   
+                        "exit")    
     
     return templatescript
+
+"""
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    installer_main()
+    Main method setup password for APEX
+    AUthor: Ulf Hellstrom, oraminute@gmail.com
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+"""    
+def installer_main(db_name,tns,port,use_dns,dns_connect,val,user,apex_release,apex_schema,apex_admin_user,apex_admin_mail,apex_admin_pwd):
+    
+    # Check if apex is installed or not and if installed version.
+    apex_installed = oramodule.check_if_object_exists(db_name,tns,port,use_dns,dns_connect,val,user,base64.urlsafe_b64decode(os.environ["DB_INFO"].encode('UTF-8')).decode('ascii'),'APEX',sql_check_apex)
+    if apex_installed <> "ERROR":
+        if int(apex_installed[0]) == 0:
+            print("Apex not installed PLEASE RUN apexinstall in this directory!")
+        else:
+            print("Apex installed checking version")
+            apex_ver = oramodule.check_if_object_exists(db_name,tns,port,use_dns,dns_connect,val,user,base64.urlsafe_b64decode(os.environ["DB_INFO"].encode('UTF-8')).decode('ascii'),'APEX',sql_check_apex_ver)
+            print("Apex version installed",apex_ver[1])
+            installed_ver = int(apex_ver[1].split('.')[0])
+            expected_ver = int(apex_release.split('.')[0])
+            print("installed_ver: ",installed_ver)
+            print("expected_ver :",expected_ver)
+            if installed_ver < expected_ver:
+                print("Incorrect version of APEX please run apexinstall in this directory! ",apex_release)
+            else:
+                print("Correct version installed setting admin password")
+                start_time = time.time()
+                sql_script = gen_apex_sql_script(apex_schema,apex_admin_user,apex_admin_mail,apex_admin_pwd,db_name,val,user,base64.urlsafe_b64decode(os.environ["DB_INFO"].encode('UTF-8')).decode('ascii'))
+                sqlplus_output = oramodule.run_sqlplus(sql_script)
+                #for line in sqlplus_output:
+                #    print(line)                                    
+                elapsed_time = time.time() - start_time
+                print(time.strftime("%H:%M:%S", time.gmtime(elapsed_time)))
 
 """
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -186,39 +273,22 @@ def main():
             else:
                 print(db_name)
                 # Get Pluggable databases that are mounted in a Container database (CDB)
-                list_of_dbs = oramodule.get_pdbs(db_name,tns,port,use_dns,dns_connect,user,base64.urlsafe_b64decode(os.environ["DB_INFO"].encode('UTF-8')).decode('ascii'))
-                for val in list_of_dbs:
-                    print(val)
-                    # Check that plug not in stoplist
-                    if val not in stop_list:
-                        # Check if apex is installed or not and if installed version.
-                        apex_installed = oramodule.check_if_object_exists(db_name,tns,port,use_dns,dns_connect,val,user,base64.urlsafe_b64decode(os.environ["DB_INFO"].encode('UTF-8')).decode('ascii'),'APEX',sql_check_apex)
-                        if apex_installed <> "ERROR":
-                            if int(apex_installed[0]) == 0:
-                                print("Apex not installed PLEASE RUN apexinstall in this directory!")
-                            else:
-                                print("Apex installed checking version")
-                                apex_ver = oramodule.check_if_object_exists(db_name,tns,port,use_dns,dns_connect,val,user,base64.urlsafe_b64decode(os.environ["DB_INFO"].encode('UTF-8')).decode('ascii'),'APEX',sql_check_apex_ver)
-                                print("Apex version installed",apex_ver[1])
-                                installed_ver = int(apex_ver[1].split('.')[0])
-                                expected_ver = int(apex_release.split('.')[0])
-                                print("installed_ver: ",installed_ver)
-                                print("expected_ver :",expected_ver)
-                                if installed_ver < expected_ver:
-                                    print("Incorrect version of APEX please run apexinstall in this directory! ",apex_release)
-                                else:
-                                    print("Correct version installed setting admin password")
-                                    start_time = time.time()
-                                    sql_script = gen_apex_sql_script(apex_schema,apex_admin_user,apex_admin_mail,apex_admin_pwd,db_name,val,user,base64.urlsafe_b64decode(os.environ["DB_INFO"].encode('UTF-8')).decode('ascii'))
-                                    sqlplus_output = oramodule.run_sqlplus(sql_script)
-                                    #for line in sqlplus_output:
-                                    #    print(line)                                    
-                                    elapsed_time = time.time() - start_time
-                                    print(time.strftime("%H:%M:%S", time.gmtime(elapsed_time)))
+                # Check the version of Oracle. Less then 12 then no Multitenant option
+                ver = oramodule.get_version_info(db_name,tns,port,use_dns,dns_connect,user,base64.urlsafe_b64decode(os.environ["DB_INFO"].encode('UTF-8')).decode('ascii'))
+                if ver is not "ERROR":
+                    if ver < 12: 
+                        # No Multitenant
+                        print("Version of Oracle is less then 12 so no Multitenant option")
+                        installer_main(db_name,tns,port,use_dns,dns_connect,"<12c",user,apex_release,apex_schema,apex_admin_user,apex_admin_mail,apex_admin_pwd)
+                else: # Multitenat 12c or above
+                    list_of_dbs = oramodule.get_pdbs(db_name,tns,port,use_dns,dns_connect,user,base64.urlsafe_b64decode(os.environ["DB_INFO"].encode('UTF-8')).decode('ascii'))
+                    for val in list_of_dbs:
+                        print(val)
+                        # Check that plug not in stoplist
+                        if val not in stop_list:
+                            installer_main(db_name,tns,port,use_dns,dns_connect,val,user,apex_release,apex_schema,apex_admin_user,apex_admin_mail,apex_admin_pwd)
                         else:
-                            print("Error trying to connect to: ",val)            
-                    else:
-                        print('Not collecting data for:',val)                       
+                            print('Not collecting data for:',val)                       
 
 if __name__ == "__main__":
     main()
