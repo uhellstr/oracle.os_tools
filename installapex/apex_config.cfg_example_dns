@@ -1,0 +1,43 @@
+#
+#  Configuration file
+#  use_dns          Allows to connect using TNS and allows for failover
+#                   listerners or multiple scan listeners in RAC env.
+#  dns_connect:     Connection is performed using TNS connection like from
+#                   a TNSNAMES.ORA file instead of direct connect             
+#  tns:             is hostname, scan for Oracle TNS entry
+#  port:            The oracle listener port
+#                   where installed.
+#  ssh_port:        For ansible if not using default port 22
+#  stop_list:       Comma separated list of databases or PDB's not to collect
+#  apex_ver:        Current main version of APEX installed.
+#  apex_schema:     Current APEX versions db-schema.
+#  apex_image_prefix: Virtual path for images. Normal /i/ but in mixed environment could be something else.
+#  apex_image_path  VIrtual path for Apex image directory normally /i/
+#  apex_admin_user: Apex administrator for INTERNAL workspace
+#  apex_admin_mail: Apex administrator mail
+#  apex_admin_pwd:  Apex adminisrator password
+[oraconfig]
+use_dns=yes
+dns_connect=(DESCRIPTION=
+               (ADDRESS_LIST=
+                 (ADDRESS=(PROTOCOL=TCP)(HOST=test1)(PORT=1521))
+                 (ADDRESS=(PROTOCOL=TCP)(HOST=test2)(PORT=1521))
+               )
+               (CONNECT_DATA=
+                 (SERVER=DEDICATED)
+                 (SERVICE_NAME={$SERVICE_NAME})
+               )
+             )
+tns=localhost
+port=1521
+ssh_port=22
+stop_list=['+ASM','TEST4']
+apex_ver=18.2.0.00.12
+apex_image_path=/i/
+apex_path=/home/uhellstr/ehmscripts/installapex/apex
+apex_schema=apex_180200
+apex_admin_user=admin
+apex_admin_mail=noname@nomail.com
+apex_admin_pwd=Guru123!
+apex_listener_pwd=APEX_LISTENER
+apex_rest_public_user_pwd=APEX_REST_PUBLIC_USER
