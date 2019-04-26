@@ -17,7 +17,7 @@ To use the utilities the following minimum requirements must be met:
 * Linux or MacOS as client for the utilities
 * Oracle Instant Client 12c or higher in working condition
 * Python 3 prefered but will work in python 2 
-          * You mnigth need to change the interpreter line in all scripts (#!/usr/bin/env python3) to
+          * You migth need to change the interpreter line in all scripts (#!/usr/bin/env python3) to
             match your python environment.
 * cx_Oracle python module matching your current python environment in working condition
 * ansible with ssh keys (No passwords logon against Oracle servers for ansible to work)
