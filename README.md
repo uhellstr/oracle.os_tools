@@ -3,7 +3,7 @@
 Oracle OS TOOLS is a collection of utilities created to make my daily work more efficient.
 Running a site as DBA with mixed environment from 11g up to 18c in mixed environment from
 normal RAC to Exadata this utilities has made my life simplier. Upgrade APEX in over 180 instances 
-manually is purely waste of time and hence I wrote a utility to make the process automated.
+manually is huge waste of time and hence I wrote a utility to make the process automated.
 
 The utilities is build with a mix of Python 3 (They will work with python 2 too) and ansible
 using cx_Oracle and Oracle instantclient to communicate with Linux hosts and Oracle databases.
