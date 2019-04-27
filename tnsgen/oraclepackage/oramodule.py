@@ -84,10 +84,13 @@ def get_oracle_connection(db_name,tns,port,user,password):
 """
 def get_oracle_dns_connection(db_name,dns,user,password):
 
-    tnsstring = user+'/'+password + ret_tns_string(dns,db_name)
-    #print("Using DNS connection for database:",db_name)
+    tnsalias = ret_tns_string(dns,db_name)
+    print("Using DNS connection for database:",db_name)
     try:
-        connection = cx_Oracle.connect(tnsstring)
+        if user.upper() == 'SYS':
+            connection = cx_Oracle.connect("sys", password, tnsalias, mode=cx_Oracle.SYSDBA)
+        else:
+            connection = cx_Oracle.connect(user,password,tnsalias)
     except cx_Oracle.DatabaseError as e:
             error, = e.args
             print(error.code)
@@ -95,8 +98,36 @@ def get_oracle_dns_connection(db_name,dns,user,password):
             print(error.context)
             connection = "ERROR"
             pass
-            
+
     return connection
+
+"""
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+   get_version_info()
+   Function that returns version number eg 11,12,18,19 from the database.
+   Used to determine if we have Multitenant or not.
+   Author: Ulf Hellstrom, oraminute@gmail.com
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+"""
+def get_version_info(db_name,tns,port,use_dns,dns_connect,user,password):
+
+    if use_dns.startswith('Y') or use_dns.startswith('y'):
+        connection = get_oracle_dns_connection(db_name,dns_connect,user,password)
+    else:
+        connection = get_oracle_connection(db_name,tns,port,user,password)
+    if not connection == "ERROR":
+        print('Checking Oracle version.')
+        c1 = connection.cursor()
+        c1.execute("""select to_number(substr(version,1,2)) as dbver from dba_registry where comp_id = 'CATALOG'""")
+        ver = c1.fetchone()[0]
+        print('Oracle version: ',ver)
+
+        c1.close()
+        connection.close()
+    else:
+        ver = "ERROR"
+
+    return ver
 
 """
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -186,6 +217,51 @@ def check_if_db_user_exists(connection,username):
     c1.close()
     return retvalue
 
+"""
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    check_if_object_exists
+    Check if object(tablespace,users,table etc) XXXX do exists or not
+    Author: Ulf Hellstrom, oraminute@gmail.com
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+"""
+def check_if_object_exists(db_name,tns,port,use_dns,dns_connect,pdb_name,user,password,oraobject,sqlstring):
+
+    print("check if object " + oraobject + " exists!")
+    #print("DEBUG: what is value of pdb_name: ",pdb_name)
+    if use_dns.startswith('Y') or use_dns.startswith('y'):
+        connection = get_oracle_dns_connection(db_name,dns_connect,user,password)
+    else:
+        connection = get_oracle_connection(db_name,tns,port,user,password)
+
+    if not connection == "ERROR":    
+        if pdb_name == "<12c":
+            sqlstr = sqlstring
+            c2 = connection.cursor()
+            c2.execute(sqlstr)
+            for info in c2:
+                val = info
+            c2.close()
+            connection.close()
+            return val
+        else:    
+            switchtoplug = switch_plug(pdb_name,connection)
+            if switchtoplug == "SUCCESS":
+                print("switching to plugdatabase " + pdb_name)
+                sqlstr = sqlstring
+                c2 = connection.cursor()
+                c2.execute(sqlstr)
+                for info in c2:
+                    val = info
+                c2.close()
+                connection.close()
+                return val
+            else:
+                print("Error trying to switch to: ",pdb_name)   
+                return "ERROR"   
+    else:
+        print("Not checking any data due to errors: ",db_name)
+        return "ERROR"
+        
 """
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     check_if_profile_exists
@@ -371,6 +447,7 @@ def create_pluggable_database(connection,new_pdb_name,password):
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     create_pdb_services
     Create extra services defined in new_services in autoconfig.cfg
+    Author: Ulf Hellstrom, oraminute@gmail.com
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 """
 def create_pdb_services(connection,container_name,plug_name,service_name):
@@ -440,6 +517,7 @@ def open_pluggable_database(connection,new_pdb_name):
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     create_pdb_tablespace
     Creates tablespace in a new pluggable database if they do not exist
+    Author: Ulf Hellstrom, oraminute@gmail.com
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 """
 def create_pdb_tablespace(connection,bigfile,tablespace_name):
@@ -457,6 +535,7 @@ def create_pdb_tablespace(connection,bigfile,tablespace_name):
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     set_pdb_default_tablespace
     Set default tablespace for pluggable database
+    Author: Ulf Hellstrom, oraminute@gmail.com
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 """
 def set_default_tablespace(connection,tablespace_name):
@@ -471,6 +550,7 @@ def set_default_tablespace(connection,tablespace_name):
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     create_pdb_tablespaces
     Setting up defined tablespaces or verify that they already are in place
+    Author: Ulf Hellstrom, oraminute@gmail.com
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 """
 def create_pdb_tablespaces(connection,tablespace_list,new_pdb):
@@ -553,39 +633,3 @@ def get_pdbs(cdb_name,tns,port,use_dns,dns_connect,user,password):
         pdb_list = "ERROR"
 
     return pdb_list
-
-
-"""
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-    check_if_object_exists
-    Check if object(tablespace,users,table etc) XXXX do exists or not
-    Author: Ulf Hellstrom, oraminute@gmail.com
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-"""
-
-def check_if_object_exists(db_name,tns,port,use_dns,dns_connect,pdb_name,user,password,oraobject,sqlstring):
-
-    if use_dns.startswith('Y') or use_dns.startswith('y'):
-        connection = get_oracle_dns_connection(db_name,dns_connect,user,password)
-    else:
-        connection = get_oracle_connection(db_name,tns,port,user,password)
-
-    if not connection == "ERROR":
-    
-        switchtoplug = switch_plug(pdb_name,connection)
-        if switchtoplug == "SUCCESS":
-            print('alter session successfull checking if '+oraobject+' exists:')
-            sqlstr = sqlstring
-            c2 = connection.cursor()
-            c2.execute(sqlstr)
-            for info in c2:
-                val = info
-            c2.close()
-            connection.close()
-            return val
-        else:
-             print("Error trying to switch to: ",pdb_name)   
-             return "ERROR"   
-    else:
-        print("Not checking any data due to errors: ",db_name)
-        return "ERROR"
