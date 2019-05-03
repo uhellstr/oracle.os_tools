@@ -17,11 +17,10 @@ except ImportError:
     import configparser
 
 # Import oraclepackage module
-workingdir = os.getcwd()
-orapackdir = workingdir.replace(os.path.basename(__file__),"",1)+"/"
+orapackdir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '')) +"/"
+print(orapackdir)
 sys.path.append(orapackdir)
 from oraclepackage import oramodule
-
 
 """
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

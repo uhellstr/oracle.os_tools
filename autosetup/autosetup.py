@@ -37,8 +37,6 @@ r"""
 
 from __future__ import print_function
 from datetime import datetime
-import oraclepackage
-from oraclepackage import oramodule
 import subprocess
 import sys
 import getpass
@@ -53,6 +51,12 @@ try:
     import ConfigParser
 except ImportError:
     import configparser
+
+# Import oraclepackage module
+workingdir = os.getcwd()
+orapackdir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '')) +"/"
+sys.path.append(orapackdir)
+from oraclepackage import oramodule    
     
 """
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
