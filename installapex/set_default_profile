@@ -3,8 +3,6 @@
 
 from __future__ import print_function
 from datetime import datetime
-import oraclepackage
-from oraclepackage import oramodule
 import subprocess
 import sys
 import getpass
@@ -12,10 +10,18 @@ import getopt
 import base64
 import os
 import time
+import ast
 try:
     import ConfigParser
 except ImportError:
     import configparser
+
+# Import oraclepackage module
+workingdir = os.getcwd()
+orapackdir = workingdir.replace(os.path.basename(__file__),"",1)+"/"
+sys.path.append(orapackdir)
+from oraclepackage import oramodule
+
 
 """
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -127,7 +133,7 @@ def main():
     tns = config.get('oraconfig','tns')
     port = config.get('oraconfig','port')
     ssh_port = config.get('oraconfig','ssh_port')
-    stop_list = config.get('oraconfig','stop_list')
+    stop_list = ast.literal_eval(config.get('oraconfig','stop_list'))
     use_dns="no"
     dns_connect=""
     #Run ansible script

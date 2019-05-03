@@ -41,3 +41,4 @@ apex_admin_mail=noname@nomail.com
 apex_admin_pwd=Guru123!
 apex_listener_pwd=APEX_LISTENER
 apex_rest_public_user_pwd=APEX_REST_PUBLIC_USER
+apex_public_user_pwd=APEX_PUBLIC_USER

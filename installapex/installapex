@@ -35,8 +35,6 @@ r"""
 
 from __future__ import print_function
 from datetime import datetime
-import oraclepackage
-from oraclepackage import oramodule
 import subprocess
 import sys
 import getpass
@@ -45,11 +43,17 @@ import base64
 import os
 import time
 import ast
+
 try:
     import ConfigParser
 except ImportError:
     import configparser
 
+# Import oraclepackage module
+workingdir = os.getcwd()
+orapackdir = workingdir.replace(os.path.basename(__file__),"",1)+"/"
+sys.path.append(orapackdir)
+from oraclepackage import oramodule
 
 """
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -157,23 +161,25 @@ def gen_apex_rest_config_sql_script(db_name,pdb_name,username,pwd,apex_listener_
 
 """
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-    gen_apex_rest_pwd_sql_script
-    Generate SQL to alter APEX_LISTENER and APEX_REST_PUBLIC_USER pwd's
+    gen_apex_users_pwd_sql_script
+    Generate SQL to alter APEX_LISTENER, APEX_PUBLIC_USER and APEX_REST_PUBLIC_USER pwd's
     Author: Ulf Hellstrom, oraminute@gmail.com
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 """    
-def gen_apex_rest_pwd_sql_script(db_name,pdb_name,username,pwd,apex_listener_pwd,apex_rest_public_user_pwd):
+def gen_apex_users_pwd_sql_script(db_name,pdb_name,username,pwd,apex_listener_pwd,apex_rest_public_user_pwd,apex_public_user_pwd):
 
     if pdb_name == "<12c":
         templatescript = ("connect "+username+"/"+pwd+"@"+db_name+" as SYSDBA"+"\n"+
-                          "alter user APEX_LISTENER identified by "+apex_listener_pwd+"\n"+
-                          "alter user APEX_REST_PUBLIC_USER identified by "+apex_rest_public_user_pwd+"\n"+
+                          "alter user APEX_LISTENER identified by "+apex_listener_pwd+" account unlock \n"+
+                          "alter user APEX_REST_PUBLIC_USER identified by "+apex_rest_public_user_pwd+" account unlock\n"+
+                          "alter user APEX_PUBLIC_USER identified by "+apex_public_user_pwd+" account unlock\n"    
                           "exit")
     else:                      
         templatescript = ("connect "+username+"/"+pwd+"@"+db_name+" as SYSDBA"+"\n"+
                           "alter session set container="+pdb_name+";"+"\n"+
                           "alter user APEX_LISTENER identified by "+apex_listener_pwd+"\n"+
-                          "alter user APEX_REST_PUBLIC_USER identified by "+apex_rest_public_user_pwd+"\n"+
+                          "alter user APEX_REST_PUBLIC_USER identified by "+apex_rest_public_user_pwd+" account unlock\n"+
+                          "alter user APEX_PUBLIC_USER identified by "+apex_public_user_pwd+" account unlock\n"    
                           "exit")
 
     return templatescript
@@ -185,10 +191,10 @@ def gen_apex_rest_pwd_sql_script(db_name,pdb_name,username,pwd,apex_listener_pwd
     Author: Ulf Hellstrom, oraminute@gmail.com
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 """
-def install_apex_rest_config(db_name,val,user,apex_path,apex_image_path,apex_listener_pwd,apex_rest_public_user_pwd):
+def install_apex_rest_config(db_name,val,user,apex_path,apex_image_path,apex_listener_pwd,apex_rest_public_user_pwd,apex_public_user_pwd):
 
-    print("Verifying APEX_LISTENER and APEX_REST_PUBLIC_USER")
-    sql_script = gen_apex_rest_pwd_sql_script(db_name,val,user,base64.urlsafe_b64decode(os.environ["DB_INFO"].encode('UTF-8')).decode('ascii'),apex_listener_pwd,apex_rest_public_user_pwd)
+    print("Verifying APEX_LISTENER,APEX_PUBLIC_USER and APEX_REST_PUBLIC_USER")
+    sql_script = gen_apex_users_pwd_sql_script(db_name,val,user,base64.urlsafe_b64decode(os.environ["DB_INFO"].encode('UTF-8')).decode('ascii'),apex_listener_pwd,apex_rest_public_user_pwd,apex_public_user_pwd)
     sqlplus_output = oramodule.run_sqlplus(sql_script)
  
 """
@@ -198,7 +204,7 @@ def install_apex_rest_config(db_name,val,user,apex_path,apex_image_path,apex_lis
     Author: Ulf Hellstrom, oraminute@gmail.com
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 """
-def install_apex(db_name,val,user,apex_path,apex_image_path,apex_listener_pwd,apex_rest_public_user_pwd):
+def install_apex(db_name,val,user,apex_path,apex_image_path,apex_listener_pwd,apex_rest_public_user_pwd,apex_public_user_pwd):
     
     start_time = time.time()
     #install APEX
@@ -210,7 +216,7 @@ def install_apex(db_name,val,user,apex_path,apex_image_path,apex_listener_pwd,ap
     print(time.strftime("%H:%M:S", time.gmtime(elapsed_time)))
     latest_apex_install_log = newest(apex_path)
     print("Installing apex_rest_config")
-    sql_script = gen_apex_rest_config_sql_script(db_name,val,user,base64.urlsafe_b64decode(os.environ["DB_INFO"].encode('UTF-8')).decode('ascii'),apex_listener_pwd,apex_rest_public_user_pwd)
+    sql_script = gen_apex_rest_config_sql_script(db_name,val,user,base64.urlsafe_b64decode(os.environ["DB_INFO"].encode('UTF-8')).decode('ascii'),apex_listener_pwd,apex_rest_public_user_pwd,apex_public_user_pwd)
     print(sql_script)
     sqlplus_output = oramodule.run_sqlplus(sql_script)
     #print(sqlplus_output)
@@ -223,7 +229,7 @@ def install_apex(db_name,val,user,apex_path,apex_image_path,apex_listener_pwd,ap
     Author: Ulf Hellström, oraminute@gmail.com
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 """
-def installer_main(db_name,tns,port,use_dns,dns_connect,pdb_name,user,apex_release,apex_path,apex_image_path,workingdir,apex_listener_pwd,apex_rest_public_user_pwd):
+def installer_main(db_name,tns,port,use_dns,dns_connect,pdb_name,user,apex_release,apex_path,apex_image_path,workingdir,apex_listener_pwd,apex_rest_public_user_pwd,apex_public_user_pwd):
 
     # Check if apex is installed or not and if installed version.
     apex_installed = oramodule.check_if_object_exists(db_name,tns,port,use_dns,dns_connect,pdb_name,user,base64.urlsafe_b64decode(os.environ["DB_INFO"].encode('UTF-8')).decode('ascii'),'APEX',sql_check_apex)
@@ -231,8 +237,8 @@ def installer_main(db_name,tns,port,use_dns,dns_connect,pdb_name,user,apex_relea
         if int(apex_installed[0]) == 0:
             print("Apex not installed installing...")
             os.chdir(apex_path)
-            install_apex(db_name,pdb_name,user,apex_path,apex_image_path,apex_listener_pwd,apex_rest_public_user_pwd)
-            install_apex_rest_config(db_name,pdb_name,user,apex_path,apex_image_path,apex_listener_pwd,apex_rest_public_user_pwd)
+            install_apex(db_name,pdb_name,user,apex_path,apex_image_path,apex_listener_pwd,apex_rest_public_user_pwd,apex_public_user_pwd)
+            #install_apex_rest_config(db_name,pdb_name,user,apex_path,apex_image_path,apex_listener_pwd,apex_rest_public_user_pwd)
             os.chdir(workingdir)                                
         else:
             print("Apex installed checking version")
@@ -245,13 +251,13 @@ def installer_main(db_name,tns,port,use_dns,dns_connect,pdb_name,user,apex_relea
             if installed_ver < expected_ver:
                 os.chdir(apex_path)
                 print("Installing Apex version: ",apex_release)
-                install_apex(db_name,pdb_name,user,apex_path,apex_image_path,apex_listener_pwd,apex_rest_public_user_pwd)
-                install_apex_rest_config(db_name,pdb_name,user,apex_path,apex_image_path,apex_listener_pwd,apex_rest_public_user_pwd)
+                install_apex(db_name,pdb_name,user,apex_path,apex_image_path,apex_listener_pwd,apex_rest_public_user_pwd,apex_public_user_pwd)
+                #install_apex_rest_config(db_name,pdb_name,user,apex_path,apex_image_path,apex_listener_pwd,apex_rest_public_user_pwd)
                 os.chdir(workingdir)
             else:
                 print("Correct APEX version already installed")
                 os.chdir(apex_path)
-                install_apex_rest_config(db_name,pdb_name,user,apex_path,apex_image_path,apex_listener_pwd,apex_rest_public_user_pwd)
+                install_apex_rest_config(db_name,pdb_name,user,apex_path,apex_image_path,apex_listener_pwd,apex_rest_public_user_pwd,apex_public_user_pwd)
                 os.chdir(workingdir)                                        
     else:
         print("Error trying to connect to database.")            
@@ -284,8 +290,7 @@ def main():
     apex_path = config.get('oraconfig','apex_path')
     apex_listener_pwd = config.get('oraconfig','apex_listener_pwd')
     apex_rest_public_user_pwd = config.get('oraconfig','apex_rest_public_user_pwd')
-    # Get current workding directory
-    workingdir = os.getcwd()
+    apex_public_user_pwd = config.get('oraconfig','apex_public_user_pwd')
     print("current directory is : " + workingdir)
     print("apex installation directory is: " + apex_path)
     #Run ansible script 
@@ -293,6 +298,7 @@ def main():
     os.system('cls' if os.name == 'nt' else 'clear') 
      # Get oracle user name (SYS,DBINFO)
     print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
+    print("Give Oracle Username (SYS)>")
     if sys.version_info[0] < 3:
         user = raw_input("Oracle Username: ")
     else:
@@ -320,7 +326,7 @@ def main():
                     if ver < 12: 
                         # No Multitenant
                         print("Version of Oracle is less then 12 so no Multitenant option")
-                        installer_main(db_name,tns,port,use_dns,dns_connect,"<12c",user,apex_release,apex_path,apex_image_path,workingdir,apex_listener_pwd,apex_rest_public_user_pwd)
+                        installer_main(db_name,tns,port,use_dns,dns_connect,"<12c",user,apex_release,apex_path,apex_image_path,workingdir,apex_listener_pwd,apex_rest_public_user_pwd,apex_public_user_pwd)
                     else: # Oracle version > 11    
                         # Get Pluggable databases that are mounted in a Container database (CDB)
                         list_of_dbs = oramodule.get_pdbs(db_name,tns,port,use_dns,dns_connect,user,base64.urlsafe_b64decode(os.environ["DB_INFO"].encode('UTF-8')).decode('ascii'))
@@ -328,7 +334,7 @@ def main():
                             print(val)
                             # Check that plug not in stoplist
                             if val not in stop_list:
-                                installer_main(db_name,tns,port,use_dns,dns_connect,val,user,apex_release,apex_path,apex_image_path,workingdir,apex_listener_pwd,apex_rest_public_user_pwd)
+                                installer_main(db_name,tns,port,use_dns,dns_connect,val,user,apex_release,apex_path,apex_image_path,workingdir,apex_listener_pwd,apex_rest_public_user_pwd,apex_public_user_pwd)
                             else:
                                 print('Not installing APEX in:',val)                       
 

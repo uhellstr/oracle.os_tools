@@ -1,7 +1,5 @@
 #!/usr/bin/env python3
 from __future__ import print_function
-import oraclepackage
-from oraclepackage import oramodule
 import getpass
 import getopt
 import os
@@ -16,6 +14,12 @@ try:
     import ConfigParser
 except ImportError:
     import configparser
+
+# Import oraclepackage module
+workingdir = os.getcwd()
+orapackdir = workingdir.replace(os.path.basename(__file__),"",1)+"/"
+sys.path.append(orapackdir)
+from oraclepackage import oramodule
 
 """
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
