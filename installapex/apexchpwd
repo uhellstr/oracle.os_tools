@@ -1,10 +1,8 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # coding: UTF-8
 
 from __future__ import print_function
 from datetime import datetime
-import oraclepackage
-from oraclepackage import oramodule
 import subprocess
 import sys
 import getpass
@@ -12,10 +10,17 @@ import getopt
 import base64
 import os
 import time
+import ast
 try:
     import ConfigParser
 except ImportError:
     import configparser
+
+# Import oraclepackage module
+workingdir = os.getcwd()
+orapackdir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '')) +"/"
+sys.path.append(orapackdir)
+from oraclepackage import oramodule
 
 
 """
@@ -196,7 +201,7 @@ def installer_main(db_name,tns,port,use_dns,dns_connect,val,user,apex_release,ap
     
     # Check if apex is installed or not and if installed version.
     apex_installed = oramodule.check_if_object_exists(db_name,tns,port,use_dns,dns_connect,val,user,base64.urlsafe_b64decode(os.environ["DB_INFO"].encode('UTF-8')).decode('ascii'),'APEX',sql_check_apex)
-    if apex_installed <> "ERROR":
+    if apex_installed is not "ERROR":
         if int(apex_installed[0]) == 0:
             print("Apex not installed PLEASE RUN apexinstall in this directory!")
         else:
@@ -241,7 +246,7 @@ def main():
     tns = config.get('oraconfig','tns')
     port = config.get('oraconfig','port')
     ssh_port = config.get('oraconfig','ssh_port')
-    stop_list = config.get('oraconfig','stop_list')
+    stop_list = ast.literal_eval(config.get('oraconfig','stop_list'))
     apex_release = config.get('oraconfig','apex_ver')
     apex_schema = config.get('oraconfig','apex_schema')
     apex_admin_user = config.get('oraconfig','apex_admin_user')
@@ -280,15 +285,17 @@ def main():
                         # No Multitenant
                         print("Version of Oracle is less then 12 so no Multitenant option")
                         installer_main(db_name,tns,port,use_dns,dns_connect,"<12c",user,apex_release,apex_schema,apex_admin_user,apex_admin_mail,apex_admin_pwd)
-                else: # Multitenat 12c or above
-                    list_of_dbs = oramodule.get_pdbs(db_name,tns,port,use_dns,dns_connect,user,base64.urlsafe_b64decode(os.environ["DB_INFO"].encode('UTF-8')).decode('ascii'))
-                    for val in list_of_dbs:
-                        print(val)
-                        # Check that plug not in stoplist
-                        if val not in stop_list:
-                            installer_main(db_name,tns,port,use_dns,dns_connect,val,user,apex_release,apex_schema,apex_admin_user,apex_admin_mail,apex_admin_pwd)
-                        else:
-                            print('Not collecting data for:',val)                       
+                    else: # Multitenat 12c or above
+                        list_of_dbs = oramodule.get_pdbs(db_name,tns,port,use_dns,dns_connect,user,base64.urlsafe_b64decode(os.environ["DB_INFO"].encode('UTF-8')).decode('ascii'))
+                        for val in list_of_dbs:
+                            print(val)
+                            # Check that plug not in stoplist
+                            if val not in stop_list:
+                                installer_main(db_name,tns,port,use_dns,dns_connect,val,user,apex_release,apex_schema,apex_admin_user,apex_admin_mail,apex_admin_pwd)
+                            else:
+                                print('Not collecting data for:',val)
+                else:
+                    print("Error trying to get Oracle version!!!")
 
 if __name__ == "__main__":
     main()
