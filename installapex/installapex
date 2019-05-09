@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python
 # coding: UTF-8
 
 r"""
@@ -216,7 +216,7 @@ def install_apex(db_name,val,user,apex_path,apex_image_path,apex_listener_pwd,ap
     print(time.strftime("%H:%M:S", time.gmtime(elapsed_time)))
     latest_apex_install_log = newest(apex_path)
     print("Installing apex_rest_config")
-    sql_script = gen_apex_rest_config_sql_script(db_name,val,user,base64.urlsafe_b64decode(os.environ["DB_INFO"].encode('UTF-8')).decode('ascii'),apex_listener_pwd,apex_rest_public_user_pwd,apex_public_user_pwd)
+    sql_script = gen_apex_rest_config_sql_script(db_name,val,user,base64.urlsafe_b64decode(os.environ["DB_INFO"].encode('UTF-8')).decode('ascii'),apex_listener_pwd,apex_rest_public_user_pwd)
     print(sql_script)
     sqlplus_output = oramodule.run_sqlplus(sql_script)
     #print(sqlplus_output)
