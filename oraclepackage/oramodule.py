@@ -154,6 +154,22 @@ def check_if_pdb_exists(connection,new_pdb_name):
 
 """
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    check_if_pdb_is_open
+    Boolean function that verify that PDB is not in MOUNTED mode
+    AUthor: Ulf Hellstrom, oraminute@gmail.com
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+"""
+def check_if_pdb_is_open(db_name,tns,port,user,password,pdb_name):
+    retval = False
+    connection = get_oracle_connection(db_name,tns,port,user,password)
+    if connection is not "ERROR":
+        if check_pdb_mode(connection,pdb_name):
+            retval = True
+    connection.close        
+    return retval
+
+"""
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     check_pdb_mode
     Boolean function that checks if a pluggable database is in read write mode
     Author: Ulf Hellstrom, oraminute@gmail.com
@@ -193,6 +209,24 @@ def check_if_tablespace_exists(connection,tablespace_name):
     value = int(c1.fetchone()[0])
     if value > 0:
         retvalue = True
+    c1.close()
+    return retvalue
+
+"""
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    check_default_tablespace
+    Function that checks if a tablespace exists or not.
+    Author: Ulf Hellstrom, oraminute@gmail.com
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+"""
+def check_default_tablespace(connection):
+    
+    sql_stmt = ("select nvl(property_value,'/NOT SET AT ALL/') as property_value\n"+
+                "from database_properties\n"+
+                "where property_name = 'DEFAULT_PERMANENT_TABLESPACE'\n")
+    c1 = connection.cursor()
+    c1.execute(sql_stmt)
+    retvalue = c1.fetchone()[0]
     c1.close()
     return retvalue
 
@@ -538,8 +572,9 @@ def create_pdb_tablespace(connection,bigfile,tablespace_name):
     Author: Ulf Hellstrom, oraminute@gmail.com
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 """
-def set_default_tablespace(connection,tablespace_name):
+def set_pdb_default_tablespace(connection,tablespace_name):
     if check_if_tablespace_exists(connection,tablespace_name):
+        print("Setting default tablespace to: "+tablespace_name)
         sql_stmt = "ALTER DATABASE DEFAULT TABLESPACE "+tablespace_name.upper()
         print(sql_stmt)
         c1 = connection.cursor()
@@ -566,7 +601,6 @@ def create_pdb_tablespaces(connection,tablespace_list,new_pdb):
                 create_pdb_tablespace(connection,"Y",tablespace_name)
             else:
                 create_pdb_tablespace(connection,"N",tablespace_name)
-        set_default_tablespace(connection,"DATA")
 
 """
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
