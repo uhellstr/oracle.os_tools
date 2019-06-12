@@ -184,6 +184,7 @@ def gen_apex_users_pwd_sql_script(db_name,pdb_name,username,pwd,apex_listener_pw
 
     return templatescript
 
+
 """
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     install_apex_rest_config
@@ -334,7 +335,10 @@ def main():
                             print(val)
                             # Check that plug not in stoplist
                             if val not in stop_list:
-                                installer_main(db_name,tns,port,use_dns,dns_connect,val,user,apex_release,apex_path,apex_image_path,workingdir,apex_listener_pwd,apex_rest_public_user_pwd,apex_public_user_pwd)
+                                if oramodule.check_if_pdb_is_open(db_name,tns,port,user,base64.urlsafe_b64decode(os.environ["DB_INFO"].encode('UTF-8')),val):
+                                    installer_main(db_name,tns,port,use_dns,dns_connect,val,user,apex_release,apex_path,apex_image_path,workingdir,apex_listener_pwd,apex_rest_public_user_pwd,apex_public_user_pwd)
+                                else:
+                                    print('Pluggable database '+val+' is not open, not installing APEX!')  
                             else:
                                 print('Not installing APEX in:',val)                       
 
