@@ -240,6 +240,7 @@ as
                        q'[  ACCESS PARAMETERS ]'||chr(10)||
                        q'[  (]'||chr(10)||
                        q'[    RECORDS DELIMITED BY NEWLINE]'||chr(10)||
+                       q'[    NOLOGFILE]'||chr(10)||                       
                        q'[    PREPROCESSOR {$2}:'{$3}']'||chr(10)||
                        q'[    fields terminated by '|']'||chr(10)||
                        q'[    missing field values are null]'||chr(10)||
