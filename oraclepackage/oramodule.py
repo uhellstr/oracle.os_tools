@@ -1,6 +1,39 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python
 # coding: UTF-8
 
+r"""
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+#                                
+#  ___  _ __ __ _ _ __ ___   ___   __| |_   _| | ___ 
+# / _ \| '__/ _` | '_ ` _ \ / _ \ / _` | | | | |/ _ \
+#| (_) | | | (_| | | | | | | (_) | (_| | |_| | |  __/
+# \___/|_|  \__,_|_| |_| |_|\___/ \__,_|\__,_|_|\___|
+#
+#   
+# The "r" on row 4 is there to make this comment
+# in raw format so that pylint not complains 
+# about strange characters within this comment :-)
+# Do not remove the leading "r"!!
+#
+#               Oramodule cx_Oracle module with common Orcle functions
+#               This module handles things like:
+#                   * create and destroy connections
+#                   * Lots of functionality for Multitentant environment
+#                   * Support for PDB,CDB,AppContainers
+#                   * Support for creating Pluggable databas
+#                   * Calling SQL*PLUS from Python
+#                   * Lot's of check functions (Is PDB open, what type of PDB etc...)
+#
+#               * Requires Oracle 12c instant client or higher
+#               * ansible should be installed
+#               * Python 2.7 or higher with cx_Oracle module installed
+#               By Ulf Hellstrom,oraminute@gmail.com , EpicoTech 2019
+#
+#               How to use THE SHORT VERSION:
+#               
+#            
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+"""
 import cx_Oracle
 import subprocess
 import sys
@@ -131,6 +164,36 @@ def get_version_info(db_name,tns,port,use_dns,dns_connect,user,password):
 
 """
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    check_if_domain_exists
+    Boolean function that chack if a PDB is created with or without domain
+    e.g PDBXXX.mydomain.com (return true) or PDBXXX (return false)
+    if using PDB do alter session set container before calling this routine.
+    Author: Ulf Hellstrom, oraminute@gmail.com
+ %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+"""
+def check_if_domain_exits(connection):
+    retvalue = False
+    sql_stmt = ("select global_name" +"\n"+
+                "from global_name"+"\n")
+    c1 = connection.cursor()
+    c1.execute(sql_stmt)     
+    """
+        Here we need to find out if domain or not..
+        E.g  PDBUFFETEST.SYSTEST.RECEPTPARTNER.SE
+        means domain and PDBUFFETEST means nodomain.
+    """
+    value = c1.fetchone()[0]
+    if value.count('.') > 0:
+        print(value)
+        print("We are using domain")
+        retvalue = True
+    else:
+        print("We are not using domain")
+    c1.close()           
+    return retvalue
+
+"""
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     check_if_pdb_exists
     Boolean function that check if a pluggable database already exists or not.
     Author: Ulf Hellstrom, oraminute@gmail.com 
@@ -159,13 +222,78 @@ def check_if_pdb_exists(connection,new_pdb_name):
     AUthor: Ulf Hellstrom, oraminute@gmail.com
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 """
-def check_if_pdb_is_open(db_name,tns,port,user,password,pdb_name):
+def check_if_pdb_is_open(db_name,tns,port,use_dns,dns_connect,user,password,pdb_name):
     retval = False
-    connection = get_oracle_connection(db_name,tns,port,user,password)
+    if use_dns.startswith('Y') or use_dns.startswith('y'):
+        connection = get_oracle_dns_connection(db_name,dns_connect,user,password)
+    else:
+        connection = get_oracle_connection(db_name,tns,port,user,password)
+
     if connection is not "ERROR":
         if check_pdb_mode(connection,pdb_name):
             retval = True
     connection.close        
+    return retval
+
+"""
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    check_if_pdb_is_appcon
+    Boolean function that check if PDB is a APPLICATION ROOT container
+    AUthor: Ulf Hellstrom, oraminute@gmail.com
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+"""
+def check_if_pdb_is_appcon(db_name,tns,port,use_dns,dns_connect,user,password,pdb_name):
+    retval = False
+    if use_dns.startswith('Y') or use_dns.startswith('y'):
+        connection = get_oracle_dns_connection(db_name,dns_connect,user,password)
+    else:
+        connection = get_oracle_connection(db_name,tns,port,user,password)
+    if connection is not "ERROR":
+        sql_stmt = ("select count(*)"+"\n" +
+                    "from v$pdbs" +"\n"+
+                    "where application_root = 'YES'" + "\n"+
+                    " and name ='"+pdb_name.upper()+"'\n"
+                    )
+        c1 = connection.cursor()
+        c1.execute(sql_stmt)
+        # convert tuple to integer
+        value = int(c1.fetchone()[0])
+        if value > 0:
+            retval = True
+        c1.close()
+    connection.close    
+    return retval
+
+"""
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    check_if_pdb_is_application_root_clone
+    Boolean function that check if PDB is a APPLICATION ROOT clone PDB
+    e.g a APPLICATION container that has applications that is upgraded or patched.
+    AUthor: Ulf Hellstrom, oraminute@gmail.com
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+"""
+def check_if_pdb_is_application_root_clone(db_name,tns,port,use_dns,dns_connect,user,password,pdb_name):
+    retval = False
+    if use_dns.startswith('Y') or use_dns.startswith('y'):
+        connection = get_oracle_dns_connection(db_name,dns_connect,user,password)
+    else:
+        connection = get_oracle_connection(db_name,tns,port,user,password)
+    if connection is not "ERROR":
+        sql_stmt = ("select count(*)"+"\n" +
+                    "from v$pdbs" +"\n"+
+                    "where application_root = 'YES'" + "\n"+
+                    "  and application_pdb = 'YES'" + "\n"+
+                    "  and application_root_clone = 'YES'" + "\n"+
+                    "  and name ='"+pdb_name.upper()+"'\n"
+                    )            
+        c1 = connection.cursor()
+        c1.execute(sql_stmt)
+        # convert tuple to integer
+        value = int(c1.fetchone()[0])
+        if value > 0:
+            retval = True
+        c1.close()    
+    connection.close    
     return retval
 
 """
@@ -476,6 +604,22 @@ def create_pluggable_database(connection,new_pdb_name,password):
     c1.execute(sql_stmt)
     c1.close()
 
+"""
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    remove_domain_from_pdb
+    Remove domain from PDB  e.g if PBD name is PDBTESTUFFE.SYSTEST.RECEPTPARTNER.SE
+    we remove the domain part and set PDB to PDBTESTUFFE
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+"""
+def remove_domain_from_pdb(connection,new_pdb_name):
+    sql_stmt = 'update global_name'+'\n'+'set global_name = ' + "'" + new_pdb_name.upper() + "'" + '\n'
+    print(sql_stmt)
+    c1 = connection.cursor()
+    c1.execute(sql_stmt)
+    sql_stmt = 'commit'
+    print(sql_stmt)
+    c1.execute(sql_stmt)
+    c1.close()
 
 """
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -539,13 +683,44 @@ def create_pdb_services(connection,container_name,plug_name,service_name):
     Author: Ulf Hellstrom, oraminute@gmail.com
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 """
-def open_pluggable_database(connection,new_pdb_name):
+def open_pluggable_database(connection,pdb_name):
 
-    sql_stmt = "ALTER PLUGGABLE DATABASE " +new_pdb_name.upper() + " OPEN READ WRITE"
+    sql_stmt = "ALTER PLUGGABLE DATABASE " + pdb_name.upper() + " OPEN READ WRITE"
     print(sql_stmt)
     c1 = connection.cursor()
     c1.execute(sql_stmt)
     c1.close()
+
+"""
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    open_pluggable_database_restricted
+    Open up a mounted pluggable database in restricted mode
+    Author: Ulf Hellstrom, oraminute@gmail.com
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+"""
+def open_pluggable_database_restricted(connection,pdb_name):
+    
+    sql_stmt = "alter pluggable database " + pdb_name.upper() + " open restricted"
+    print(sql_stmt)
+    c1 = connection.cursor()
+    c1.execute(sql_stmt)
+    c1.close()
+    
+"""
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    close_pluggable_database
+    Close a pluggable database in read,write mode
+    Author: Ulf Hellstrom, oraminute@gmail.com
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+"""
+def close_pluggable_database(connection,pdb_name):
+
+    sql_stmt = "alter pluggable database " + pdb_name.upper() + " close immediate"
+    print(sql_stmt)
+    c1 = connection.cursor()
+    c1.execute(sql_stmt)
+    c1.close()
+
 
 """
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -629,6 +804,57 @@ def switch_plug(pdb_name,connection):
         pass
 
     return setdb    
+
+"""
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    switch_to_cdb()
+    Function that do alter session set container to CDB$ROOT.
+    Author: Ulf Hellstrom, oraminute@gmail.com
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+"""
+def switch_to_cdb(connection):
+    try:
+        print('Connecting to container CDB$ROOT')
+        sql_stmt = 'alter session set container=cdb$root'
+        print(sql_stmt)
+        c1 = connection.cursor()
+        c1.execute(sql_stmt)
+        setdb = "SUCCESS"
+    except cx_Oracle.DatabaseError as e:
+        error, = e.args
+        print(error.code)
+        print(error.message)
+        print(error.context)
+        setdb = "ERROR"
+        pass
+
+    return setdb
+
+"""
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    save_state_to_pdb()
+    Save state for a pdb such as always start PDB when CDB is started
+    Author: Ulf Hellstrom, oraminute@gmail.com
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+"""
+def save_state_to_pdb(connection,pdb_name):
+    try:
+        print("Setting save state to " + pdb_name)
+        sql_stmt = 'alter pluggable database ' + pdb_name.upper() + ' save state'
+        print(sql_stmt)
+        c1 = connection.cursor()
+        c1.execute(sql_stmt)
+        setdb = "SUCCESS"
+    except cx_Oracle.DatabaseError as e:
+        error, = e.args
+        print(error.code)
+        print(error.message)
+        print(error.context)
+        setdb = "ERROR"
+        pass
+
+    return setdb
+
 
 """
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

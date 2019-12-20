@@ -1,0 +1,134 @@
+#!/usr/bin/env python
+# coding: UTF-8
+
+r"""
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+# |  _ \  __ _| |_ __ _| |__   __ _ ___  ___  ___ / _| __ _ 
+# | | | |/ _` | __/ _` | '_ \ / _` / __|/ _ \/ __| |_ / _` |
+# | |_| | (_| | || (_| | |_) | (_| \__ \  __/ (__|  _| (_| |
+# |____/ \__,_|\__\__,_|_.__/ \__,_|___/\___|\___|_|  \__, | appcon
+#                                                    |___/ 
+#
+# By Ulf Hellstrom, EpicoTech 2019
+# Utility to generate database.cfg file from flat file
+#
+# This utility helps creating a database.cfg file faster
+#
+#
+# Let's say you get a mail with the following new database requirements
+# NLLTEAMAFFL1S12
+# NLLTEAMAFFL2S12
+# NLLTEAMAFFL3S12
+# NLLTEAMAFFL4S12
+# NLLTEAMTRAN1S12
+#   .....
+#
+# This databases should be plugged database in container NLLUTF with an
+# appliction Container called NLLAPPCON.
+#
+# All you have to do is copy & paste the list of database in mail
+# and put them in a file called "newplugs.txt" and then run this script.
+#
+# Input: Script will ask for Container and Appcontainer where the plugs should be created.
+# Output: databases.cfg to be used by autosetup_appcon utility.
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+"""
+from __future__ import print_function
+from datetime import datetime
+import sys
+import os
+
+"""
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    Logger()
+    Logfunction that logs all output to screen to logfile.
+    Author: Ulf Hellstrom, oraminute@gmail.com
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+"""
+class Logger(object):
+    def __init__(self):
+        logfile = datetime.now().strftime('databasecfg_%Y_%m_%d_%H_%M.log')
+        self.terminal = sys.stdout
+        self.log = open(logfile, "a")
+
+    def write(self, message):
+        self.terminal.write(message)
+        self.log.write(message)  
+
+    def flush(self):
+        #this flush method is needed for python 3 compatibility.
+        #this handles the flush command by doing nothing.
+        #you might want to specify some extra behavior here.
+        pass
+
+"""
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    gen_header()
+    Generates a header for database.cfg
+    Author: Ulf Hellstrom, EpicoTech 2019
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+"""
+def gen_header():
+
+    header = """###############################################################################
+#  This file includes all new pluggable databses that should be created
+#
+#   Format:
+#    <CDB>:<APPCON>:<NEW PLUGGABLE DATABASE>:<NEW SERVICE>
+#
+#   Examplei: 
+#   In CDB XYZ, Appcon XXX we want to create the PDB TEST with services TEST and
+#   APPTEST.
+#
+#   The file databases.txt should then include
+#   XYZ:XXX:PDBTEST:TEST
+#   XYZ:XXX:PDBTEST:APPTEST
+##############################################################################
+"""
+    return header
+
+"""
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+# gen_pdb_name()
+# Returns the internal databasename
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+"""
+def gen_pdb_name(servicename):
+
+    return "PDB"+servicename.upper()
+
+"""
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    Main starts here. Eg this is where we run the code
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+"""
+def main():
+    # Get current workding directory
+    workingdir = os.getcwd()
+    os.system('cls' if os.name == 'nt' else 'clear') 
+    # Get oracle user name 
+    if sys.version_info[0] < 3:
+        containerdb = raw_input("Enter Container database: ")
+    else:
+        containerdb = input("Enter Container database: ")
+    if sys.version_info[0] < 3:
+        appcondb = raw_input("Enter Application container: ")
+    else:
+        appcondb = input("Enter Application Container: ") 
+
+    inputfile = open("newplugs.txt","r")
+    targetfile = workingdir+"/databases.cfg"
+    outputfile = open(targetfile,"w")
+    outputfile.write(gen_header())
+    outputfile.close()
+    outputfile = open(targetfile,"a")
+    if inputfile.mode == "r":
+        for line in inputfile:
+            plugdb = containerdb.upper() + ":" +appcondb.upper() + ":" + gen_pdb_name(line.rstrip().upper()) + ":" + line.rstrip().upper()
+            print(plugdb)
+            outputfile.write(plugdb+"\n")
+    inputfile.close()
+    outputfile.close()        
+if __name__ == "__main__":
+    configlist = []
+    main()

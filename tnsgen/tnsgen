@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python
 
 r"""
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -62,7 +62,7 @@ def sql_service_names():
 select pdb,
        upper(network_name) as network_name
 from v$services
-where network_name not like 'SYS$SYS%'
+where network_name not like 'SYS$%'
 order by network_name asc
 """
 
@@ -85,7 +85,22 @@ def gen_tns_header(header,cdb_header,pdb_header,cdb_name,pdb_name,tnsfile):
         tnsfile.write('\n')
         tnsfile.write("##############################################################")
         tnsfile.write('\n')
-        tnsfile.write('\n')     
+        tnsfile.write('\n')  
+        tnsfile.write('##############################################################\n')
+        tnsfile.write('# Container:\n')
+        tnsfile.write('# Database: PROXY\n')
+        tnsfile.write('##############################################################\n')
+        tnsfile.write('\n')
+        tnsfile.write('SBPPX =\n')
+        tnsfile.write('(DESCRIPTION =\n')
+        tnsfile.write('  (ADDRESS = (PROTOCOL = TCP)(HOST = 10.251.103.104)(PORT = 1521))\n')
+        tnsfile.write('    (CONNECT_DATA =\n')
+        tnsfile.write('      (SERVER = DEDICATED)\n')
+        tnsfile.write('      (SERVICE_NAME = SBPPX)\n')
+        tnsfile.write('    )\n')
+        tnsfile.write('  )\n')
+        tnsfile.write('\n')    
+   
 
     if cdb_header is "true":
         tnsfile.write("##############################################################")
@@ -309,7 +324,8 @@ def main():
             for val in list_of_dbs:
                 print(val)
                 if val not in stop_list:
-                    get_pdb_service_names(db_name,tns,port,use_dns,dns_connect,val,user,base64.urlsafe_b64decode(os.environ["DB_INFO"].encode('UTF-8')).decode('ascii'))
+                    if not oramodule.check_if_pdb_is_application_root_clone(db_name,tns,port,use_dns,dns_connect,user,base64.urlsafe_b64decode(os.environ["DB_INFO"].encode('UTF-8')).decode('ascii'),val):
+                        get_pdb_service_names(db_name,tns,port,use_dns,dns_connect,val,user,base64.urlsafe_b64decode(os.environ["DB_INFO"].encode('UTF-8')).decode('ascii'))
                 else:
                     print('Not collecting data for:',val)
 

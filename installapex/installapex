@@ -218,7 +218,7 @@ def install_apex(db_name,val,user,apex_path,apex_image_path,apex_listener_pwd,ap
     latest_apex_install_log = newest(apex_path)
     print("Installing apex_rest_config")
     sql_script = gen_apex_rest_config_sql_script(db_name,val,user,base64.urlsafe_b64decode(os.environ["DB_INFO"].encode('UTF-8')).decode('ascii'),apex_listener_pwd,apex_rest_public_user_pwd)
-    print(sql_script)
+    #print(sql_script)
     sqlplus_output = oramodule.run_sqlplus(sql_script)
     #print(sqlplus_output)
     print("Apex installed please check " + latest_apex_install_log +" for any errors")
@@ -335,8 +335,16 @@ def main():
                             print(val)
                             # Check that plug not in stoplist
                             if val not in stop_list:
-                                if oramodule.check_if_pdb_is_open(db_name,tns,port,user,base64.urlsafe_b64decode(os.environ["DB_INFO"].encode('UTF-8')),val):
-                                    installer_main(db_name,tns,port,use_dns,dns_connect,val,user,apex_release,apex_path,apex_image_path,workingdir,apex_listener_pwd,apex_rest_public_user_pwd,apex_public_user_pwd)
+                                if oramodule.check_if_pdb_is_open(db_name,tns,port,use_dns,dns_connect,user,base64.urlsafe_b64decode(os.environ["DB_INFO"].encode('UTF-8')),val):
+                                    # Check that PDB is not Application Container
+                                    if not oramodule.check_if_pdb_is_appcon(db_name,tns,port,use_dns,dns_connect,user,base64.urlsafe_b64decode(os.environ["DB_INFO"].encode('UTF-8')),val):
+                                        # Check that PDB is not Apllication Container root clone
+                                        if not oramodule.check_if_pdb_is_application_root_clone(db_name,tns,port,use_dns,dns_connect,user,base64.urlsafe_b64decode(os.environ["DB_INFO"].encode('UTF-8')),val):
+                                            installer_main(db_name,tns,port,use_dns,dns_connect,val,user,apex_release,apex_path,apex_image_path,workingdir,apex_listener_pwd,apex_rest_public_user_pwd,apex_public_user_pwd)
+                                        else:
+                                            print('Not installing APEX in Application Container root clone '+val)
+                                    else:
+                                        print('Not installinga APEX in Application container '+val)            
                                 else:
                                     print('Pluggable database '+val+' is not open, not installing APEX!')  
                             else:
