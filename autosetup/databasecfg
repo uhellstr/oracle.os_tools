@@ -1,12 +1,17 @@
 #!/usr/bin/env python
 # coding: UTF-8
 
+from __future__ import print_function
+from datetime import datetime
+import sys
+import os
+
 r"""
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 # |  _ \  __ _| |_ __ _| |__   __ _ ___  ___  ___ / _| __ _ 
 # | | | |/ _` | __/ _` | '_ \ / _` / __|/ _ \/ __| |_ / _` |
 # | |_| | (_| | || (_| | |_) | (_| \__ \  __/ (__|  _| (_| |
-# |____/ \__,_|\__\__,_|_.__/ \__,_|___/\___|\___|_|  \__, | appcon
+# |____/ \__,_|\__\__,_|_.__/ \__,_|___/\___|\___|_|  \__, |
 #                                                    |___/ 
 #
 # By Ulf Hellstrom, EpicoTech 2019
@@ -16,27 +21,22 @@ r"""
 #
 #
 # Let's say you get a mail with the following new database requirements
-# NLLTEAMAFFL1S12
-# NLLTEAMAFFL2S12
-# NLLTEAMAFFL3S12
-# NLLTEAMAFFL4S12
-# NLLTEAMTRAN1S12
+# XXX1
+# XXX2
+# XXX3
+# XXX4
+# XXX5
 #   .....
 #
-# This databases should be plugged database in container NLLUTF with an
-# appliction Container called NLLAPPCON.
-#
+# This databases should be plugged database in container CDB1.
 # All you have to do is copy & paste the list of database in mail
 # and put them in a file called "newplugs.txt" and then run this script.
 #
-# Input: Script will ask for Container and Appcontainer where the plugs should be created.
-# Output: databases.cfg to be used by autosetup_appcon utility.
+# Input: Script will as for Container where the plugs should be created.
+# Output: databases.cfg to be used by autosetup utility.
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 """
-from __future__ import print_function
-from datetime import datetime
-import sys
-import os
+
 
 """
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -74,15 +74,15 @@ def gen_header():
 #  This file includes all new pluggable databses that should be created
 #
 #   Format:
-#    <CDB>:<APPCON>:<NEW PLUGGABLE DATABASE>:<NEW SERVICE>
+#    <CDB>:<NEW PLUGGABLE DATABASE>:<NEW SERVICE>
 #
 #   Examplei: 
-#   In CDB XYZ, Appcon XXX we want to create the PDB TEST with services TEST and
+#   In CDB XYZ we want to create the PDB TEST with services TEST and
 #   APPTEST.
 #
 #   The file databases.txt should then include
-#   XYZ:XXX:PDBTEST:TEST
-#   XYZ:XXX:PDBTEST:APPTEST
+#   XYZ:PDBTEST:TEST
+#   XYZ:PDBTEST:APPTEST
 ##############################################################################
 """
     return header
@@ -111,11 +111,6 @@ def main():
         containerdb = raw_input("Enter Container database: ")
     else:
         containerdb = input("Enter Container database: ")
-    if sys.version_info[0] < 3:
-        appcondb = raw_input("Enter Application container: ")
-    else:
-        appcondb = input("Enter Application Container: ") 
-
     inputfile = open("newplugs.txt","r")
     targetfile = workingdir+"/databases.cfg"
     outputfile = open(targetfile,"w")
@@ -124,7 +119,7 @@ def main():
     outputfile = open(targetfile,"a")
     if inputfile.mode == "r":
         for line in inputfile:
-            plugdb = containerdb.upper() + ":" +appcondb.upper() + ":" + gen_pdb_name(line.rstrip().upper()) + ":" + line.rstrip().upper()
+            plugdb = containerdb.upper() + ":" + gen_pdb_name(line.rstrip().upper()) + ":" + line.rstrip().upper()
             print(plugdb)
             outputfile.write(plugdb+"\n")
     inputfile.close()
