@@ -280,8 +280,6 @@ def gen_ansible_copy_yml(tnsfile):
 """
 def main():
 
-    # Enable logging output to log file
-    sys.stdout = Logger()
     # Load configuration
     # configparser checks against python2 and python
     if sys.version_info[0] < 3:
@@ -310,6 +308,8 @@ def main():
     pwd = getpass.getpass(prompt="Please give "+user +" password: ")
     pwd =  base64.urlsafe_b64encode(pwd.encode('UTF-8)')).decode('ascii')
     os.environ["DB_INFO"] = pwd
+     # Enable logging output to log file
+    sys.stdout = Logger()   
     # list of cdbs from ansile-playbook sar-orause-test.sh
     input_file = open('cdb.log','r')
     for line in input_file:
@@ -346,9 +346,13 @@ def main():
         data = val.split(',')
         cdb_db = data[0]
         pdb_db = data[1]
-        db_service = data[2]        
-        gen_tns_header("false","false","true",cdb_db,pdb_db,output_file)
-        gen_tns_entry(pdb_db,tns,db_service,port,output_file)
+        db_service = data[2] 
+        if db_service not in pdb_list_services:       
+            gen_tns_header("false","false","true",cdb_db,pdb_db,output_file)
+            gen_tns_entry(pdb_db,tns,db_service,port,output_file)
+            # add generated service to temporary stop list to
+            # prevent duplicates when using Application Containers
+            pdb_list_services.append(db_service) 
 
     output_file.close()
     workingdir = os.getcwd()
@@ -358,4 +362,5 @@ def main():
 
 if __name__ == "__main__":
     servicename_list = []
+    pdb_list_services = [] # Used to prevent duplicates when using Application Containers
     main()
