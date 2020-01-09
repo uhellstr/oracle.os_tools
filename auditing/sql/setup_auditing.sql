@@ -5,7 +5,7 @@ REM Setup DBAUDIT_DATA
 REM **************************
 @DBAUDIT_DATA_SCHEMA.sql
 @DBAUDIT_DATA_GRANTS.sql
-@DBAUDIT_DATA_OBJS.SQL
+@DBAUDIT_DATA_OBJS.sql
 REM **************************
 REM Setup DBAUDIT LOGIK
 REM Note all jobs are disabled
