@@ -2,3 +2,4 @@ cdb.log
 *.txt
 collectdbinfo.log
 .vscode/
+oraclepackage/__pycache__/
