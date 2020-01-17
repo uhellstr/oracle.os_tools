@@ -1,5 +1,0 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<pool-config xmlns="http://xmlns.oracle.com/apex/pool-config">
- <pool name="pdbulf" base-path="/pdbulf" updated="2020-01-10T09:32:24.376Z"/>
- <pool name="pdbresttest" base-path="/pdbresttest" updated="2020-01-15T15:25:53.883Z"/>
-</pool-config>
