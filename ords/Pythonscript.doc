@@ -1,0 +1,49 @@
+Ansible playbook
+
+1. ssh till uehmta01
+2. cat på /data/glassfish/ords/ordsconfig/ords/url-mapping.xml
+    * läs ut name och base-path och lägg i en ords.log fil lokalt
+
+
+Install:
+
+java -jar ords.war map-url --type base-path /xepdb1 xepdb1
+java -jar ords.war setup --database pdbresttest \ 
+--parameterFile /home/hellsulf/github/oracle/oracle.os_tools/ords/resttest_params.properties --silent [--saveParameters[]
+
+Uninstall:
+
+java -jar ords.war uninstall \
+--parameterFile /home/hellsulf/github/oracle/oracle.os_tools/ords/resttest_params.properties --silent
+
+
+Notera: --saveParameters skriver över all info om sys lösenord mm..
+
+-- Exempel på parameter
+db.connectionType=basic
+db.hostname=localhost
+db.password=@05DA72C35F552ABDD599589977433F41953081EC194CE5761B
+db.port=1521
+db.servicename=PDBRESTTEST
+db.username=APEX_PUBLIC_USER
+feature.sdw=true
+migrate.apex.rest=false
+plsql.gateway.add=true
+rest.services.apex.add=true
+rest.services.ords.add=true
+restEnabledSql.active=true
+schema.tablespace.default=SYSAUX
+schema.tablespace.temp=TEMP
+standalone.http.port=8080
+standalone.mode=true
+standalone.static.images=/home/hellsulf/ords/images
+standalone.use.https=false
+user.apex.listener.password=@05548FC6B97824C7BC21C73EAC0BE526C1889AA9F4C3E1F8A9
+user.apex.restpublic.password=@05EDEA85D128E9EE9292514A1E8A3473F3C01DB10B268292022ACA3B5330122498
+user.public.password=@051FFDBC1E0D661D21A8FC65EF64AF714BF52F238086170989C43B7E1B51EFBE51
+user.tablespace.default=SYSAUX
+user.tablespace.temp=TEMP
+sys.user=SYS
+sys.password=vOJ1m04e
+restEnabledSql.active=true
+feature.sdw=true
