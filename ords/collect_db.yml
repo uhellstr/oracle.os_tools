@@ -1,5 +1,5 @@
 - name: collect
-  hosts: nodes 
+  hosts: db_nodes
   serial: 1
 
   tasks:

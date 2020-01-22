@@ -45,5 +45,7 @@
 #
 # prodservers
 #
-[nodes]
+[ords_nodes]
+localhost
+[db_nodes]
 localhost

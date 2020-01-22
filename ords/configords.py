@@ -71,7 +71,7 @@ class Logger(object):
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 """
 def run_ansible(port,playbook):
-    output = subprocess.call(["ansible-playbook ./" +playbook+" -i ./hosts -e ansible_ssh_port="+port],shell=True)
+    output = subprocess.call(["ansible-playbook ./"+playbook+" -i ./hosts -e ansible_ssh_port="+port],shell=True)
     print(output)
 
 def gen_cdb_log():
@@ -173,7 +173,8 @@ def main():
     #by reading parameters from autoconfig.cfg
     use_dns = config.get('oraconfig','use_dns')
     dns_connect = config.get('oraconfig','dns_connect')
-    ssh_port = config.get('oraconfig','ssh_port')
+    ssh_port_ords = config.get('oraconfig','ssh_port_ords')
+    ssh_port_db = config.get('oraconfig','ssh_port_db')
     tns = config.get('oraconfig','tns')
     port = config.get('oraconfig','port')
     stop_list = ast.literal_eval(config.get('oraconfig','stop_list'))
@@ -197,8 +198,8 @@ def main():
     #Run ansible script
     os.system('cls' if os.name == 'nt' else 'clear') 
     print("Running ansible scripts to collect ORDS configured db's and Databases...")
-    run_ansible(ssh_port,'collect_ords.yml')
-    run_ansible(ssh_port,'collect_db.yml')
+    run_ansible(ssh_port_ords,'collect_ords.yml')
+    run_ansible(ssh_port_db,'collect_db.yml')
     gen_cdb_log()
     #parse url-mappings.xml downloaded from ordsserver
     parse_ords_xml(xmlpath)

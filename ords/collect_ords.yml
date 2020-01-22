@@ -1,10 +1,10 @@
 - name: collect
-  hosts: nodes
+  hosts: ords_nodes
   serial: 1
 
   tasks:
     - name: fetch url-mapping
       fetch:
-        src: /home/hellsulf/ords/ordsconfig/ords/url-mapping.xml
+        src: /Users/uhellstr/rest/ordsconfig/ords/url-mapping.xml
         dest: ./url-mapping.xml
         flat: yes
