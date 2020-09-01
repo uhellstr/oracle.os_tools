@@ -543,9 +543,9 @@ create or replace package body DBAUDIT_LOGIK.audit_maintenance_pkg as
 
     -- generate action statements
     for rec in cur_get_privs_for_role loop
-
+     if not substr(lower(rec.table_name),1,4) = 'bin$' then  -- Remove objs in recyclebin
       lv_stmt := lv_stmt||'    '||rec.privilege||' ON '||rec.owner||'.'||rec.table_name||','||chr(10);
-
+     end if;
     end loop;
 
     -- remove the last "," from from the statement string (including last CR/LF)
