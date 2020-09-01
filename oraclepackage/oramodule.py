@@ -91,8 +91,6 @@ def get_alternative_ssh_port(node,ssh_port_list,ssh_port):
             return ssh_alternative_port
         ## No matching values for current node so return standard ssh port    
         else:
-            print("Node "+val+" is using standard ssh_port " +ssh_port)
-            time.sleep(5)
             return ssh_port
     ## alternative_ssh_port is empty in config.cfg so return default port        
     else:

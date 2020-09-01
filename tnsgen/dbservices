@@ -334,6 +334,7 @@ def main():
     use_dns = config.get('oraconfig','use_dns')
     dns_connect = config.get('oraconfig','dns_connect')
     ssh_port = config.get('oraconfig','ssh_port')
+    ssh_port_list = ast.literal_eval(config.get('oraconfig','ssh_alternative_port'))
     stop_list = ast.literal_eval(config.get('oraconfig','stop_list'))
     host_list = ast.literal_eval(config.get('oraconfig','hosts_tns'))
     cluster_list = ast.literal_eval(config.get('oraconfig','cluster'))
@@ -346,10 +347,12 @@ def main():
         # loop over hosts file and run playbooks for each node
         scan_list = oramodule.ret_scan_list(host_list)
         for val in scan_list:
+            # Check if any node has an alternitive ssh port
+            ssh_portno = oramodule.get_alternative_ssh_port(val,ssh_port_list,ssh_port)            
             ansible_playbook = "collect-"+val+".yml"
             print(ansible_playbook)    
             #Run ansible script
-            run_ansible(ssh_port,ansible_playbook,val)
+            run_ansible(ssh_portno,ansible_playbook,val)
     else:
        scan_list = oramodule.ret_scan_list(host_list)         
     os.system('cls' if os.name == 'nt' else 'clear')
