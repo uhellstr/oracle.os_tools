@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# coding: UTF-8
 
 r"""
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -37,6 +38,7 @@ import base64
 import os
 import time
 import glob
+import ast
 
 try:
     import ConfigParser
@@ -72,6 +74,7 @@ order by network_name asc
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     gen_tns_header
     Returns a header string for a tnsnames file
+    Author: Ulf Hellstrom, oraminute@gmail.com
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 """
 def gen_tns_header(header,cdb_header,pdb_header,cdb_name,pdb_name,tnsfile):
@@ -86,20 +89,20 @@ def gen_tns_header(header,cdb_header,pdb_header,cdb_name,pdb_name,tnsfile):
         tnsfile.write("##############################################################")
         tnsfile.write('\n')
         tnsfile.write('\n')  
-        tnsfile.write('##############################################################\n')
-        tnsfile.write('# Container:\n')
-        tnsfile.write('# Database: PROXY\n')
-        tnsfile.write('##############################################################\n')
-        tnsfile.write('\n')
-        tnsfile.write('SBPPX =\n')
-        tnsfile.write('(DESCRIPTION =\n')
-        tnsfile.write('  (ADDRESS = (PROTOCOL = TCP)(HOST = 10.251.103.104)(PORT = 1521))\n')
-        tnsfile.write('    (CONNECT_DATA =\n')
-        tnsfile.write('      (SERVER = DEDICATED)\n')
-        tnsfile.write('      (SERVICE_NAME = SBPPX)\n')
-        tnsfile.write('    )\n')
-        tnsfile.write('  )\n')
-        tnsfile.write('\n')    
+        #tnsfile.write('##############################################################\n')
+        #tnsfile.write('# Container:\n')
+        #tnsfile.write('# Database: PROXY\n')
+        #tnsfile.write('##############################################################\n')
+        #tnsfile.write('\n')
+        #tnsfile.write('SBPPX =\n')
+        #tnsfile.write('(DESCRIPTION =\n')
+        #tnsfile.write('  (ADDRESS = (PROTOCOL = TCP)(HOST = 10.251.103.104)(PORT = 1521))\n')
+        #tnsfile.write('    (CONNECT_DATA =\n')
+        #tnsfile.write('      (SERVER = DEDICATED)\n')
+        #tnsfile.write('      (SERVICE_NAME = SBPPX)\n')
+        #tnsfile.write('    )\n')
+        #tnsfile.write('  )\n')
+        #tnsfile.write('\n')    
    
 
     if cdb_header is "true":
@@ -126,15 +129,25 @@ def gen_tns_header(header,cdb_header,pdb_header,cdb_name,pdb_name,tnsfile):
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     gen_tns_entry
     Returns a tnsentry
+    Author: Ulf Hellstrom, oraminute@gmail.com    
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 """
-def gen_tns_entry(db_name,host,service,port,tnsfile):
+def gen_tns_entry(cluster_list,db_name,host,service,port,tnsfile):
 
-    tnsfile.write(service+" = ")
+    tnsfile.write(service.upper()+" = ")
     tnsfile.write('\n')
     tnsfile.write("(DESCRIPTION = ")
     tnsfile.write('\n')
-    tnsfile.write("  (ADDRESS = (PROTOCOL = TCP)(HOST = "+host+")(PORT = "+port+"))")
+    if oramodule.check_if_listener_is_cluster(cluster_list,host):
+        print("We have a RAC cluster")
+        failover_host = oramodule.get_failover_listener(cluster_list,host)
+        print("Failover listener for " + host + " is "+failover_host)
+        tnsfile.write("  (ADDRESS = (PROTOCOL = TCP)(HOST = "+host+")(PORT = "+port+"))")
+        tnsfile.write('\n')
+        tnsfile.write("  (ADDRESS = (PROTOCOL = TCP)(HOST = "+failover_host+")(PORT = "+port+"))")
+    else:        
+        print("Listener "+host+" does not have any failover listener")
+        tnsfile.write("  (ADDRESS = (PROTOCOL = TCP)(HOST = "+host+")(PORT = "+port+"))")
     tnsfile.write('\n')
     tnsfile.write("    (CONNECT_DATA = ")
     tnsfile.write('\n')
@@ -217,7 +230,7 @@ def get_pdb_service_names(db_name,tns,port,use_dns,dns_connect,pdb_name,user,pas
             c2 = connection.cursor()
             c2.execute(sqlstr)
             for info in c2:
-                str = db_name +','+','.join(info) # make tuple to string containging CDB,PDB,SERVICE
+                str = db_name + ','+ tns +','+','.join(info) # make tuple to string containging CDB,PDB,SERVICE
                 servicename_list.append(str)
 
             c1.close()
@@ -226,6 +239,33 @@ def get_pdb_service_names(db_name,tns,port,use_dns,dns_connect,pdb_name,user,pas
     else:
         print("Not collecting any data due to errors: ",db_name)
 
+"""
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    run_ansible_script:
+    Ask and verify if possible to skip the ansible part of script
+    Author: Ulf Hellstrom, oraminute@gmail.com
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+"""
+def run_ansible_script(workingdir):
+    os.system('cls' if os.name == 'nt' else 'clear')
+    retval = True
+    if os.path.isfile(workingdir+"/cdb.log"):
+        if os.path.isfile(workingdir+"/hosts"):
+            if sys.version_info[0] < 3:
+                r_ansible = raw_input("Do you want to rerun scan of all hosts/nodes (Y/N) ?")
+            else:
+                r_ansible = input("Do you want to rerun scan of all hosts/nodes ? (Y/N)")
+
+            if r_ansible in ('Y','y','YES','Yes','yes'):
+                retval = True
+            else:
+                retval = False
+        else:
+            retval = True        
+    else:
+        retval = True            
+
+    return retval
 
 """
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -234,44 +274,12 @@ def get_pdb_service_names(db_name,tns,port,use_dns,dns_connect,pdb_name,user,pas
    Author: Ulf Hellstrom, oraminute@gmail.com
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 """
-def run_ansible(port):
-    output = subprocess.call(["ansible-playbook ./collect.yml -i ./hosts -e ansible_ssh_port="+port],shell=True)
+def run_ansible(port,playbook,dblistener):
+    output = subprocess.call(["ansible-playbook ../config/"+ playbook +" -i ./hosts -e ansible_ssh_port="+port],shell=True)
     print(output)
-    output = subprocess.call(["./output.sh"],shell=True)
+    callscript="../config/output.sh "+dblistener
+    output = subprocess.call([callscript],shell=True)
     print(output)
-
-"""
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-   gen_ansible_copy_yml()
-   Generate YML-file for copyint latest generated tnsnames.ora to servercatalog
-   for user running this script.
-   Author: Ulf Hellstrom, oraminute@gmail.com
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-"""
-def gen_ansible_copy_yml(tnsfile):
-
-    print("tst")
-    """
-        - name: example copying file with owner and permissions
-          copy:
-          src: /srv/myfiles/foo.conf
-          dest: /etc/foo.conf
-          owner: foo
-          group: foo
-          mode: 0644
-    """      
-    output_file = open("copytoserver.yml","w")
-    output_file.write("- name: copy tnsnames.ora to server")
-    output_file.write('\n')
-    output_file.write("  copy:")
-    output_file.write('\n')
-    output_file.write("  src: "+tnsfile)
-    output_file.write('\n')
-    output_file.write("  dest: $HOME/tnsnames.ora")
-    output_file.write('\n')
-    output_file.write("  mode: 0644")
-    output_file.write('\n')
-    output_file.close()
 
 """
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -279,47 +287,58 @@ def gen_ansible_copy_yml(tnsfile):
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 """
 def main():
-
+    # set working directory
+    workingdir = os.getcwd()
     # Load configuration
     # configparser checks against python2 and python
     if sys.version_info[0] < 3:
         config = ConfigParser.ConfigParser()
-        config.readfp(open(r'tns_config.cfg'))
+        config.readfp(open(r'../config/config.cfg'))
     else:
         config = configparser.ConfigParser()
-        config.read('tns_config.cfg')
+        config.read('../config/config.cfg')
     #Setup configparameters for connecting to Oracle
     use_dns = config.get('oraconfig','use_dns')
     dns_connect = config.get('oraconfig','dns_connect')
     ssh_port = config.get('oraconfig','ssh_port')
-    tns = config.get('oraconfig','tns')
-    port = config.get('oraconfig','port')
-    stop_list = config.get('oraconfig','stop_list')    
-    #Run ansible script
-    os.system('cls' if os.name == 'nt' else 'clear') 
-    run_ansible(ssh_port)
-    os.system('cls' if os.name == 'nt' else 'clear')
-    # Get oracle user name 
-    if sys.version_info[0] < 3:
-        user = raw_input("Oracle Username: ")
+    stop_list = ast.literal_eval(config.get('oraconfig','stop_list'))
+    host_list = ast.literal_eval(config.get('oraconfig','hosts_tns'))
+    cluster_list = ast.literal_eval(config.get('oraconfig','cluster'))
+    if run_ansible_script(workingdir) is True:
+        # Remove old cdb.log file if it exists
+        if os.path.isfile(workingdir+"/cdb.log"):
+            os.remove(workingdir+"/cdb.log")
+        # Generate hosts file for ansible
+        oramodule.gen_ansible_host_file(host_list,workingdir)
+        # loop over hosts file and run playbooks for each node
+        scan_list = oramodule.ret_scan_list(host_list)
+        for val in scan_list:
+            ansible_playbook = "collect-"+val+".yml"
+            print(ansible_playbook)    
+            #Run ansible script
+            run_ansible(ssh_port,ansible_playbook,val)
     else:
-        user = input("Oracle Username: ")
-    # Get password and encrypt it
-    pwd = getpass.getpass(prompt="Please give "+user +" password: ")
-    pwd =  base64.urlsafe_b64encode(pwd.encode('UTF-8)')).decode('ascii')
-    os.environ["DB_INFO"] = pwd
-     # Enable logging output to log file
-    sys.stdout = Logger()   
-    # list of cdbs from ansile-playbook sar-orause-test.sh
+         scan_list = oramodule.ret_scan_list(host_list)       
+    #os.system('cls' if os.name == 'nt' else 'clear')
+    # Get oracle user name 
+    userpwd_list = oramodule.gen_user_pwd_list(scan_list)
+    # Enable logging output to log file
+    sys.stdout = Logger()
+    # list of cdbs from ansile-playbook 
     input_file = open('cdb.log','r')
     for line in input_file:
-        db_name = line.rstrip()
-        #if db_name.startswith("+") or db_name.startswith("-") or db_name.startswith("dbhome") or db_name.startswith("SBT"):
+        dbinfo = line.rstrip()
+        db_name = oramodule.split_list(dbinfo,':',0)
+        tns = oramodule.split_list(dbinfo,':',1)
+        port = oramodule.get_tns_port(tns,host_list)
         print('Stop list include following:',stop_list)
         if db_name in stop_list:
             print('Not connecting or collecting ',db_name)
         else:
             print(db_name)
+            user = oramodule.get_user(tns,userpwd_list)
+            pwd = oramodule.get_pwd(tns,userpwd_list)
+            os.environ["DB_INFO"] = pwd
             list_of_dbs = oramodule.get_pdbs(db_name,tns,port,use_dns,dns_connect,user,base64.urlsafe_b64decode(os.environ["DB_INFO"].encode('UTF-8')).decode('ascii'))
             for val in list_of_dbs:
                 print(val)
@@ -329,38 +348,57 @@ def main():
                 else:
                     print('Not collecting data for:',val)
 
-    #Use servicename_list to generate a new tnsnames.ora
     input_file.close()
+
+    #Use servicename_list to generate a new tnsnames.ora
     input_file = open('cdb.log','r')
     tns_file = "tnsnames.ora_"+datetime.now().strftime('%Y-%m-%d-%H-%M')
     output_file = open(tns_file,"a+")
     gen_tns_header("true","false","false","","",output_file)
     for line in input_file:
-        db_name = line.rstrip()
-        gen_tns_header("false","true","false",db_name," ",output_file)
-        gen_tns_entry(db_name,tns,db_name,port,output_file)
+        dbinfo = line.rstrip()
+        db_name = oramodule.split_list(dbinfo,':',0)
+        if db_name in stop_list:
+            print('Not connecting or collecting ',db_name)
+        else:
+            tns = oramodule.split_list(dbinfo,':',1)
+            port = oramodule.get_tns_port(tns,host_list)
+            gen_tns_header("false","true","false",db_name," ",output_file)
+            gen_tns_entry(cluster_list,db_name,tns,db_name,port,output_file)
+
     input_file.close()
     # Back to normal plug databases.
     for val in servicename_list:
         # Split comma separated row in list to individual objects
+        print("Debug information: Print data från service_name list")
+        print(val)
+        print("****************************************************")
         data = val.split(',')
         cdb_db = data[0]
-        pdb_db = data[1]
-        db_service = data[2] 
-        if db_service not in pdb_list_services:       
-            gen_tns_header("false","false","true",cdb_db,pdb_db,output_file)
-            gen_tns_entry(pdb_db,tns,db_service,port,output_file)
-            # add generated service to temporary stop list to
-            # prevent duplicates when using Application Containers
-            pdb_list_services.append(db_service) 
+        tns_entry = data[1]
+        pdb_db = data[2]
+        db_service = data[3]
+        if cdb_db in stop_list:
+            print("Not collecting data for "+cdb_db)
+        else:
+            # Avoid to add a db more then once to tnsnames.ora            
+            if db_service not in tns_stop_list:
+                gen_tns_header("false","false","true",cdb_db,pdb_db,output_file)
+                gen_tns_entry(cluster_list,pdb_db,tns_entry,db_service,port,output_file)
+                if pdb_db == db_service:
+                    tns_stop_list.append(db_service)
 
     output_file.close()
-    workingdir = os.getcwd()
     tnsfile = get_latest_tns_file(workingdir)
     print(tnsfile)
-    gen_ansible_copy_yml(tnsfile)
 
 if __name__ == "__main__":
+    use_dns = ''
+    dns_connect = ''
+    ssh_port = ''
+    stop_list = []
+    host_list = []
+    cluster_list = []
     servicename_list = []
-    pdb_list_services = [] # Used to prevent duplicates when using Application Containers
+    tns_stop_list = []
     main()
