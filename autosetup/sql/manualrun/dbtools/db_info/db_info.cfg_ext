@@ -1,0 +1,35 @@
+#
+# Configuration file
+#  use_dns          Allows to connect using TNS and allows for failover
+#                   listerners or multiple scan listeners in RAC env.
+#  dns_connect:     Connection is performed using TNS connection like from
+#                   a TNSNAMES.ORA file instead of direct connect             
+#  tns:             is hostname, scan for Oracle TNS entry
+#  port:            The oracle listener port
+#  catalog_info:    Servicename for Database where DBTOOLS/DB_INFO 
+#                   where installed.
+#  catalog_tns:     Hostname, scan for Oracle TNS entry for
+#                   DBTOOLS/DB_INFO database.
+#  catalog_port:    Oracle listener port for database where
+#                   DBTOOLS/DB_INFO where installed
+#  db_env:          Environments we allow to collect for like development,test and production (dev,test,prod)
+#  stop_list:       Comma separated list of databases or PDB's not to collect
+[oraconfig]
+use_dns=no
+dns_connect=@(DESCRIPTION =
+               (ADDRESS_LIST =
+                 (ADDRESS = (PROTOCOL = TCP)(HOST = pd01-scan.prod.receptpartner.se)(PORT = 1521))
+                 (ADDRESS = (PROTOCOL = TCP)(HOST = pd02-scan.prod.receptpartner.se)(PORT = 1521))
+               )
+               (CONNECT_DATA =
+                 (SERVER = DEDICATED)
+                 (SERVICE_NAME = {$SERVICE_NAME})
+               )
+             )
+tns=scan-sbxext.exttest.receptpartner.se
+port=1521
+catalog_info=DRIFTTEST
+catalog_tns=td02-scan.systest.receptpartner.se
+catalog_port=1521
+db_env=['dev','test','ext','prod']
+stop_list=['+ASM1','+ASM2','-MGMTDB']

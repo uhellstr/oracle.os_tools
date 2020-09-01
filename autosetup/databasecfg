@@ -21,14 +21,14 @@ r"""
 #
 #
 # Let's say you get a mail with the following new database requirements
-# XXX1
-# XXX2
-# XXX3
-# XXX4
-# XXX5
+# NLLTEAMAFFL1S12
+# NLLTEAMAFFL2S12
+# NLLTEAMAFFL3S12
+# NLLTEAMAFFL4S12
+# NLLTEAMTRAN1S12
 #   .....
 #
-# This databases should be plugged database in container CDB1.
+# This databases should be plugged database in container NLLUTF.
 # All you have to do is copy & paste the list of database in mail
 # and put them in a file called "newplugs.txt" and then run this script.
 #
