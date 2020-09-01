@@ -16,6 +16,7 @@ r"""
 # Do not remove the leading "r"!!
 #
 #               Oramodule cx_Oracle module with common Orcle functions
+#               for different tools in this suite.
 #               This module handles things like:
 #                   * create and destroy connections
 #                   * Lots of functionality for Multitentant environment
@@ -36,6 +37,10 @@ r"""
 """
 import cx_Oracle
 import subprocess
+import getpass
+import getopt
+import base64
+import time
 import sys
 import os
 
@@ -53,6 +58,343 @@ def split_list(list,separator,element):
     item_str = ''.join(list)
     temp_list = item_str.split(separator)
     return temp_list[element]
+
+"""
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    get_alternative_ssh_port()
+    Function that checks alternative_ssh_port list in config.cfg and
+    return the ssh_port for that node so that ansible playbook can do it's job.
+    Author: Ulf Hellstrom, oraminute@gmail.com
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+"""
+def get_alternative_ssh_port(node,ssh_port_list,ssh_port):
+
+    ssh_alternative_port = 0
+    alternative_ssh_port = False
+
+    ## Check if alternative_ssh_port in config.cfg is empty or not
+    if ssh_port_list:
+        ## Loop over comma separated values in the list and check if node match 
+        ## nodes we collect for in that case return alternative ssh port else
+        ## return the value set as standard ssh_port in config.cfg
+        for val in ssh_port_list:
+            nodename = split_list(val,':',0)
+            port_ssh = split_list(val,':',1)
+            if nodename.upper() == node.upper():
+                print("We have node:"+val+" with an alternative ssh port of "+port_ssh)
+                time.sleep(5)
+                ssh_alternative_port = port_ssh
+                alternative_ssh_port = True
+                break
+        ## We found a alternative ssh port so return it    
+        if alternative_ssh_port:
+            return ssh_alternative_port
+        ## No matching values for current node so return standard ssh port    
+        else:
+            print("Node "+val+" is using standard ssh_port " +ssh_port)
+            time.sleep(5)
+            return ssh_port
+    ## alternative_ssh_port is empty in config.cfg so return default port        
+    else:
+        return ssh_port            
+
+"""
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    check_if_dir_exists
+    Function that returns true or false depending on if directory exists or not
+    Author: Ulf Hellstrom, oraminute@gmail.com                           
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+"""
+def check_if_dir_exists(directoryname):
+
+    retval = False
+
+    check_folder = os.path.isdir(directoryname)
+    if not check_folder:
+        retval = False
+    else:
+        retval = True
+
+    return retval
+
+"""
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    check_if_listener_is_cluster
+    
+    Function that takes the parameter cluster from config.cfg and check if
+    listener given as inparameter is in a cluster 
+    E.g We have a RAC cluster with t1 listener and t2 listener. 
+    A Rac database can failover to t2 listener so a tns-entry HOST must include
+    both t1 and t2, This function returns True if there is a failover listener
+    in the RAC
+
+    Example:
+    cluster = [td3-scan:td4-scan]
+
+    If we call this function with"
+    check_if_listener_is_cluster(cluster,"td4-scan") -> True
+    since td3-scan is our failover listener.
+
+    Author: Ulf Hellstrom, oraminute@gmail.com                           
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+"""
+def check_if_listener_is_cluster(cluster_list,listener_name):
+    
+    retval = False
+    for val in cluster_list:
+        listener_1 = split_list(val,':',0)
+        listener_2 = split_list(val,':',1)
+        if (listener_name == listener_1):
+            retval = True
+            break
+        if (listener_name == listener_2):
+            retval = True
+            break
+            
+    return retval
+
+"""
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    get_failover_listener:
+    
+    Function that takes the parameter cluster from config.cfg and returns
+    the failover listener
+    E.g We have a RAC cluster with t1 listener and t2 listener. 
+    A Rac database can failover to t2 listener so a tns-entry HOST must include
+    both t1 and t2, This function returns True if there is a failover listener
+    in the RAC
+
+    Example:
+    cluster = [td3-scan:td4-scan]
+
+    If we call this function with""
+    check_if_listener_is_cluster(cluster,"td4-scan") -> "td3-scan"
+    since td3-scan is our failover listener.
+
+    Never call this function without doing something like
+
+    if check_if_listener_is_cluster(cluster_list,"td4-scan")
+        failover_listener = get_failover_listener(cluster_list,"td4-scan)
+
+    Author: Ulf Hellstrom, oraminute@gmail.com                           
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+"""
+def get_failover_listener(cluster_list,listener_name):
+    for val in cluster_list:
+        listener_1 = split_list(val,':',0)
+        listener_2 = split_list(val,':',1)
+        if (listener_name == listener_1):
+            retval = listener_2
+            break
+        if (listener_name == listener_2):
+            retval = listener_1
+            break
+            
+    return retval
+
+"""
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+   ret_hosts_list
+   Function that returns list of hosts from config file to create ansible hosts file
+   Value comes from hosts_tns in the config file where a value is like
+   [host:tns:port,n:n:n,...] and we want the value of host for all elements in the list
+
+   Author: Ulf Hellstrom, oraminute@gmail.com
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+"""
+def ret_hosts_list(list_of_hosts):
+    hosts_list = []
+    for val in list_of_hosts:
+        node = split_list(val,':',0)
+        hosts_list.append(node)
+
+    return hosts_list
+
+"""
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    ret_tns_list():
+    Returns values stored in hosts_tns in this frameworks config.cfg file.
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+"""
+def ret_tns_list(list_of_hosts):
+    tns_list = []
+    for val in list_of_hosts:
+        node = split_list(val,':',0)
+        tnsname = split_list(val,':',1)
+        value = node+":"+tnsname
+        tns_list.append(value)
+        
+    return tns_list
+
+"""
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    ret_scan_list
+    Function that returns a unique list of "hosts" or scan listeners that we should
+    be able to call ansible playbooks over. The list is fetched from config.cfg
+    Example:
+        From the list ["host1:scan1:1521","host2:scan1:1521","host3:scan2:1521"]
+        This function will return a list with
+        [[scan1]
+         [scan2]]
+
+    Author: Ulf Hellstrom, oraminute@gmail.com
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%         
+"""
+def ret_scan_list(list_of_hosts):
+    scan_list = []
+    for v in list_of_hosts:
+        oralistener = split_list(v,':',1)
+        if oralistener not in scan_list:
+            scan_list.append(oralistener)
+            
+    return scan_list
+
+"""
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    get_tns_port
+    Function that returns a portno for a host/(scan)listener defined in config.cfg
+    hosts_tns list.
+    Example:
+        From the list ["host1:scan1:1521","host2:scan1:1521","host3:scan2:1522"]
+        This function will return a list with
+        1522 if called with ("scan2",["host1:scan1:1521","host2:scan1:1521","host3:scan2:1522"])
+         
+    Author: Ulf Hellstrom, oraminute@gmail.com
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%         
+"""
+def get_tns_port(listener_name,host_list):
+    
+    for val in host_list:
+        scan_listener = split_list(val,':',1)
+        if listener_name == scan_listener:
+            portno = split_list(val,':',2)
+            break
+
+    return portno
+
+"""
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    Author: Ulf Hellstrom, oraminute@gmail.com
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+"""
+def get_listener_name(cdb_name,workingdir):
+    
+    retval = None
+    
+    input_file = open(workingdir+"/cdb.log",'r')
+    for line in input_file:
+        db_name = line.rstrip()
+        db = split_list(db_name,':',0)
+        if db.upper() == cdb_name.upper():
+            retval = split_list(db_name,':',1)
+            break   
+    print(retval)        
+    return retval
+
+"""
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    Author: Ulf Hellstrom, oraminute@gmail.com
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+"""
+def get_user(scan_name,user_list):
+    
+    for val in user_list:
+        scan_listener = split_list(val,':',2)
+        if scan_name == scan_listener:
+            user = split_list(val,':',0)
+            break
+    
+    return user
+
+"""
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    Author: Ulf Hellstrom, oraminute@gmail.com
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+"""
+def get_pwd(scan_name,user_list):
+   
+    for val in user_list:
+        scan_listener = split_list(val,':',2)
+        if scan_name == scan_listener:
+            pwd = split_list(val,':',1)
+            break
+
+    return pwd    
+
+
+"""
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    gen_ansible_host_file
+    Function that writes a hosts file for ansible based on the values defined in
+    the config.cfg parameter hosts_tns list
+    e.g from [host1:listener:1521,host2:listener:1521] we will write a file 
+    host1
+    host2
+    The host file is then used by ansible-playbook.
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+"""
+def gen_ansible_host_file(list_of_hosts,working_dir):
+    scan_list = ret_scan_list(list_of_hosts)
+    tns_list = ret_tns_list(list_of_hosts)
+    output_file = open(working_dir+"/hosts","w")
+    for val in scan_list:
+        output_file.write("[nodes-"+val+"]\n")
+        for x in tns_list:
+            host = split_list(x,':',0)
+            orascan = split_list(x,':',1)
+            if (val in orascan):
+                output_file.write(host)
+                output_file.write("\n")
+
+    output_file.close()    
+
+"""
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    gen_user_pwd_list:
+    Ask for username/password for hosts or listeners (scan)
+    Author: Ulf Hellstrom, oraminute@gmail.com
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+"""
+def gen_user_pwd_list(scan_list):
+    dblisteners = ''
+    retlist = []
+    # Get oracle user name 
+    endloop = False
+    while endloop is False:
+        if sys.version_info[0] < 3:
+            check_if_same_pwd = raw_input("Does the following hosts:listeners have the same user/pwd "+dblisteners+ " (Y/N) ?")
+        else:
+            check_if_same_pwd = input("Does the following hosts:listeners have the same user/pwd "+dblisteners+ " (Y/N) ?")
+        #Get common username    
+        if  check_if_same_pwd in ('Y','y','YES','Yes','yes'):
+            if sys.version_info[0] < 3:
+                user = raw_input("Oracle Username: ")
+            else:
+                user = input("Oracle Username: ")
+            # Get password and encrypt it
+            pwd = getpass.getpass(prompt="Please give "+user +" password: ")
+            pwd =  base64.urlsafe_b64encode(pwd.encode('UTF-8)')).decode('ascii')
+            for val in scan_list:
+                stringval = user+':'+pwd+':'+val
+                retlist.append(stringval)
+                endloop = True
+        #Different usernames and passwords for different scan-listeners,dbs       
+        elif check_if_same_pwd in ('N','n','NO','no'):
+            for val in scan_list:
+                if sys.version_info[0] < 3:
+                    user = raw_input("Oracle Username for host/listener "+val+" :")
+                else:
+                    user = input("Oracle Username for host/listener "+val+" :")
+                # Get password and encrypt it
+                pwd = getpass.getpass(prompt="Please give "+user+" password for host/listener "+val+" :")
+                pwd =  base64.urlsafe_b64encode(pwd.encode('UTF-8)')).decode('ascii')
+                stringval = user+":"+pwd+":"+val
+                retlist.append(stringval)
+                endloop = True
+        else:
+            endloop = False
+ 
+    return retlist
 
 """
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -91,7 +433,6 @@ def run_sqlplus(sqlplus_script):
 def get_oracle_connection(db_name,tns,port,user,password):
 
     tnsalias = tns + ":" + port + "/" + db_name
-    #print("Using service name for database:",db_name)
 
     try:
         if user.upper() == 'SYS':
@@ -179,7 +520,7 @@ def check_if_domain_exits(connection):
     c1.execute(sql_stmt)     
     """
         Here we need to find out if domain or not..
-        E.g  PDBUFFETEST.SYSTEST.RECEPTPARTNER.SE
+        E.g  PDBUFFETEST.YYY.ORG
         means domain and PDBUFFETEST means nodomain.
     """
     value = c1.fetchone()[0]
@@ -201,6 +542,7 @@ def check_if_domain_exits(connection):
 """
 def check_if_pdb_exists(connection,new_pdb_name):
     
+    print("Check if PDB already exists...")
     retvalue = False
     sql_stmt = ("select count(name) as antal"+"\n"+ 
                 "from v$pdbs"+"\n"+
@@ -269,7 +611,7 @@ def check_if_pdb_is_appcon(db_name,tns,port,use_dns,dns_connect,user,password,pd
     check_if_pdb_is_application_root_clone
     Boolean function that check if PDB is a APPLICATION ROOT clone PDB
     e.g a APPLICATION container that has applications that is upgraded or patched.
-    AUthor: Ulf Hellstrom, oraminute@gmail.com
+    Author: Ulf Hellstrom, oraminute@gmail.com
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 """
 def check_if_pdb_is_application_root_clone(db_name,tns,port,use_dns,dns_connect,user,password,pdb_name):
@@ -309,7 +651,7 @@ def check_pdb_mode(connection,new_pdb_name):
     sql_stmt = ("select count(*) as antal"+"\n"+
                 "from v$pdbs"+"\n"+
                 "where name = '"+new_pdb_name.upper()+"'\n"+
-                "  and open_mode = 'READ WRITE'")
+                "  and open_mode = 'READ WRITE'")            
     c1 = connection.cursor()
     c1.execute(sql_stmt)
     # convert tuple to integer
@@ -599,7 +941,7 @@ def create_service_trigger(connection,pdb_name):
 def create_pluggable_database(connection,new_pdb_name,password):
 
     sql_stmt = "CREATE PLUGGABLE DATABASE " + new_pdb_name.upper() +" ADMIN USER admin identified by "+password
-    print(sql_stmt)
+    print("CREATE PLUGGABLE DATABASE " + new_pdb_name.upper() +" ADMIN USER ADMIN identified by xxxxxx")
     c1 = connection.cursor()
     c1.execute(sql_stmt)
     c1.close()
@@ -643,7 +985,7 @@ def create_pdb_services(connection,container_name,plug_name,service_name):
                 # Creating 
                 print("Creating database service: "+ service_name.upper())    
                 sql_stmt = ("begin\n"+
-                            "dbms_service.create_service\n"+
+                            "  dbms_service.create_service\n"+
                             "(\n"+
                             "  service_name => '"+service_name.upper()+"'\n"+
                             "  ,network_name => '"+service_name.upper()+"'\n"+
@@ -685,10 +1027,11 @@ def create_pdb_services(connection,container_name,plug_name,service_name):
 """
 def open_pluggable_database(connection,pdb_name):
 
-    sql_stmt = "ALTER PLUGGABLE DATABASE " + pdb_name.upper() + " OPEN READ WRITE"
+    sql_stmt = "ALTER PLUGGABLE DATABASE " + pdb_name.upper() + " OPEN READ WRITE INSTANCES=ALL"
     print(sql_stmt)
     c1 = connection.cursor()
     c1.execute(sql_stmt)
+    time.sleep(20)
     c1.close()
 
 """
@@ -700,7 +1043,7 @@ def open_pluggable_database(connection,pdb_name):
 """
 def open_pluggable_database_restricted(connection,pdb_name):
     
-    sql_stmt = "alter pluggable database " + pdb_name.upper() + " open restricted"
+    sql_stmt = "alter pluggable database " + pdb_name.upper() + " open restricted instances=all"
     print(sql_stmt)
     c1 = connection.cursor()
     c1.execute(sql_stmt)
