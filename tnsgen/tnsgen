@@ -241,34 +241,6 @@ def get_pdb_service_names(db_name,tns,port,use_dns,dns_connect,pdb_name,user,pas
 
 """
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-    run_ansible_script:
-    Ask and verify if possible to skip the ansible part of script
-    Author: Ulf Hellstrom, oraminute@gmail.com
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-"""
-def run_ansible_script(workingdir):
-    os.system('cls' if os.name == 'nt' else 'clear')
-    retval = True
-    if os.path.isfile(workingdir+"/cdb.log"):
-        if os.path.isfile(workingdir+"/hosts"):
-            if sys.version_info[0] < 3:
-                r_ansible = raw_input("Do you want to rerun scan of all hosts/nodes (Y/N) ?")
-            else:
-                r_ansible = input("Do you want to rerun scan of all hosts/nodes ? (Y/N)")
-
-            if r_ansible in ('Y','y','YES','Yes','yes'):
-                retval = True
-            else:
-                retval = False
-        else:
-            retval = True        
-    else:
-        retval = True            
-
-    return retval
-
-"""
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
    run_ansible()
    Shell callout running ansible playbook
    Author: Ulf Hellstrom, oraminute@gmail.com
@@ -305,7 +277,8 @@ def main():
     stop_list = ast.literal_eval(config.get('oraconfig','stop_list'))
     host_list = ast.literal_eval(config.get('oraconfig','hosts_tns'))
     cluster_list = ast.literal_eval(config.get('oraconfig','cluster'))
-    if run_ansible_script(workingdir) is True:
+    # Check if user wants to performa a new ansible scan
+    if oramodule.run_ansible_script(workingdir) is True:
         # Remove old cdb.log file if it exists
         if os.path.isfile(workingdir+"/cdb.log"):
             os.remove(workingdir+"/cdb.log")

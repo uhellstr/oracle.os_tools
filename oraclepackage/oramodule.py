@@ -319,6 +319,30 @@ def get_pwd(scan_name,user_list):
 
     return pwd    
 
+"""
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    run_ansible_script:
+    Ask and verify if possible to skip the ansible part of script
+    Author: Ulf Hellstrom, oraminute@gmail.com
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+"""
+def run_ansible_script(workingdir):
+    os.system('cls' if os.name == 'nt' else 'clear')
+    retval = True
+    if os.path.isfile(workingdir+"/cdb.log"):
+        if os.path.isfile(workingdir+"/hosts"):
+            r_ansible = input("Do you want to rerun scan of all hosts/nodes ? (Y/N)")
+            if r_ansible in ('Y','y','YES','Yes','yes'):
+                retval = True
+            else:
+                retval = False
+        else:
+            retval = True        
+    else:
+        retval = True            
+
+    return retval
+
 
 """
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

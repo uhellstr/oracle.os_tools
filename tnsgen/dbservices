@@ -72,6 +72,20 @@ class Logger(object):
 
 """
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+   run_ansible()
+   Shell callout running ansible playbook
+   Author: Ulf Hellstrom, oraminute@gmail.com
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+"""
+def run_ansible(port,playbook,dblistener):
+    output = subprocess.call(["ansible-playbook ../config/"+ playbook +" -i ./hosts -e ansible_ssh_port="+port],shell=True)
+    print(output)
+    callscript="../config/output.sh "+dblistener
+    output = subprocess.call([callscript],shell=True)
+    print(output)
+    
+"""
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     sql_service_names
     Function that returns sql to get all defined service names for a PDB
     Author: Ulf Hellstrom, oraminute@gmail.com
@@ -266,48 +280,6 @@ def shell_script_add_srvctl(pdb_name,service_name,output_shell_file_pdb):
 
 """
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-    run_ansible_script:
-    Ask and verify if possible to skip the ansible part of script
-    Author: Ulf Hellstrom, oraminute@gmail.com
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-"""
-def run_ansible_script(workingdir):
-    os.system('cls' if os.name == 'nt' else 'clear')
-    retval = True
-    if os.path.isfile(workingdir+"/cdb.log"):
-        if os.path.isfile(workingdir+"/hosts"):
-            if sys.version_info[0] < 3:
-                r_ansible = raw_input("Do you want to rerun scan of all hosts/nodes (Y/N) ?")
-            else:
-                r_ansible = input("Do you want to rerun scan of all hosts/nodes ? (Y/N)")
-
-            if r_ansible in ('Y','y','YES','Yes','yes'):
-                retval = True
-            else:
-                retval = False
-        else:
-            retval = True        
-    else:
-        retval = True            
-
-    return retval
-
-"""
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-   run_ansible()
-   Shell callout running ansible playbook
-   Author: Ulf Hellstrom, oraminute@gmail.com
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-"""
-def run_ansible(port,playbook,dblistener):
-    output = subprocess.call(["ansible-playbook ../config/"+ playbook +" -i ./hosts -e ansible_ssh_port="+port],shell=True)
-    print(output)
-    callscript="../config/output.sh "+dblistener
-    output = subprocess.call([callscript],shell=True)
-    print(output)
-
-"""
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     Main starts here. Eg this is where we run the code
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 """
@@ -338,7 +310,7 @@ def main():
     stop_list = ast.literal_eval(config.get('oraconfig','stop_list'))
     host_list = ast.literal_eval(config.get('oraconfig','hosts_tns'))
     cluster_list = ast.literal_eval(config.get('oraconfig','cluster'))
-    if run_ansible_script(workingdir) is True:
+    if oramodule.run_ansible_script(workingdir) is True:
         # Remove old cdb.log file if it exists
         if os.path.isfile(workingdir+"/cdb.log"):
             os.remove(workingdir+"/cdb.log")
