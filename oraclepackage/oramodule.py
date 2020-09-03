@@ -343,7 +343,20 @@ def run_ansible_script(workingdir):
 
     return retval
 
-
+"""
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+   run_ansible()
+   Shell callout running ansible playbook
+   Author: Ulf Hellstrom, oraminute@gmail.com
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+"""
+def run_ansible(port,playbook,cwdir,dblistener):
+    output = subprocess.call(["ansible-playbook ../config/"+ playbook +" -i "+cwdir+"/hosts -e ansible_ssh_port="+port],shell=True)
+    print(output)
+    callscript="../config/output.sh "+dblistener
+    output = subprocess.call([callscript],shell=True)
+    print(output)
+    
 """
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     gen_ansible_host_file

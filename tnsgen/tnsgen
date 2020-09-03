@@ -241,20 +241,6 @@ def get_pdb_service_names(db_name,tns,port,use_dns,dns_connect,pdb_name,user,pas
 
 """
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-   run_ansible()
-   Shell callout running ansible playbook
-   Author: Ulf Hellstrom, oraminute@gmail.com
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-"""
-def run_ansible(port,playbook,dblistener):
-    output = subprocess.call(["ansible-playbook ../config/"+ playbook +" -i ./hosts -e ansible_ssh_port="+port],shell=True)
-    print(output)
-    callscript="../config/output.sh "+dblistener
-    output = subprocess.call([callscript],shell=True)
-    print(output)
-
-"""
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     Main starts here. Eg this is where we run the code
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 """
@@ -292,7 +278,7 @@ def main():
             ansible_playbook = "collect-"+val+".yml"
             print(ansible_playbook)    
             #Run ansible script
-            run_ansible(ssh_portno,ansible_playbook,val)
+            oramodule.run_ansible(ssh_portno,ansible_playbook,workingdir,val)
     else:
          scan_list = oramodule.ret_scan_list(host_list)       
     #os.system('cls' if os.name == 'nt' else 'clear')
