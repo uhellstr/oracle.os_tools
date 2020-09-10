@@ -223,7 +223,9 @@ def create_new_pdb(connection,application_container,use_oradomain,app_con,new_pd
     if stop_creation is False: 
         oramodule.create_pluggable_database(connection,new_pdb,base64.urlsafe_b64decode(os.environ["DB_INFO"].encode('UTF-8')).decode('ascii'))
         oramodule.open_pluggable_database(connection,new_pdb)
-        #time.sleep(5)
+        # save open state to be default if cdb is restarted
+        print("Saving state of PDB "+new_pdb)    
+        oramodule.save_state_to_pdb(connection,new_pdb)
         # Check that PDB is in READ WRITE MOD    
         if oramodule.check_pdb_mode(connection,new_pdb):
             print("Pluggable database "+new_pdb+" is open..")
@@ -253,9 +255,6 @@ def create_new_pdb(connection,application_container,use_oradomain,app_con,new_pd
                         oramodule.close_pluggable_database(connection,new_pdb)
                         oramodule.open_pluggable_database(connection,new_pdb)
                         oramodule.switch_plug(new_pdb,connection)
-                    # save open state to be default if cdb is restarted
-                print("Saving state of PDB "+new_pdb)    
-                oramodule.save_state_to_pdb(connection,new_pdb)
             else:
                 print("Error: Could not switch to pluggable database "+new_pdb.upper())
                 connection.close()

@@ -396,16 +396,10 @@ def gen_user_pwd_list(scan_list):
     # Get oracle user name 
     endloop = False
     while endloop is False:
-        if sys.version_info[0] < 3:
-            check_if_same_pwd = raw_input("Does the following hosts:listeners have the same user/pwd "+dblisteners+ " (Y/N) ?")
-        else:
-            check_if_same_pwd = input("Does the following hosts:listeners have the same user/pwd "+dblisteners+ " (Y/N) ?")
+        check_if_same_pwd = input("Does the following hosts:listeners have the same user/pwd "+dblisteners+ " (Y/N) ?")
         #Get common username    
         if  check_if_same_pwd in ('Y','y','YES','Yes','yes'):
-            if sys.version_info[0] < 3:
-                user = raw_input("Oracle Username: ")
-            else:
-                user = input("Oracle Username: ")
+            user = input("Oracle Username: ")
             # Get password and encrypt it
             pwd = getpass.getpass(prompt="Please give "+user +" password: ")
             pwd =  base64.urlsafe_b64encode(pwd.encode('UTF-8)')).decode('ascii')
@@ -416,10 +410,7 @@ def gen_user_pwd_list(scan_list):
         #Different usernames and passwords for different scan-listeners,dbs       
         elif check_if_same_pwd in ('N','n','NO','no'):
             for val in scan_list:
-                if sys.version_info[0] < 3:
-                    user = raw_input("Oracle Username for host/listener "+val+" :")
-                else:
-                    user = input("Oracle Username for host/listener "+val+" :")
+                user = input("Oracle Username for host/listener "+val+" :")
                 # Get password and encrypt it
                 pwd = getpass.getpass(prompt="Please give "+user+" password for host/listener "+val+" :")
                 pwd =  base64.urlsafe_b64encode(pwd.encode('UTF-8)')).decode('ascii')
@@ -444,9 +435,9 @@ def ret_tns_string(dns,service):
 
 """
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-    run_sqlplus: Run a sql command or group of commands against
-    a database using sqlplus.
+    run_sqlplus() 
+    Run a sql command or group of commands against a database using sqlplus.
+    Author: Ulf Hellstrom, oraminute@gmail.com
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 """ 
 def run_sqlplus(sqlplus_script):
@@ -938,7 +929,7 @@ def return_services(connection,pdb_name):
     c1.close()
     return service_names
    
-
+"""
 """
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     create_service_trigger
@@ -965,6 +956,7 @@ def create_service_trigger(connection,pdb_name):
     c1 = connection.cursor()
     c1.execute(tmpstr)
     c1.close()
+"""    
                        
 """
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -998,6 +990,7 @@ def remove_domain_from_pdb(connection,new_pdb_name):
     c1.execute(sql_stmt)
     c1.close()
 
+"""
 """
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     create_pdb_services
@@ -1052,6 +1045,7 @@ def create_pdb_services(connection,container_name,plug_name,service_name):
                     create_service_trigger(connection,plug_name)                                        
     else:
         print("Error cannot switch to plug " +plug_name.upper()+" in container "+container_name.upper())
+"""
 
 """
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
