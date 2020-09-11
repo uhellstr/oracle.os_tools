@@ -928,39 +928,10 @@ def return_services(connection,pdb_name):
 
     c1.close()
     return service_names
-   
-"""
-"""
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-    create_service_trigger
-    Create or replace trigger for starting up own defined services when plug is started
-    Author: Ulf Hellstrom, oraminute@gmail.com
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-"""
-def create_service_trigger(connection,pdb_name):
-
-    service_list = []
-    tmpstr = ' '
-    print("Creating tr_start_service_trigger..")
-    service_list = return_services(connection,pdb_name)
-    print("Found following services in PDB:"+pdb_name)
-    print(service_list)
-    tmpstr = ("create or replace trigger tr_start_service after startup on database\n"+
-              "begin\n")
-    for item in service_list:
-          tmpstr = tmpstr + ("dbms_service.start_service\n"+
-                        "  (\n"+
-                        "    service_name =>'"+item.upper()+"'\n"+
-                        "  );\n")
-    tmpstr = tmpstr +"end;"
-    c1 = connection.cursor()
-    c1.execute(tmpstr)
-    c1.close()
-"""    
-                       
+                          
 """
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-    create_pluggable_database
+    create_pluggable_database():
     Create a new pluggable database in choosed container.
     Author: Ulf Hellstrom, oraminute@gmail.com
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -990,62 +961,6 @@ def remove_domain_from_pdb(connection,new_pdb_name):
     c1.execute(sql_stmt)
     c1.close()
 
-"""
-"""
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-    create_pdb_services
-    Create extra services defined in new_services in autoconfig.cfg
-    Author: Ulf Hellstrom, oraminute@gmail.com
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-"""
-def create_pdb_services(connection,container_name,plug_name,service_name):
-
-    if check_if_connected_cdb(connection,container_name):
-        print("Switching to PDB: "+plug_name.upper())
-        conn = switch_plug(plug_name,connection)
-        if conn is not "ERROR":
-            print("Creating database service: "+ service_name.upper())
-            if check_if_service_exists(connection,service_name):
-                print("Service "+service_name.upper()+" already exists and is running.")
-                # Create autostartup trigger for services created    
-                create_service_trigger(connection,plug_name)    
-            else:
-                # Creating 
-                print("Creating database service: "+ service_name.upper())    
-                sql_stmt = ("begin\n"+
-                            "  dbms_service.create_service\n"+
-                            "(\n"+
-                            "  service_name => '"+service_name.upper()+"'\n"+
-                            "  ,network_name => '"+service_name.upper()+"'\n"+
-                            ");\n"+
-                            "end;")
-                c1 = connection.cursor()
-                try:
-                    c1.execute(sql_stmt)
-                except cx_Oracle.DatabaseError as e:
-                    error, = e.args
-                    if error == 44303: # Check for error that service is created but not started...
-                        print("Service " + service_name.upper() + " already exists but is not started")
-                        print("Starting up the service..,")    
-                        c1.close()
-                    # Start service if not running
-                    if not check_if_service_exists(connection,service_name.upper()):
-                        sql_stmt = ("begin\n"+
-                                    "  dbms_service.start_service\n"+
-                                    "    (\n"+
-                                    "      service_name => '"+service_name.upper()+"'\n"+
-                                    "    );\n"+
-                                    "end;")
-                        c1 = connection.cursor()
-                        c1.execute(sql_stmt)
-                        c1.close
-                    if check_if_service_exists(connection,service_name.upper()):
-                        print("Service "+service_name.upper()+" is started.")
-                    # Create autostartup trigger for services created    
-                    create_service_trigger(connection,plug_name)                                        
-    else:
-        print("Error cannot switch to plug " +plug_name.upper()+" in container "+container_name.upper())
-"""
 
 """
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
