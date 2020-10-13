@@ -599,10 +599,12 @@ create or replace package body DBAUDIT_LOGIK.audit_maintenance_pkg as
     where owner = upper(p_in_schema_name)    
       and object_type in('TABLE','VIEW');
 
+    nested_table_column exception;
     role_already_exists exception;
     user_does_not_exists exception;
     pragma exception_init(role_already_exists,-20000);
     pragma exception_init(user_does_not_exists,-20001);
+    pragma exception_init(nested_table_column,-22812);
 
     lv_stmt clob;
     lv_role_name clob;
@@ -641,9 +643,16 @@ create or replace package body DBAUDIT_LOGIK.audit_maintenance_pkg as
           lv_stmt := 'grant select on '||rec.owner||'.'||rec.object_name||' to '||lv_role_name;
         else
           lv_stmt := 'grant all on '||rec.owner||'.'||rec.object_name||' to '||lv_role_name;
-        end if;  
-        dbms_output.put_line(lv_stmt);
-        execute immediate lv_stmt;
+        end if; 
+        -- Avoid cannot reference nested table column's storage table errors.
+        begin
+          dbms_output.put_line(lv_stmt);
+          execute immediate lv_stmt;
+        exception
+          when nested_table_column then
+            dbms_output.put_line('Storage table for nested column not granted to role: '||rec.owner||'.'||rec.object_name);
+            null;
+        end;
       end loop;
     else
       raise user_does_not_exists;
