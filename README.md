@@ -19,6 +19,8 @@ To use the utilities the following minimum requirements must be met:
 * Python 3 (If not installed easily installed thru Anaconda. See andaconda.com) 
 * cx_Oracle python module matching your current python environment in working condition
 * ansible with ssh authentications keys against Linux/Unix database nodes (No passwords logon against Oracle servers for ansible to work)
+* Supports Single instances, Rac One and RAC environment.
+* Use a central configuration file to define nodes, 
 
 Utilities included so far:
 
@@ -26,8 +28,9 @@ Utilities included so far:
                         This includes creating 1 or more pluggable databases, several services and setup initial tablespaces
                         like USERS or other tablespaces used in a environment
           2. TNSGEN:    Automaticly generate new tnsnames.ora for server side or client side where EZ connect is not used or
-                        where there is need for database links.
-          3. INSTALLAPEX: A utility to automacly install or upgrade APEX in one or more (many) databases
+                        where there is need for database links. Backup configuration of
+                        own defined services and create new extra services for indiviudal databases
+          3. INSTALLAPEX: A utility to automacly install or upgrade APEX in one or more (many) databases. 
           
 
                        
