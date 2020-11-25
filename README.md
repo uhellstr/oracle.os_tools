@@ -21,6 +21,7 @@ To use the utilities the following minimum requirements must be met:
 * ansible with ssh authentications keys against Linux/Unix database nodes (No passwords logon against Oracle servers for ansible to work)
 * Supports Single instances, Rac One and RAC environment.
 * Use a central configuration file to define nodes, scan listeners and clusters and stoplists for environemnts not to scan.
+* Do not need any access to the Oracle O/S account on databasenode but requires a operating system user that is able to scan running processes to identify running databases on the database node thru ansible.
 
 Utilities included so far:
 
