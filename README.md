@@ -20,7 +20,7 @@ To use the utilities the following minimum requirements must be met:
 * cx_Oracle python module matching your current python environment in working condition
 * ansible with ssh authentications keys against Linux/Unix database nodes (No passwords logon against Oracle servers for ansible to work)
 * Supports Single instances, Rac One and RAC environment.
-* Use a central configuration file to define nodes, 
+* Use a central configuration file to define nodes, scan listeners and clusters and stoplists for environemnts not to scan.
 
 Utilities included so far:
 
