@@ -212,30 +212,36 @@ def get_pdb_service_names(db_name,tns,port,use_dns,dns_connect,pdb_name,user,pas
         connection = oramodule.get_oracle_connection(db_name,tns,port,user,password)
 
     if not connection == "ERROR":
-    
-        try:
-            print('Getting service names for Database Container: ' + db_name)
-            c1str = 'alter session set container = ' + pdb_name
-            print(c1str)
-            c1 = connection.cursor()
-            c1.execute(c1str)
-        except cx_Oracle.DatabaseError as e:
-            error, = e.args
-            print(error.code)
-            print(error.message)
-            print(error.context)
-        else:
-            print('Connection successfull')
-            sqlstr = sql_service_names()
-            c2 = connection.cursor()
-            c2.execute(sqlstr)
-            for info in c2:
-                str = db_name + ','+ tns +','+','.join(info) # make tuple to string containging CDB,PDB,SERVICE
-                servicename_list.append(str)
+        
+        if oramodule.check_pdb_mode(connection,pdb_name):
 
-            c1.close()
-            c2.close()
-            connection.close()
+            try:
+                print('Getting service names for Database Container: ' + db_name)
+                c1str = 'alter session set container = ' + pdb_name
+                print(c1str)
+                c1 = connection.cursor()
+                c1.execute(c1str)
+            except cx_Oracle.DatabaseError as e:
+                error, = e.args
+                print(error.code)
+                print(error.message)
+                print(error.context)
+            else:
+                print('Connection successfull')
+                sqlstr = sql_service_names()
+                c2 = connection.cursor()
+                c2.execute(sqlstr)
+                for info in c2:
+                    str = db_name + ','+ tns +','+','.join(info) # make tuple to string containging CDB,PDB,SERVICE
+                    servicename_list.append(str)
+
+                c1.close()
+                c2.close()
+                connection.close()
+        else:
+            print("************************************************************************")
+            print("Pluggable databae " + pdb_name + " not open so skipping!")
+            print("************************************************************************")
     else:
         print("Not collecting any data due to errors: ",db_name)
 
