@@ -14,9 +14,10 @@ This utilities has been tested out with 12c,18c,19c (RAC) and 18c Express Editio
 
 To use the utilities the following minimum requirements must be met:
 
-* Linux or MacOS as client for the utilities
+* Linux or MacOS (M1 mac support with ansible running on brew under Rossetta2)  as client for the utilities
+* Oracle Java Linux (Recommended version 11 LTS and tested and verified under Linux, MacOS (even M1 works fine since Oracle Java universal)
 * Oracle Instant Client 12c or higher is required
-* Python 3 (If not installed easily installed thru Anaconda. See andaconda.com) 
+* Python 3 (If not installed easily installed thru Anaconda. See andaconda.com. Python 3 on Mac either thru Developer Toosl or conda via rosetta) 
 * cx_Oracle python module matching your current python environment in working condition
 * ansible with ssh authentications keys against Linux/Unix database nodes (No passwords logon against Oracle servers for ansible to work)
 * Supports Single instances, Rac One and RAC environment.
