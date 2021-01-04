@@ -453,6 +453,12 @@ def run_sqlplus(sqlplus_script):
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     get_oracle_connection()
     Function that returns a connection for Oracle database instance.
+    
+    Example of usage:
+    conn = oramodule.get_oracle_connection('dbname','<host>','1521','sys','pwd')
+    Example
+    conn = oramudle.get_oracle_connection('XE','localhost','1521','sys','ora123')
+
     Author: Ulf Hellstrom, oraminute@gmail.com
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 """
@@ -478,7 +484,7 @@ def get_oracle_connection(db_name,tns,port,user,password):
 """
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     get_oracle_dns_connection()
-    Function that returns a connection for Oracle database instance usint TNS entry.
+    Function that returns a connection for Oracle database instance using TNS entry.
     Author: Ulf Hellstrom, oraminute@gmail.com
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 """
@@ -597,7 +603,7 @@ def check_if_pdb_is_open(db_name,tns,port,use_dns,dns_connect,user,password,pdb_
     else:
         connection = get_oracle_connection(db_name,tns,port,user,password)
 
-    if connection is not "ERROR":
+    if connection != "ERROR":
         if check_pdb_mode(connection,pdb_name):
             retval = True
     connection.close        
@@ -616,7 +622,7 @@ def check_if_pdb_is_appcon(db_name,tns,port,use_dns,dns_connect,user,password,pd
         connection = get_oracle_dns_connection(db_name,dns_connect,user,password)
     else:
         connection = get_oracle_connection(db_name,tns,port,user,password)
-    if connection is not "ERROR":
+    if connection != "ERROR":
         sql_stmt = ("select count(*)"+"\n" +
                     "from v$pdbs" +"\n"+
                     "where application_root = 'YES'" + "\n"+
@@ -646,7 +652,7 @@ def check_if_pdb_is_application_root_clone(db_name,tns,port,use_dns,dns_connect,
         connection = get_oracle_dns_connection(db_name,dns_connect,user,password)
     else:
         connection = get_oracle_connection(db_name,tns,port,user,password)
-    if connection is not "ERROR":
+    if connection != "ERROR":
         sql_stmt = ("select count(*)"+"\n" +
                     "from v$pdbs" +"\n"+
                     "where application_root = 'YES'" + "\n"+
@@ -884,6 +890,30 @@ def check_if_service_exists(connection,servicename):
 
 """
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    check_if_omf_exists() 
+    Boolean function that checks if Oracle Managed File is in use
+    Author: Ulf Hellstrom, oraminute@gmail.com 2
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+"""
+def check_if_omf_exists(connection):
+
+    retvalue = False
+    sql_stmt = ("select nvl(value,'N') as omf_use\n"+
+                "from v$parameter\n"+
+                "where name = 'db_create_file_dest'")
+    c1 = connection.cursor()
+    c1.execute(sql_stmt)
+    value = str(c1.fetchone()[0])
+    if value == 'N':
+        retvalue = False
+    else:
+        retvalue = True
+    c1.close()
+
+    return retvalue
+
+"""
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
   check_if_service_trigger_exists()
   Boolean function checking that after startup trigger TR_START_SERVICE exists
   Author: Ulf Hellstrom, oraminute@gmail.com
@@ -928,6 +958,30 @@ def return_services(connection,pdb_name):
 
     c1.close()
     return service_names
+
+"""
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    get_tablespace_path
+    Function that is used when OMF is not used to get the default path for
+    where tablespaces are stored in a Multitenant environment and where
+    we do not use any ASM storage like for Oracle Express Edition 18c.
+
+    Author: Ulf Hellstrom, oraminute@gmail.com
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+"""
+def get_tablespace_path(connection):
+
+    sql_stmt = ("select substr(name,1,instr(name,'/',-1)) as filepath\n"+
+                "from v$datafile\n"+
+                "where rownum < 2")
+
+    c1 = connection.cursor()
+    c1.execute(sql_stmt)
+    retvalue = c1.fetchone()[0]
+    c1.close()
+
+    return retvalue    
+    
                           
 """
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -1017,15 +1071,40 @@ def close_pluggable_database(connection,pdb_name):
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 """
 def create_pdb_tablespace(connection,bigfile,tablespace_name):
-
-    if bigfile is "Y":
-       sql_stmt = "CREATE BIGFILE TABLESPACE "+tablespace_name.upper()
-    else:
-       sql_stmt = "CREATE TABLESPACE "+tablespace_name.upper()
-    print(sql_stmt)
-    c1 = connection.cursor()
-    c1.execute(sql_stmt)
-    c1.close()
+    if check_if_tablespace_exists(connection,tablespace_name):
+        print("Tablespace "+tablespace_name.upper()+ " already exists...")
+    else: # Check if we use OMF 
+        if check_if_omf_exists(connection):
+            if bigfile == "Y":
+                sql_stmt = "CREATE BIGFILE TABLESPACE "+tablespace_name.upper()
+            else:
+                sql_stmt = "CREATE TABLESPACE "+tablespace_name.upper()
+            print(sql_stmt)
+            c1 = connection.cursor()
+            c1.execute(sql_stmt)
+            c1.close()
+        else: # We do not use any OMF so we have to give PATH and size
+            tablespace_path = get_tablespace_path(connection)
+            if bigfile == "Y":
+                sql_stmt = ("CREATE BIGFILE TABLESPACE "+tablespace_name.upper()+"\n"+
+                            "DATAFILE '"+tablespace_path+tablespace_name.lower()+"01.dbf'\n"+
+                            "SIZE 1G\n"+
+                            "AUTOEXTEND ON\n"+
+                            "NEXT 104857600\n"+
+                            "MAXSIZE UNLIMITED"
+                            )
+            else:
+                sql_stmt = ("CREATE TABLESPACE "+tablespace_name.upper()+"\n"+
+                            "DATAFILE '"+tablespace_path+tablespace_name.lower()+"01.dbf'\n"+
+                            "SIZE 100M\n"+
+                            "AUTOEXTEND ON\n"+
+                            "NEXT 104857600\n"+
+                            "MAXSIZE UNLIMITED"
+                            )
+                print(sql_stmt)
+                c1 = connection.cursor()
+                c1.execute(sql_stmt)
+                c1.close()
 
 """
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
