@@ -961,6 +961,61 @@ def return_services(connection,pdb_name):
 
 """
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    return_seed_filenames
+    Function that returns seed file names from PDB$DEES 
+    We use this function when we have a CDB without OMF
+    Note: Must be called on CDB$ROOT level!!
+    Author: Ulf Hellstrom, oraminute@gmail.com
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+"""
+def return_seed_filenames(connection):
+
+    pdbseed_files = []
+    # Get filenames from PDB$SEED
+    sql_stmt = ("select name from v$datafile\n"+
+                "where con_id = 2\n"+
+                "union\n"+ 
+                "select name from v$tempfile\n"+
+                "where con_id = 2\n"+
+                "order by name")
+    c1 = connection.cursor()
+    c1.execute(sql_stmt)
+    for name in c1:
+        val = ''.join(name)         # make tuple to string
+        pdbseed_files.append(val)   # append string to list
+    c1.close()
+
+    return pdbseed_files
+
+"""
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    return_file_name_convert
+    Function that returns string with file_name_convert
+    We use this function when we have a CDB without OMF
+    Author: Ulf Hellstrom, oraminute@gmail.com
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+"""   
+def return_file_name_convert(connection,pdb_name):
+
+    tmp_string = ""
+    tmplate_string = "FILE_NAME_CONVERT=("
+    seed_file_name_list = []
+    seed_file_name_list = return_seed_filenames(connection)
+    for val in seed_file_name_list:
+        tmp_string = tmp_string + "\n'"+val+"','"+val.replace('pdbseed',pdb_name.upper(),1)+"',"
+    tmplate_string = tmplate_string + tmp_string
+    # Remove last comma
+    tmplate_string = tmplate_string[:-1]
+    # Add end string
+    tmplate_string = (tmplate_string  + "\n"+
+    ")\n"+
+    "STORAGE UNLIMITED TEMPFILE REUSE")
+
+    return tmplate_string
+        
+
+"""
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     get_tablespace_path
     Function that is used when OMF is not used to get the default path for
     where tablespaces are stored in a Multitenant environment and where
@@ -987,13 +1042,19 @@ def get_tablespace_path(connection):
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     create_pluggable_database():
     Create a new pluggable database in choosed container.
+    This has to be done from CDB$ROOT or Approot container
     Author: Ulf Hellstrom, oraminute@gmail.com
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 """
 def create_pluggable_database(connection,new_pdb_name,password):
 
     sql_stmt = "CREATE PLUGGABLE DATABASE " + new_pdb_name.upper() +" ADMIN USER admin identified by "+password
-    print("CREATE PLUGGABLE DATABASE " + new_pdb_name.upper() +" ADMIN USER ADMIN identified by xxxxxx")
+    # Check if we do not use OMF. If not then FILE_NAME_CONVERT is necessary.
+    if check_if_omf_exists(connection) == False:
+        tmpstring = return_file_name_convert(connection,new_pdb_name)
+        sql_stmt = sql_stmt + "\n" + tmpstring
+
+    print("CREATE PLUGGABLE DATABASE " + new_pdb_name.upper() +" ADMIN USER admin identified by xxxxxx")
     c1 = connection.cursor()
     c1.execute(sql_stmt)
     c1.close()
@@ -1071,6 +1132,7 @@ def close_pluggable_database(connection,pdb_name):
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 """
 def create_pdb_tablespace(connection,bigfile,tablespace_name):
+    
     if check_if_tablespace_exists(connection,tablespace_name):
         print("Tablespace "+tablespace_name.upper()+ " already exists...")
     else: # Check if we use OMF 
@@ -1093,6 +1155,10 @@ def create_pdb_tablespace(connection,bigfile,tablespace_name):
                             "NEXT 104857600\n"+
                             "MAXSIZE UNLIMITED"
                             )
+                print(sql_stmt)
+                c1 = connection.cursor()
+                c1.execute(sql_stmt)
+                c1.close()            
             else:
                 sql_stmt = ("CREATE TABLESPACE "+tablespace_name.upper()+"\n"+
                             "DATAFILE '"+tablespace_path+tablespace_name.lower()+"01.dbf'\n"+
@@ -1132,9 +1198,10 @@ def set_pdb_default_tablespace(connection,tablespace_name):
 def create_pdb_tablespaces(connection,tablespace_list,new_pdb):
 
     for tablespaces in tablespace_list:
-        print(tablespaces)
         tablespace_name = split_list(tablespaces,':',0)
         tablespace_type = split_list(tablespaces,':',1)
+        print("Tablespace name is " + tablespace_name)
+        print("Tablespace type is " + tablespace_type)
         if check_if_tablespace_exists(connection,tablespace_name):
             print("Tablespace "+tablespace_name.upper()+" already exists in "+new_pdb)
         else:
