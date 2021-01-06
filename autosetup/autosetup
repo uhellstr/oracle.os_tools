@@ -18,7 +18,7 @@ r"""
 #                Do not remove the leading "r"!!
 #
 #               Create new pluggable database(s) in containers and/or 
-#               based on defined Applicatin Container 
+#               based on defined Application Container
 #               as specified in databases.cfg.
 #
 #               * Requires Oracle 12c instant client or higher
@@ -321,7 +321,7 @@ def main():
     userpwd_list = oramodule.gen_user_pwd_list(scan_list)
     # Enable logging output to log file
     sys.stdout = Logger()
-    # Get inlist of cdbs from ansile-playbook output cdb.log
+    # Get inlist of cdbs from ansible-playbook output cdb.log
     input_file = open('cdb.log', 'r')
     for line in input_file:
         dbinfo = line.rstrip()
