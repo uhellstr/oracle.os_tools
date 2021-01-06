@@ -133,6 +133,7 @@ def container_exists(containerlist, cdb_name):
 
 
 def sync_pdb_with_appcon(db_name, pdb_name, working_directory):
+
     scriptdir = working_directory + "/sql/autorun/appcon"
     syspwd = get_sys_pwd()
     pwd = base64.urlsafe_b64decode(syspwd.encode('UTF-8')).decode('ascii')
@@ -157,6 +158,7 @@ def sync_pdb_with_appcon(db_name, pdb_name, working_directory):
 
 
 def verify_existing_pdb(connection, application_container, use_oradomain, new_pdb, tablespace_list, default_tablespace):
+
     # switch to pluggable database
     pdb = oramodule.switch_plug(new_pdb, connection)
     # create tablespaces from tablespace_list in autoconfig.cfg
@@ -279,13 +281,11 @@ def create_new_pdb(connection, application_container, use_oradomain, app_con, ne
 
 
 def main():
+
     # Load configuration
     config = configparser.ConfigParser()
     config.read('../config/config.cfg')
     # Setup configparameters for connecting to Oracle
-    # by reading parameters from config.cfg
-    # use_dns = config.get('oraconfig', 'use_dns')
-    # dns_connect = config.get('oraconfig', 'dns_connect')
     ssh_port = config.get('oraconfig', 'ssh_port')
     ssh_port_list = ast.literal_eval(config.get('oraconfig', 'ssh_alternative_port'))
     tablespace_list = ast.literal_eval(config.get('oraconfig', 'tablespace_list'))
@@ -368,16 +368,12 @@ def main():
         user = oramodule.get_user(tns, userpwd_list)
         pwd = oramodule.get_pwd(tns, userpwd_list)
         os.environ["DB_INFO"] = pwd
-        # print("db_name: "+db_name)
-        # print("tns: "+tns)
-        # print("port: "+port)
         # Check that given CDB in config file does exists in what is fetched with ansible
         print("Check if container exists: " + cdb_name)
         if container_exists(containerdb_list, cdb_name):
             print("Container exists setting up connection")
             # Connect to container database
-            connection = oramodule.get_oracle_connection(cdb_name, tns, port, user, base64.urlsafe_b64decode(
-                os.environ["DB_INFO"].encode('UTF-8')).decode('ascii'))
+            connection = oramodule.get_oracle_connection(cdb_name, tns, port, user, base64.urlsafe_b64decode(os.environ["DB_INFO"].encode('UTF-8')).decode('ascii'))
             if connection is not "ERROR":
                 print("Connected to: " + cdb_name)
                 # check that PDB do not already exist. If then just verify all is in place
@@ -394,7 +390,7 @@ def main():
                         oramodule.create_pdb_tablespaces(connection, tablespace_list, new_pdb)
                         oramodule.set_pdb_default_tablespace(connection, default_tablespace)
                     else:
-                        print("Pluggable database is based on Application Container tablespaces will sync form app")
+                        print("Pluggable database is based on Application Container tablespaces will sync from app")
                     # If Application Container based PDB synchronize Application(s) with Application Container
                     if application_container is True:
                         sync_pdb_with_appcon(connection, cdb_name, user)
