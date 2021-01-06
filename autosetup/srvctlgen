@@ -31,10 +31,9 @@ import os
 
 # Import oraclepackage module
 workingdir = os.getcwd()
-orapackdir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '')) +"/"
+orapackdir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '')) + "/"
 sys.path.append(orapackdir)
-from oraclepackage import oramodule 
-
+from oraclepackage import oramodule
 
 """
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -43,6 +42,8 @@ from oraclepackage import oramodule
     Author: Ulf Hellstrom, oraminute@gmail.com
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 """
+
+
 class Logger(object):
     def __init__(self):
         logfile = datetime.now().strftime('databasecfg_%Y_%m_%d_%H_%M.log')
@@ -51,13 +52,14 @@ class Logger(object):
 
     def write(self, message):
         self.terminal.write(message)
-        self.log.write(message)  
+        self.log.write(message)
 
     def flush(self):
-        #this flush method is needed for python 3 compatibility.
-        #this handles the flush command by doing nothing.
-        #you might want to specify some extra behavior here.
+        # this flush method is needed for python 3 compatibility.
+        # this handles the flush command by doing nothing.
+        # you might want to specify some extra behavior here.
         pass
+
 
 """
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -65,15 +67,17 @@ class Logger(object):
     generate hader for srvctl shell script
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 """
-def gen_srvctl_bash_header():
 
-    shell_string = ("#!/bin/bash\n"+
-    "# Run this script in RAC environment to add service for PDBs fora CDB\n"+
-    "#-- Example add service ULFSERVICE to PDB PDBUFFE in CDB CDBDRIFT\n"+
-    "#-- srvctl add service -d CDBDRIFT -s ULFSERVICE -role \"PRIMARY\" -pdb PDBUFFE -policy AUTOMATIC -r CDBDRIFT1,CDBBDRIFT2,CDBDRIFT3\n"+
-    "#\n")
+
+def gen_srvctl_bash_header():
+    shell_string = ("#!/bin/bash\n" +
+                    "# Run this script in RAC environment to add service for PDBs fora CDB\n" +
+                    "#-- Example add service ULFSERVICE to PDB PDBUFFE in CDB CDBDRIFT\n" +
+                    "#-- srvctl add service -d CDBDRIFT -s ULFSERVICE -role \"PRIMARY\" -pdb PDBUFFE -policy AUTOMATIC -r CDBDRIFT1,CDBBDRIFT2,CDBDRIFT3\n" +
+                    "#\n")
 
     return shell_string
+
 
 """
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -81,11 +85,13 @@ def gen_srvctl_bash_header():
     Generate statement for adding a service with srvctl for RAC databases
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 """
-def gen_srvctl_shell_body(outfile,cdb_name,pdb_name,service_name):
 
-    shell_string = ("srvctl add service -d "+cdb_name.upper()+" -s "+service_name.upper()+" -role ""PRIMARY"" -pdb "+pdb_name.upper()+" -policy AUTOMATIC -r "+cdb_name.upper()+"1,"+cdb_name.upper()+"2,"+cdb_name.upper()+"3\n"+
-                   "srvctl start service -d "+cdb_name.upper()+" -s "+service_name.upper()+"\n"
-                   "srvctl status service -db "+cdb_name.upper()+" -service  "+service_name.upper()+"\n")
+
+def gen_srvctl_shell_body(outfile, cdb_name, pdb_name, service_name):
+    shell_string = (
+                "srvctl add service -d " + cdb_name.upper() + " -s " + service_name.upper() + " -role ""PRIMARY"" -pdb " + pdb_name.upper() + " -policy AUTOMATIC -r " + cdb_name.upper() + "1," + cdb_name.upper() + "2," + cdb_name.upper() + "3\n" +
+                "srvctl start service -d " + cdb_name.upper() + " -s " + service_name.upper() + "\n"
+                                                                                                "srvctl status service -db " + cdb_name.upper() + " -service  " + service_name.upper() + "\n")
 
     outfile.write(shell_string)
 
@@ -96,34 +102,36 @@ def gen_srvctl_shell_body(outfile,cdb_name,pdb_name,service_name):
     Generate statement for adding a service with srvctl for RAC databases
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 """
-def gen_dbms_service_script(outfile,pdb_name,service_name):
-    
-    sql_stmt = ("alter session set container = "+pdb_name.upper()+";\n"
-                "begin\n"+
-                "  dbms_service.create_service\n"+
-                "(\n"+
-                "  service_name => '"+service_name.upper()+"'\n"+
-                "  ,network_name => '"+service_name.upper()+"'\n"+
-                ");\n"+
-                "end;\n"+
-                "/\n"+
-                "begin\n"+
-                "  dbms_service.start_service\n"+
-                "    (\n"+
-                "      service_name => '"+service_name.upper()+"'\n"+
-                "    );\n"+
-                "end;\n"+
-                "/\n"+
-                "create or replace trigger tr_srv_"+service_name.upper()+" after startup on database\n"+
-                "begin\n"+
-                "  dbms_service.start_service\n"+
-                "  (\n"+
-                "    service_name =>'"+service_name.upper()+"'\n"+
-                "  );\n"+
-                "end;\n"+
+
+
+def gen_dbms_service_script(outfile, pdb_name, service_name):
+    sql_stmt = ("alter session set container = " + pdb_name.upper() + ";\n"
+                                                                      "begin\n" +
+                "  dbms_service.create_service\n" +
+                "(\n" +
+                "  service_name => '" + service_name.upper() + "'\n" +
+                "  ,network_name => '" + service_name.upper() + "'\n" +
+                ");\n" +
+                "end;\n" +
+                "/\n" +
+                "begin\n" +
+                "  dbms_service.start_service\n" +
+                "    (\n" +
+                "      service_name => '" + service_name.upper() + "'\n" +
+                "    );\n" +
+                "end;\n" +
+                "/\n" +
+                "create or replace trigger tr_srv_" + service_name.upper() + " after startup on database\n" +
+                "begin\n" +
+                "  dbms_service.start_service\n" +
+                "  (\n" +
+                "    service_name =>'" + service_name.upper() + "'\n" +
+                "  );\n" +
+                "end;\n" +
                 "/\n")
 
-    outfile.write(sql_stmt)            
+    outfile.write(sql_stmt)
+
 
 """
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -131,6 +139,7 @@ def gen_dbms_service_script(outfile,pdb_name,service_name):
     Read databases.cfg and get all new databases
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 """
+
 
 def get_new_databases(inputfile):
     for line in inputfile:
@@ -144,47 +153,50 @@ def get_new_databases(inputfile):
     Main starts here. Eg this is where we run the code
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 """
+
+
 def main():
-    # Get current workding directory
-    workingdir = os.getcwd()
+
     os.system('cls' if os.name == 'nt' else 'clear')
-    cfgfile = workingdir+"/databases.cfg" 
-    inputfile = open(cfgfile,"r")
-    targetfile = workingdir+"/genservices.sh"
-    targetfile1 = workingdir+"/gen_dbms_services.sql"
-    outputfile = open(targetfile,"w")
-    outputfile1 = open(targetfile1,"w")
+    cfgfile = workingdir + "/databases.cfg"
+    inputfile = open(cfgfile, "r")
+    targetfile = workingdir + "/genservices.sh"
+    targetfile1 = workingdir + "/gen_dbms_services.sql"
+    outputfile = open(targetfile, "w")
+    outputfile1 = open(targetfile1, "w")
     outputfile.write(gen_srvctl_bash_header())
     get_new_databases(inputfile)
     for item in new_pdb_list:
         if item.count(':') == 3:
             print("We have a Application container")
-            cdb_name  = oramodule.split_list(item,':',0)
-            appcontainer_name = oramodule.split_list(item,':',1)
-            pdb_name = oramodule.split_list(item,':',2)
-            service_name = oramodule.split_list(item,':',3)
-            print("Container: "+cdb_name)
-            print("Application Container: "+appcontainer_name)
-            print("PDB: "+pdb_name)
-            print("Service name: "+service_name)
-            gen_srvctl_shell_body(outputfile,cdb_name,pdb_name,service_name)
-            gen_dbms_service_script(outputfile1,pdb_name,service_name)            
+            cdb_name = oramodule.split_list(item, ':', 0)
+            appcontainer_name = oramodule.split_list(item, ':', 1)
+            pdb_name = oramodule.split_list(item, ':', 2)
+            service_name = oramodule.split_list(item, ':', 3)
+            print("Container: " + cdb_name)
+            print("Application Container: " + appcontainer_name)
+            print("PDB: " + pdb_name)
+            print("Service name: " + service_name)
+            gen_srvctl_shell_body(outputfile, cdb_name, pdb_name, service_name)
+            gen_dbms_service_script(outputfile1, pdb_name, service_name)
         else:
             print("We have a normal PDB")
-            cdb_name  = oramodule.split_list(item,':',0)
-            pdb_name = oramodule.split_list(item,':',1)
-            service_name = oramodule.split_list(item,':',2)
-            print("Container: "+cdb_name)
-            print("PDB: "+pdb_name)
-            print("Service name: "+service_name)
-            gen_srvctl_shell_body(outputfile,cdb_name,pdb_name,service_name)
-            gen_dbms_service_script(outputfile1,pdb_name,service_name)
+            cdb_name = oramodule.split_list(item, ':', 0)
+            pdb_name = oramodule.split_list(item, ':', 1)
+            service_name = oramodule.split_list(item, ':', 2)
+            print("Container: " + cdb_name)
+            print("PDB: " + pdb_name)
+            print("Service name: " + service_name)
+            gen_srvctl_shell_body(outputfile, cdb_name, pdb_name, service_name)
+            gen_dbms_service_script(outputfile1, pdb_name, service_name)
 
     inputfile.close()
     outputfile.close()
     outputfile1.close()
 
+
 if __name__ == "__main__":
+
     new_pdb_list = []
     configlist = []
     main()

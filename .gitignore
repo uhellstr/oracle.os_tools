@@ -2,4 +2,7 @@ cdb.log
 *.txt
 collectdbinfo.log
 .vscode/
+.idea/
+.DS_Store
+venv/
 oraclepackage/__pycache__/

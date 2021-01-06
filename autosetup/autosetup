@@ -40,27 +40,20 @@ r"""
 
 from __future__ import print_function
 from datetime import datetime
-import subprocess
 import sys
 import getpass
-import getopt
 import base64
 import os
-import time
-import glob
 import ast
-
-try:
-    import ConfigParser
-except ImportError:
-    import configparser
+import configparser
 
 # Import oraclepackage module
 workingdir = os.getcwd()
-orapackdir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '')) +"/"
+orapackdir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '')) + "/"
 sys.path.append(orapackdir)
-from oraclepackage import oramodule    
-    
+from oraclepackage import oramodule
+
+
 """
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     Logger()
@@ -69,6 +62,8 @@ from oraclepackage import oramodule
     Author: Ulf Hellstrom, oraminute@gmail.com
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 """
+
+
 class Logger(object):
     def __init__(self):
         logfile = datetime.now().strftime('autosetup_%Y_%m_%d_%H_%M.log')
@@ -77,11 +72,10 @@ class Logger(object):
 
     def write(self, message):
         self.terminal.write(message)
-        self.log.write(message)  
+        self.log.write(message)
 
     def flush(self):
         pass
-    
 
 
 """
@@ -91,33 +85,39 @@ class Logger(object):
     sql*plus due to some script in EHM environment must runt as SYS.
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 """
-def get_sys_pwd():
 
+
+def get_sys_pwd():
     os.system('cls' if os.name == 'nt' else 'clear')
     print("I need to run SQL*PLUS as SYS to sync a PDB based on a APPCONTAINER")
     print("-------------------------------------------------------------------")
     syspwd = getpass.getpass(prompt="Please give the SYS password: ")
-    syspwd =  base64.urlsafe_b64encode(syspwd.encode('UTF-8)')).decode('ascii')
+    syspwd = base64.urlsafe_b64encode(syspwd.encode('UTF-8)')).decode('ascii')
     return syspwd
+
 
 """
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     container_exist()
     Boolean function that checks that given CDB in new_pds in autoconfig.cfg
     really do exists in the cdb.log file returned from ansible script checking
-    what container databases are in [nodes] list.
+    what container databases are in [nodes] inlist.
 
     Author: Ulf Hellstrom, oraminute@gmail.com
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 """
-def container_exists(containerdb_list,cdb_name):
 
-    retvalue = False
 
-    for item in containerdb_list:
+def container_exists(containerlist, cdb_name):
+
+    retvalue = None
+    for item in containerlist:
         if item.upper() == cdb_name.upper():
             retvalue = True
+        else:
+            retvalue = False
     return retvalue
+
 
 """
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -130,20 +130,21 @@ def container_exists(containerdb_list,cdb_name):
     Author: Ulf Hellstrom, oraminute@gmail.com
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 """
-def sync_pdb_with_appcon(connection,db_name,username,pwd,pdb_name,workingdir):
 
-    
-    scriptdir = workingdir + "/sql/autorun/appcon"
+
+def sync_pdb_with_appcon(db_name, pdb_name, working_directory):
+    scriptdir = working_directory + "/sql/autorun/appcon"
     syspwd = get_sys_pwd()
     pwd = base64.urlsafe_b64decode(syspwd.encode('UTF-8')).decode('ascii')
-    sql_script = ("connect SYS/"+pwd+"@"+db_name+" as SYSDBA"+"\n"+
-                          "alter session set container="+pdb_name+";"+"\n"+
-                          "@prep_appcon_pdb.sql"+"\n"+
-                          "exit")
-    print(sql_script)                      
+    sql_script = ("connect SYS/" + pwd + "@" + db_name + " as SYSDBA" + "\n" +
+                  "alter session set container=" + pdb_name + ";" + "\n" +
+                  "@prep_appcon_pdb.sql" + "\n" +
+                  "exit")
+    print(sql_script)
     os.chdir(scriptdir)
     sqlplus_output = oramodule.run_sqlplus(sql_script)
-    os.chdir(workingdir)
+    os.chdir(working_directory)
+
 
 """
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -153,44 +154,47 @@ def sync_pdb_with_appcon(connection,db_name,username,pwd,pdb_name,workingdir):
     Author: Ulf Hellstrom, oraminute@gmail.com
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 """
-def verify_existing_pdb(connection,application_container,use_oradomain,new_pdb,tablespace_list,default_tablespace,service_name,cdb_name,tns):
 
+
+def verify_existing_pdb(connection, application_container, use_oradomain, new_pdb, tablespace_list, default_tablespace):
     # switch to pluggable database
-    pdb = oramodule.switch_plug(new_pdb,connection)
+    pdb = oramodule.switch_plug(new_pdb, connection)
     # create tablespaces from tablespace_list in autoconfig.cfg
     if pdb is not "ERROR":
-        # Handling domain or no domain on plug db level. E.g CDB is created with domain but PDB should be used without domain
+        # Handling domain or no domain on plug db level.
+        # E.g CDB is created with domain but PDB should be used without domain
         if oramodule.check_if_domain_exits(connection):
             print("Database created with domain")
             print("Check if domain should be used or not")
             if use_oradomain is True:
-                print("Databas should use domain")
+                print("Database should use domain")
             else:
                 print("Database should not use domain updating global_name")
                 print("Switching session to CDB")
                 pdb = oramodule.switch_to_cdb(connection)
                 print("Shutdown plug")
-                oramodule.close_pluggable_database(connection,new_pdb)
+                oramodule.close_pluggable_database(connection, new_pdb)
                 print("Open plug in restricted mode")
-                oramodule.open_pluggable_database_restricted(connection,new_pdb)
-                oramodule.switch_plug(new_pdb,connection)
+                oramodule.open_pluggable_database_restricted(connection, new_pdb)
+                oramodule.switch_plug(new_pdb, connection)
                 print("Updating global_name")
-                oramodule.remove_domain_from_pdb(connection,new_pdb)
+                oramodule.remove_domain_from_pdb(connection, new_pdb)
                 print("Restarting plug")
                 oramodule.switch_to_cdb(connection)
-                oramodule.close_pluggable_database(connection,new_pdb)
-                oramodule.open_pluggable_database(connection,new_pdb)
-                oramodule.switch_plug(new_pdb,connection)
+                oramodule.close_pluggable_database(connection, new_pdb)
+                oramodule.open_pluggable_database(connection, new_pdb)
+                oramodule.switch_plug(new_pdb, connection)
                 # save open state to be default if cdb is restarted
-        oramodule.save_state_to_pdb(connection,new_pdb)
-        #Handling tablespaces and services but only if PDB is not based on Application Container
-        if application_container is False:       
+        oramodule.save_state_to_pdb(connection, new_pdb)
+        # Handling tablespaces and services but only if PDB is not based on Application Container
+        if application_container is False:
             print("Checking tablespaces...")
-            oramodule.create_pdb_tablespaces(connection,tablespace_list,new_pdb)
-            oramodule.set_pdb_default_tablespace(connection,default_tablespace)
+            oramodule.create_pdb_tablespaces(connection, tablespace_list, new_pdb)
+            oramodule.set_pdb_default_tablespace(connection, default_tablespace)
     else:
-        print("Error: Could not switch to pluggable database "+new_pdb)
-        connection.close()                                          
+        print("Error: Could not switch to pluggable database " + new_pdb)
+        connection.close()
+
 
 """
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -201,37 +205,41 @@ def verify_existing_pdb(connection,application_container,use_oradomain,new_pdb,t
     Author: Ulf Hellstrom, oraminute@gmail.com
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 """
-def create_new_pdb(connection,application_container,use_oradomain,app_con,new_pdb,tablespace_list,default_tablespace,cdb_name,service_name,tns):
-    
+
+
+def create_new_pdb(connection, application_container, use_oradomain, app_con, new_pdb, cdb_name):
+
     # Check if we should create PDB standalone or based on Application Container
     # If we use Application Container then switch to Application Container before creating PDB
     if application_container is True:
-        print("Switching to Application Container "+app_con)
-        applpdb = oramodule.switch_plug(app_con,connection)
+        print("Switching to Application Container " + app_con)
+        applpdb = oramodule.switch_plug(app_con, connection)
         if applpdb is "ERROR":
             stop_creation = True
             print("Error trying to connect to Application Container " + app_con)
             connection.close()
         else:
-            stop_creation = False   
-            print("Creating new PDB "+new_pdb.upper()+" in Application Container "+ app_con.upper()+" in CDB "+cdb_name.upper())
+            stop_creation = False
+            print("Creating new PDB " + new_pdb.upper() + " in Application Container " + app_con.upper() + " in CDB " + cdb_name.upper())
     else:
         stop_creation = False
-        print("Creating new PDB "+new_pdb.upper()+" in CDB " + cdb_name)
+        print("Creating new PDB " + new_pdb.upper() + " in CDB " + cdb_name)
 
     # Verify that it is ok to continue 
-    if stop_creation is False: 
-        oramodule.create_pluggable_database(connection,new_pdb,base64.urlsafe_b64decode(os.environ["DB_INFO"].encode('UTF-8')).decode('ascii'))
-        oramodule.open_pluggable_database(connection,new_pdb)
+    if stop_creation is False:
+        oramodule.create_pluggable_database(connection, new_pdb,
+                                            base64.urlsafe_b64decode(os.environ["DB_INFO"].encode('UTF-8')).decode(
+                                                'ascii'))
+        oramodule.open_pluggable_database(connection, new_pdb)
         # save open state to be default if cdb is restarted
-        print("Saving state of PDB "+new_pdb)    
-        oramodule.save_state_to_pdb(connection,new_pdb)
+        print("Saving state of PDB " + new_pdb)
+        oramodule.save_state_to_pdb(connection, new_pdb)
         # Check that PDB is in READ WRITE MOD    
-        if oramodule.check_pdb_mode(connection,new_pdb):
-            print("Pluggable database "+new_pdb+" is open..")
+        if oramodule.check_pdb_mode(connection, new_pdb):
+            print("Pluggable database " + new_pdb + " is open..")
             print("Verify if database uses domain or not...")
             # switch to pluggable database
-            pdb = oramodule.switch_plug(new_pdb,connection)
+            pdb = oramodule.switch_plug(new_pdb, connection)
             if pdb is not "ERROR":
                 # Handling domain or no domain on plug db level. E.g CDB is created with domain but PDB should be used without domain
                 if oramodule.check_if_domain_exits(connection):
@@ -244,166 +252,160 @@ def create_new_pdb(connection,application_container,use_oradomain,app_con,new_pd
                         print("Switching session to CDB")
                         pdb = oramodule.switch_to_cdb(connection)
                         print("Shutdown plug")
-                        oramodule.close_pluggable_database(connection,new_pdb)
+                        oramodule.close_pluggable_database(connection, new_pdb)
                         print("Open plug in restricted mode")
-                        oramodule.open_pluggable_database_restricted(connection,new_pdb)
-                        oramodule.switch_plug(new_pdb,connection)
+                        oramodule.open_pluggable_database_restricted(connection, new_pdb)
+                        oramodule.switch_plug(new_pdb, connection)
                         print("Updating global_name")
-                        oramodule.remove_domain_from_pdb(connection,new_pdb)
+                        oramodule.remove_domain_from_pdb(connection, new_pdb)
                         print("Restarting plug")
                         oramodule.switch_to_cdb(connection)
-                        oramodule.close_pluggable_database(connection,new_pdb)
-                        oramodule.open_pluggable_database(connection,new_pdb)
-                        oramodule.switch_plug(new_pdb,connection)
+                        oramodule.close_pluggable_database(connection, new_pdb)
+                        oramodule.open_pluggable_database(connection, new_pdb)
+                        oramodule.switch_plug(new_pdb, connection)
             else:
-                print("Error: Could not switch to pluggable database "+new_pdb.upper())
+                print("Error: Could not switch to pluggable database " + new_pdb.upper())
                 connection.close()
         else:
-            print("Pluggable database " +new_pdb + "is not open..")
-            connection.close()        
+            print("Pluggable database " + new_pdb + "is not open..")
+            connection.close()
+
 
 """
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     Main starts here. Eg this is where we run the code
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 """
-def main():
 
-    # set working directory
-    workingdir = os.getcwd()
+
+def main():
     # Load configuration
-    # configparser checks against python2 and python
-    if sys.version_info[0] < 3:
-        config = ConfigParser.ConfigParser()
-        config.readfp(open(r'../config/config.cfg'))
-    else:
-        config = configparser.ConfigParser()
-        config.read('../config/config.cfg')
-    #Setup configparameters for connecting to Oracle
-    #by reading parameters from config.cfg
-    use_dns = config.get('oraconfig','use_dns')
-    dns_connect = config.get('oraconfig','dns_connect')
-    ssh_port = config.get('oraconfig','ssh_port')
-    ssh_port_list = ast.literal_eval(config.get('oraconfig','ssh_alternative_port'))
-    tablespace_list = ast.literal_eval(config.get('oraconfig','tablespace_list'))
-    default_tablespace = config.get('oraconfig','default_tablespace')
-    use_oradomain = config.get('oraconfig','use_oradomain')
-    stop_list = ast.literal_eval(config.get('oraconfig','stop_list'))
-    host_list = ast.literal_eval(config.get('oraconfig','hosts_tns'))
-    cluster_list = ast.literal_eval(config.get('oraconfig','cluster'))
-    #Run ansible script
+    config = configparser.ConfigParser()
+    config.read('../config/config.cfg')
+    # Setup configparameters for connecting to Oracle
+    # by reading parameters from config.cfg
+    # use_dns = config.get('oraconfig', 'use_dns')
+    # dns_connect = config.get('oraconfig', 'dns_connect')
+    ssh_port = config.get('oraconfig', 'ssh_port')
+    ssh_port_list = ast.literal_eval(config.get('oraconfig', 'ssh_alternative_port'))
+    tablespace_list = ast.literal_eval(config.get('oraconfig', 'tablespace_list'))
+    default_tablespace = config.get('oraconfig', 'default_tablespace')
+    use_oradomain = config.get('oraconfig', 'use_oradomain')
+    stop_list = ast.literal_eval(config.get('oraconfig', 'stop_list'))
+    host_list = ast.literal_eval(config.get('oraconfig', 'hosts_tns'))
+    # cluster_list = ast.literal_eval(config.get('oraconfig', 'cluster'))
+    # Run ansible script
     if oramodule.run_ansible_script(workingdir) is True:
         # Remove old cdb.log file if it exists
-        if os.path.isfile(workingdir+"/cdb.log"):
-            os.remove(workingdir+"/cdb.log")
+        if os.path.isfile(workingdir + "/cdb.log"):
+            os.remove(workingdir + "/cdb.log")
         # Generate hosts file for ansible
-        oramodule.gen_ansible_host_file(host_list,workingdir)
+        oramodule.gen_ansible_host_file(host_list, workingdir)
         # loop over hosts file and run playbooks for each node    
-        scan_list = oramodule.ret_scan_list(host_list)            
+        scan_list = oramodule.ret_scan_list(host_list)
         for val in scan_list:
             # Check if any node has an alternitive ssh port
-            ssh_portno = oramodule.get_alternative_ssh_port(val,ssh_port_list,ssh_port)
-            ansible_playbook = "collect-"+val+".yml"
-            print(ansible_playbook)    
-            #Run ansible script
-            oramodule.run_ansible(ssh_portno,ansible_playbook,workingdir,val)
+            ssh_portno = oramodule.get_alternative_ssh_port(val, ssh_port_list, ssh_port)
+            ansible_playbook = "collect-" + val + ".yml"
+            print(ansible_playbook)
+            # Run ansible script
+            oramodule.run_ansible(ssh_portno, ansible_playbook, workingdir, val)
     else:
-        scan_list = oramodule.ret_scan_list(host_list) 
-                   
+        scan_list = oramodule.ret_scan_list(host_list)
+
     os.system('cls' if os.name == 'nt' else 'clear')
     # Get oracle user name 
     userpwd_list = oramodule.gen_user_pwd_list(scan_list)
     # Enable logging output to log file
     sys.stdout = Logger()
-    # Get list of cdbs from ansile-playbook output cdb.log
-    input_file = open('cdb.log','r')
+    # Get inlist of cdbs from ansile-playbook output cdb.log
+    input_file = open('cdb.log', 'r')
     for line in input_file:
         dbinfo = line.rstrip()
-        db_name = oramodule.split_list(dbinfo,':',0)
-        # Skip databases in stop list.
+        db_name = oramodule.split_list(dbinfo, ':', 0)
+        # Skip databases in stop inlist.
         if db_name in stop_list:
-            print("Not doing anything with: "+db_name)
+            print("Not doing anything with: " + db_name)
         else:
             containerdb_list.append(db_name)
     # Open databases.cfg and add info to pythonlist.     
-    database_file = open('databases.cfg','r')
+    database_file = open('databases.cfg', 'r')
     for line in database_file:
         dbconfig = line.rstrip()
         if not dbconfig.startswith("#"):
-            new_pdb_list.append(dbconfig)                    
-    # Loop over items in new_pdb_list    
+            new_pdb_list.append(dbconfig)
+            # Loop over items in new_pdb_list
     for item in new_pdb_list:
-        #Split container and new plugdatabase and new service into separate items
-        print("New_pdb_list: "+item)
+        # Split container and new plugdatabase and new service into separate items
+        print("New_pdb_list: " + item)
         # Check if normal PDB or if we should create PDB based on Application Container
         if item.count(':') == 3:
             application_container = True
-            cdb_name = oramodule.split_list(item,':',0)
-            app_con = oramodule.split_list(item,':',1)
-            new_pdb = oramodule.split_list(item,':',2)
-            service_name = oramodule.split_list(item,':',3)
+            cdb_name = oramodule.split_list(item, ':', 0)
+            app_con = oramodule.split_list(item, ':', 1)
+            new_pdb = oramodule.split_list(item, ':', 2)
+            service_name = oramodule.split_list(item, ':', 3)
             print("We have a Application Container:")
-            print("cdb_name: "+cdb_name)
-            print("app_con: "+app_con)
-            print("new_pdb: "+new_pdb)
-            print("service_name: "+service_name)
+            print("cdb_name: " + cdb_name)
+            print("app_con: " + app_con)
+            print("new_pdb: " + new_pdb)
+            print("service_name: " + service_name)
             # ask for SYS user pwd:
-        else: # We do not use Application Container
+        else:  # We do not use Application Container
             application_container = False
-            cdb_name = oramodule.split_list(item,':',0)
+            cdb_name = oramodule.split_list(item, ':', 0)
             app_con = ""
-            new_pdb = oramodule.split_list(item,':',1)
-            service_name = oramodule.split_list(item,':',2)
+            new_pdb = oramodule.split_list(item, ':', 1)
+            service_name = oramodule.split_list(item, ':', 2)
             print("We do not have a Application Container:")
-            print("cdb_name: "+cdb_name)
-            print("app_con: "+app_con)
-            print("new_pdb: "+new_pdb)
-            print("service_name: "+service_name)
+            print("cdb_name: " + cdb_name)
+            print("app_con: " + app_con)
+            print("new_pdb: " + new_pdb)
+            print("service_name: " + service_name)
         # Get user and pwd for current cdb
-        tns = oramodule.get_listener_name(cdb_name,workingdir)
-        port = oramodule.get_tns_port(tns,host_list)
-        user = oramodule.get_user(tns,userpwd_list)
-        pwd = oramodule.get_pwd(tns,userpwd_list)
+        tns = oramodule.get_listener_name(cdb_name, workingdir)
+        port = oramodule.get_tns_port(tns, host_list)
+        user = oramodule.get_user(tns, userpwd_list)
+        pwd = oramodule.get_pwd(tns, userpwd_list)
         os.environ["DB_INFO"] = pwd
-        #print("db_name: "+db_name)
-        #print("tns: "+tns)
-        #print("port: "+port)
+        # print("db_name: "+db_name)
+        # print("tns: "+tns)
+        # print("port: "+port)
         # Check that given CDB in config file does exists in what is fetched with ansible
-        print("Check if container exists: "+cdb_name)
-        if container_exists(containerdb_list,cdb_name):
+        print("Check if container exists: " + cdb_name)
+        if container_exists(containerdb_list, cdb_name):
             print("Container exists setting up connection")
             # Connect to container database
-            connection = oramodule.get_oracle_connection(cdb_name,tns,port,user,base64.urlsafe_b64decode(os.environ["DB_INFO"].encode('UTF-8')).decode('ascii'))
+            connection = oramodule.get_oracle_connection(cdb_name, tns, port, user, base64.urlsafe_b64decode(
+                os.environ["DB_INFO"].encode('UTF-8')).decode('ascii'))
             if connection is not "ERROR":
-                print("Connected to: "+cdb_name)
+                print("Connected to: " + cdb_name)
                 # check that PDB do not already exist. If then just verify all is in place
-                if oramodule.check_if_pdb_exists(connection,new_pdb):
-                    print("Pluggable database "+new_pdb+" already exits verifying....") 
-                    verify_existing_pdb(connection,application_container,use_oradomain,new_pdb,tablespace_list,default_tablespace,service_name,cdb_name,tns)
+                if oramodule.check_if_pdb_exists(connection, new_pdb):
+                    print("Pluggable database " + new_pdb + " already exits verifying....")
+                    verify_existing_pdb(connection, application_container, use_oradomain, new_pdb, tablespace_list,
+                                        default_tablespace)
                     connection.close()
-                else: # Create a new pluggable database.
-                    create_new_pdb(connection,application_container,use_oradomain,app_con,new_pdb,tablespace_list,default_tablespace,cdb_name,service_name,tns)
+                else:  # Create a new pluggable database.
+                    create_new_pdb(connection, application_container, use_oradomain, app_con, new_pdb, tablespace_list)
                     # Create default tablespace and set it to default tablespace
                     if application_container is False:
                         print("Create or verify tablespaces..")
-                        oramodule.create_pdb_tablespaces(connection,tablespace_list,new_pdb)
-                        oramodule.set_pdb_default_tablespace(connection,default_tablespace)
+                        oramodule.create_pdb_tablespaces(connection, tablespace_list, new_pdb)
+                        oramodule.set_pdb_default_tablespace(connection, default_tablespace)
                     else:
                         print("Pluggable database is based on Application Container tablespaces will sync form app")
                     # If Application Container based PDB synchronize Application(s) with Application Container
                     if application_container is True:
-                        sync_pdb_with_appcon(connection,cdb_name,user,base64.urlsafe_b64decode(os.environ["DB_INFO"].encode('UTF-8')).decode('ascii'),new_pdb,workingdir)     
+                        sync_pdb_with_appcon(connection, cdb_name, user)
             else:
-                print("Error connecting to "+cdb_name)
+                print("Error connecting to " + cdb_name)
                 connection.close()
-        else: 
-            print("No such container: "+cdb_name)
-            connection.close()        
+        else:
+            print("No such container: " + cdb_name)
+
 
 if __name__ == "__main__":
     containerdb_list = []
     new_pdb_list = []
-    host_list = []
-    cluster_list = []
-    userpwd_list = []
     main()

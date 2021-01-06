@@ -4,7 +4,7 @@
 """
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-Template lägga till nya services:
+Template for new services:
 
 srvctl add service -d SBPCDB -s SBPEES_PRIMARY -role "PRIMARY" -pdb SBPEES -policy AUTOMATIC
 
@@ -26,29 +26,18 @@ srvctl status service -d SBPCDB -s SBPEES_STANDBY
 
 from __future__ import print_function
 from datetime import datetime
-import subprocess
 import sys
-import getpass
-import getopt
 import base64
 import os
-import time
-import glob
 import ast
 import shutil
-
-try:
-    import ConfigParser
-except ImportError:
-    import configparser
+import configparser
 
 # Import oraclepackage module
 workingdir = os.getcwd()
-orapackdir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '')) +"/"
+orapackdir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '')) + "/"
 sys.path.append(orapackdir)
 from oraclepackage import oramodule
-
-
 
 """
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -57,7 +46,10 @@ from oraclepackage import oramodule
     Author: Ulf Hellstrom, oraminute@gmail.com
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 """
+
+
 class Logger(object):
+
     def __init__(self):
         logfile = datetime.now().strftime('dbservices_%Y_%m_%d_%H_%M.log')
         self.terminal = sys.stdout
@@ -65,13 +57,12 @@ class Logger(object):
 
     def write(self, message):
         self.terminal.write(message)
-        self.log.write(message)  
+        self.log.write(message)
 
     def flush(self):
         pass
 
 
-    
 """
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     sql_service_names
@@ -79,6 +70,8 @@ class Logger(object):
     Author: Ulf Hellstrom, oraminute@gmail.com
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 """
+
+
 def sql_service_names():
 
     stmt = """
@@ -91,21 +84,24 @@ order by pdb,network_name asc
 
     return stmt
 
+
 """
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     get_pdb_servicenames()
-    Returns a list of servicenames defined for a PDB
+    Returns a inlist of servicenames defined for a PDB
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 """
-def get_pdb_service_names(db_name,tns,port,use_dns,dns_connect,pdb_name,user,password):
+
+
+def get_pdb_service_names(db_name, tns, port, use_dns, dns_connect, pdb_name, user, password):
 
     if use_dns.startswith('Y') or use_dns.startswith('y'):
-        connection = oramodule.get_oracle_dns_connection(db_name,dns_connect,user,password)
+        connection = oramodule.get_oracle_dns_connection(db_name, dns_connect, user, password)
     else:
-        connection = oramodule.get_oracle_connection(db_name,tns,port,user,password)
+        connection = oramodule.get_oracle_connection(db_name, tns, port, user, password)
 
     if not connection == "ERROR":
-    
+
         try:
             print('Getting service names for Database Container: ' + db_name)
             c1str = 'alter session set container = ' + pdb_name
@@ -123,14 +119,15 @@ def get_pdb_service_names(db_name,tns,port,use_dns,dns_connect,pdb_name,user,pas
             c2 = connection.cursor()
             c2.execute(sqlstr)
             for info in c2:
-                str = db_name + ','+ tns +','+','.join(info) # make tuple to string containging CDB,PDB,SERVICE
-                servicename_list.append(str)
+                dbservice = db_name + ',' + tns + ',' + ','.join(info)  # make tuple to string containging CDB,PDB,SERVICE
+                servicename_list.append(dbservice)
 
             c1.close()
             c2.close()
             connection.close()
     else:
-        print("Not collecting any data due to errors: ",db_name)
+        print("Not collecting any data due to errors: ", db_name)
+
 
 """
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -138,21 +135,24 @@ def get_pdb_service_names(db_name,tns,port,use_dns,dns_connect,pdb_name,user,pas
     Write anonymous PL/SQL block for stopping a service
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 """
-def stop_service(cdb_name,pdb_name,service_name,output_file_stop):
+
+
+def stop_service(cdb_name, pdb_name, service_name, output_file_stop):
 
     output_file_stop.write("REM\n" +
-    "REM " + cdb_name + '\n' +
-    "REM\n" +
-    "alter session set container = CDB$ROOT;\n" +
-    "alter session set container = "+pdb_name.upper()+";\n" +
-    "begin\n"+
-    "  dbms_service.stop_service\n" +
-    "    (\n" +
-    "      service_name => '"+service_name+"'\n" +
-    "    );\n" +
-    "end;\n" +
-    "/\n"+
-    "\n") 
+                           "REM " + cdb_name + '\n' +
+                           "REM\n" +
+                           "alter session set container = CDB$ROOT;\n" +
+                           "alter session set container = " + pdb_name.upper() + ";\n" +
+                           "begin\n" +
+                           "  dbms_service.stop_service\n" +
+                           "    (\n" +
+                           "      service_name => '" + service_name + "'\n" +
+                           "    );\n" +
+                           "end;\n" +
+                           "/\n" +
+                           "\n")
+
 
 """
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -160,11 +160,15 @@ def stop_service(cdb_name,pdb_name,service_name,output_file_stop):
     Write anonymous PL/SQL block for stopping a service
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 """
-def stop_rac_service(cdb_name,pdb_name,service_name,output_file_rac_stop):
-    output_file_rac_stop.write("#!/bin/bash\n"+
-    "srvctl stop service -db "+ cdb_name +" -service " +service_name+ "\n"+
-    "srvctl status service -db " + cdb_name + " -service " +service_name+"\n"
-    )
+
+
+def stop_rac_service(cdb_name, service_name, output_file_rac_stop):
+
+    output_file_rac_stop.write("#!/bin/bash\n" +
+                               "srvctl stop service -db " + cdb_name + " -service " + service_name + "\n" +
+                               "srvctl status service -db " + cdb_name + " -service " + service_name + "\n"
+                               )
+
 
 """
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -172,21 +176,24 @@ def stop_rac_service(cdb_name,pdb_name,service_name,output_file_rac_stop):
     Write anonymous PL/SQL block for stopping a service
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 """
-def start_service(cdb_name,pdb_name,service_name,output_file_start):
+
+
+def start_service(cdb_name, pdb_name, service_name, output_file_start):
 
     output_file_start.write("REM\n" +
-    "REM " + cdb_name + '\n' +
-    "REM\n" +
-    "alter session set container = CDB$ROOT;\n" +
-    "alter session set container = "+pdb_name.upper()+";\n" +
-    "begin\n"+
-    "  dbms_service.start_service\n" +
-    "    (\n" +
-    "      service_name => '"+service_name+"'\n" +
-    "    );\n" +
-    "end;\n" +
-    "/\n" +
-    "\n") 
+                            "REM " + cdb_name + '\n' +
+                            "REM\n" +
+                            "alter session set container = CDB$ROOT;\n" +
+                            "alter session set container = " + pdb_name.upper() + ";\n" +
+                            "begin\n" +
+                            "  dbms_service.start_service\n" +
+                            "    (\n" +
+                            "      service_name => '" + service_name + "'\n" +
+                            "    );\n" +
+                            "end;\n" +
+                            "/\n" +
+                            "\n")
+
 
 """
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -194,11 +201,15 @@ def start_service(cdb_name,pdb_name,service_name,output_file_start):
     Write anonymous PL/SQL block for stopping a service
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 """
-def start_rac_service(cdb_name,pdb_name,service_name,output_file_rac_stop):
-    output_file_rac_stop.write("#!/bin/bash\n"+
-    "srvctl start service -db "+ cdb_name +" -service " +service_name+ "\n"+
-    "srvctl status service -db " + cdb_name + " -service " +service_name+"\n"
-    )
+
+
+def start_rac_service(cdb_name, service_name, output_file_rac_stop):
+
+    output_file_rac_stop.write("#!/bin/bash\n" +
+                               "srvctl start service -db " + cdb_name + " -service " + service_name + "\n" +
+                               "srvctl status service -db " + cdb_name + " -service " + service_name + "\n"
+                               )
+
 
 """
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -206,21 +217,24 @@ def start_rac_service(cdb_name,pdb_name,service_name,output_file_rac_stop):
     Write anonymous PL/SQL block for stopping a service
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 """
-def delete_service(cdb_name,pdb_name,service_name,output_file_delete):
+
+
+def delete_service(cdb_name, pdb_name, service_name, output_file_delete):
 
     output_file_delete.write("REM\n" +
-    "REM " + cdb_name + '\n' +
-    "REM\n" +
-    "alter session set container = CDB$ROOT;\n" +
-    "alter session set container = "+pdb_name.upper()+";\n" +
-    "begin\n"+
-    "  dbms_service.delete_service\n" +
-    "    (\n" +
-    "      service_name => '"+service_name+"'\n" +
-    "    );\n" +
-    "end;\n" +
-    "/\n" +
-    "\n")    
+                             "REM " + cdb_name + '\n' +
+                             "REM\n" +
+                             "alter session set container = CDB$ROOT;\n" +
+                             "alter session set container = " + pdb_name.upper() + ";\n" +
+                             "begin\n" +
+                             "  dbms_service.delete_service\n" +
+                             "    (\n" +
+                             "      service_name => '" + service_name + "'\n" +
+                             "    );\n" +
+                             "end;\n" +
+                             "/\n" +
+                             "\n")
+
 
 """
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -228,12 +242,16 @@ def delete_service(cdb_name,pdb_name,service_name,output_file_delete):
     Write anonymous PL/SQL block for stopping a service
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 """
-def delete_rac_service(cdb_name,pdb_name,service_name,output_file_rac_stop):
-    output_file_rac_stop.write("#!/bin/bash\n"+
-    "srvctl stop service -db "+ cdb_name +" -service " +service_name+ "\n"+
-    "srvctl remove service -db "+ cdb_name +" -s "+ service_name + "\n" +
-    "srvctl status service -db " + cdb_name + " -service " +service_name+"\n"
-    )
+
+
+def delete_rac_service(cdb_name, service_name, output_file_rac_stop):
+
+    output_file_rac_stop.write("#!/bin/bash\n" +
+                               "srvctl stop service -db " + cdb_name + " -service " + service_name + "\n" +
+                               "srvctl remove service -db " + cdb_name + " -s " + service_name + "\n" +
+                               "srvctl status service -db " + cdb_name + " -service " + service_name + "\n"
+                               )
+
 
 """
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -242,169 +260,168 @@ def delete_rac_service(cdb_name,pdb_name,service_name,output_file_rac_stop):
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 """
-def shell_script_add_srvctl(pdb_name,service_name,output_shell_file_pdb):
 
-    output_shell_file_pdb.write("#!/bin/bash\n"+
-    "# Run this script in RAC environment to add service for PDB\n"+
-    "#-- Example add service ULFSERVICE to PDB PDBUFFE in CDB CDBDRIFT\n"+
-    "#-- srvctl add service -d CDBDRIFT -s ULFSERVICE -role \"PRIMARY\" -pdb PDBUFFE -policy AUTOMATIC -r CDBDRIFT1,CDBBDRIFT2,CDBDRIFT3\n"+
-    "#-- srvctl start service -d CDBDRIFT -s ULFSERVICE\n"+
-    "#Usage:\n"+
-    "#$ <this_script.sh> <CDB>\n"+
-    "#\n" +
-    "cdb=""$1""\n"+
-    "str1=""1""\n"+
-    "str2=""2""\n"+
-    "str3=""3""\n"+
-    "inst1=$cdb$str1\n"+
-    "inst2=$cdb$str2\n"+
-    "inst3=$cdb$str3\n"+
-    "srvctl add service -d $cdb -s "+service_name.upper()+" -role \"PRIMARY\" -pdb "+pdb_name.upper()+" -policy AUTOMATIC -r $inst1,$inst2,$inst3\n"+
-    "srvctl start service -d $cdb -s "+service_name.upper()+"\n"
- #   "srvctl add service -d $1 -s "+service_name.upper()+" -pdb "+pdb_name+" -preferred $2,$3,$4\n"+
- #   "srvctl start service -db $1 -service "+service_name.upper()+"\n"+
- #   "srvctl status service -db $1 -service "+service_name.upper()+"\n"
-    )
+
+def shell_script_add_srvctl(pdb_name, service_name, output_shell_file_pdb):
+
+    output_shell_file_pdb.write("#!/bin/bash\n" +
+                                "# Run this script in RAC environment to add service for PDB\n" +
+                                "#-- Example add service ULFSERVICE to PDB PDBUFFE in CDB CDBDRIFT\n" +
+                                "#-- srvctl add service -d CDBDRIFT -s ULFSERVICE -role \"PRIMARY\" -pdb PDBUFFE -policy AUTOMATIC -r CDBDRIFT1,CDBBDRIFT2,CDBDRIFT3\n" +
+                                "#-- srvctl start service -d CDBDRIFT -s ULFSERVICE\n" +
+                                "#Usage:\n" +
+                                "#$ <this_script.sh> <CDB>\n" +
+                                "#\n" +
+                                "cdb=""$1""\n" +
+                                "str1=""1""\n" +
+                                "str2=""2""\n" +
+                                "str3=""3""\n" +
+                                "inst1=$cdb$str1\n" +
+                                "inst2=$cdb$str2\n" +
+                                "inst3=$cdb$str3\n" +
+                                "srvctl add service -d $cdb -s " + service_name.upper() + " -role \"PRIMARY\" -pdb " + pdb_name.upper() + " -policy AUTOMATIC -r $inst1,$inst2,$inst3\n" +
+                                "srvctl start service -d $cdb -s " + service_name.upper() + "\n"
+                                #   "srvctl add service -d $1 -s "+service_name.upper()+" -pdb "+pdb_name+" -preferred $2,$3,$4\n"+
+                                #   "srvctl start service -db $1 -service "+service_name.upper()+"\n"+
+                                #   "srvctl status service -db $1 -service "+service_name.upper()+"\n"
+                                )
+
 
 """
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     Main starts here. Eg this is where we run the code
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 """
+
+
 def main():
-    # set working directory
-    workingdir = os.getcwd()
+
     # check if services directory exists
-    servicedir=workingdir+"/services"
+    servicedir = workingdir + "/services"
     if not oramodule.check_if_dir_exists(servicedir):
         os.mkdir(servicedir)
     else:
-        #cleanup all files and recreate services directory empty
+        # cleanup all files and recreate services directory empty
         shutil.rmtree(servicedir)
         os.mkdir(servicedir)
     # Load configuration
-    # configparser checks against python2 and python
-    if sys.version_info[0] < 3:
-        config = ConfigParser.ConfigParser()
-        config.readfp(open(r'../config/config.cfg'))
-    else:
-        config = configparser.ConfigParser()
-        config.read('../config/config.cfg')
-    #Setup configparameters for connecting to Oracle
-    use_dns = config.get('oraconfig','use_dns')
-    dns_connect = config.get('oraconfig','dns_connect')
-    ssh_port = config.get('oraconfig','ssh_port')
-    ssh_port_list = ast.literal_eval(config.get('oraconfig','ssh_alternative_port'))
-    stop_list = ast.literal_eval(config.get('oraconfig','stop_list'))
-    host_list = ast.literal_eval(config.get('oraconfig','hosts_tns'))
-    cluster_list = ast.literal_eval(config.get('oraconfig','cluster'))
+    config = configparser.ConfigParser()
+    config.read('../config/config.cfg')
+    # Setup configparameters for connecting to Oracle
+    use_dns = config.get('oraconfig', 'use_dns')
+    dns_connect = config.get('oraconfig', 'dns_connect')
+    ssh_port = config.get('oraconfig', 'ssh_port')
+    ssh_port_list = ast.literal_eval(config.get('oraconfig', 'ssh_alternative_port'))
+    stop_list = ast.literal_eval(config.get('oraconfig', 'stop_list'))
+    host_list = ast.literal_eval(config.get('oraconfig', 'hosts_tns'))
+    # cluster_list = ast.literal_eval(config.get('oraconfig', 'cluster'))
     if oramodule.run_ansible_script(workingdir) is True:
         # Remove old cdb.log file if it exists
-        if os.path.isfile(workingdir+"/cdb.log"):
-            os.remove(workingdir+"/cdb.log")
+        if os.path.isfile(workingdir + "/cdb.log"):
+            os.remove(workingdir + "/cdb.log")
         # Generate hosts file for ansible
-        oramodule.gen_ansible_host_file(host_list,workingdir)
+        oramodule.gen_ansible_host_file(host_list, workingdir)
         # loop over hosts file and run playbooks for each node
         scan_list = oramodule.ret_scan_list(host_list)
         for val in scan_list:
             # Check if any node has an alternitive ssh port
-            ssh_portno = oramodule.get_alternative_ssh_port(val,ssh_port_list,ssh_port)            
-            ansible_playbook = "collect-"+val+".yml"
-            print(ansible_playbook)    
-            #Run ansible script
-            oramodule.run_ansible(ssh_portno,ansible_playbook,workingdir,val)
+            ssh_portno = oramodule.get_alternative_ssh_port(val, ssh_port_list, ssh_port)
+            ansible_playbook = "collect-" + val + ".yml"
+            print(ansible_playbook)
+            # Run ansible script
+            oramodule.run_ansible(ssh_portno, ansible_playbook, workingdir, val)
     else:
-       scan_list = oramodule.ret_scan_list(host_list)         
+        scan_list = oramodule.ret_scan_list(host_list)
+
     os.system('cls' if os.name == 'nt' else 'clear')
     # Get oracle user name 
     userpwd_list = oramodule.gen_user_pwd_list(scan_list)
     # Enable logging output to log file
     sys.stdout = Logger()
-    # list of cdbs from ansile-playbook 
-    input_file = open('cdb.log','r')
+    # inlist of cdbs from ansile-playbook
+    input_file = open('cdb.log', 'r')
     for line in input_file:
         dbinfo = line.rstrip()
-        db_name = oramodule.split_list(dbinfo,':',0)
-        tns = oramodule.split_list(dbinfo,':',1)
-        port = oramodule.get_tns_port(tns,host_list)
-        print('Stop list include following:',stop_list)
+        db_name = oramodule.split_list(dbinfo, ':', 0)
+        tns = oramodule.split_list(dbinfo, ':', 1)
+        port = oramodule.get_tns_port(tns, host_list)
+        print('Stop inlist include following:', stop_list)
         if db_name in stop_list:
-            print('Not connecting or collecting ',db_name)
+            print('Not connecting or collecting ', db_name)
         else:
             print(db_name)
-            user = oramodule.get_user(tns,userpwd_list)
-            pwd = oramodule.get_pwd(tns,userpwd_list)
+            user = oramodule.get_user(tns, userpwd_list)
+            pwd = oramodule.get_pwd(tns, userpwd_list)
             os.environ["DB_INFO"] = pwd
-            list_of_dbs = oramodule.get_pdbs(db_name,tns,port,use_dns,dns_connect,user,base64.urlsafe_b64decode(os.environ["DB_INFO"].encode('UTF-8')).decode('ascii'))
+            list_of_dbs = oramodule.get_pdbs(db_name, tns, port, use_dns, dns_connect, user, base64.urlsafe_b64decode(os.environ["DB_INFO"].encode('UTF-8')).decode('ascii'))
             for val in list_of_dbs:
                 print(val)
                 if val not in stop_list:
-                    if not oramodule.check_if_pdb_is_application_root_clone(db_name,tns,port,use_dns,dns_connect,user,base64.urlsafe_b64decode(os.environ["DB_INFO"].encode('UTF-8')).decode('ascii'),val):
-                        get_pdb_service_names(db_name,tns,port,use_dns,dns_connect,val,user,base64.urlsafe_b64decode(os.environ["DB_INFO"].encode('UTF-8')).decode('ascii'))
+                    if not oramodule.check_if_pdb_is_application_root_clone(db_name, tns, port, use_dns, dns_connect, user, base64.urlsafe_b64decode(os.environ["DB_INFO"].encode('UTF-8')).decode('ascii'), val):
+                        get_pdb_service_names(db_name, tns, port, use_dns, dns_connect, val, user, base64.urlsafe_b64decode(os.environ["DB_INFO"].encode('UTF-8')).decode('ascii'))
                 else:
-                    print('Not collecting data for:',val)
+                    print('Not collecting data for:', val)
 
     input_file.close()
 
-    #Use servicename_list to generate a new tnsnames.ora
-    # Back to normal plug databases.
+    # Use servicename_list to generate a new tnsnames.ora
     for val in servicename_list:
-        # Split comma separated row in list to individual objects
+        # Split comma separated row in inlist to individual objects
         data = val.split(',')
         cdb_db = data[0]
-        tns_entry = data[1]
+        # #tns_entry = data[1]
         pdb_db = data[2]
         db_service = data[3]
         if cdb_db in stop_list:
-            print("Not collecting data for "+cdb_db)
+            print("Not collecting data for " + cdb_db)
         else:
             # Avoid to add a db more then once to tnsnames.ora            
             if db_service not in tns_stop_list:
-                print("CDB:"+cdb_db)
-                print("PDB:"+pdb_db)
-                print("SERVICE:"+db_service)
-                cdbdir=servicedir+"/"+cdb_db
+                print("CDB:" + cdb_db)
+                print("PDB:" + pdb_db)
+                print("SERVICE:" + db_service)
+                cdbdir = servicedir + "/" + cdb_db
                 if not oramodule.check_if_dir_exists(cdbdir):
                     os.mkdir(cdbdir)
-                stop_service_file = cdbdir+"/stop_services_"+cdb_db+".sql"
-                stop_service_pdb_file = cdbdir+"/stop_service_"+cdb_db+"_"+pdb_db+".sql"
-                stop_rac_service_file = cdbdir+"/stop_rac_services_"+cdb_db+".sh"
-                stop_rac_service_pdb_file = cdbdir+"/stop_rac_service_"+cdb_db+"_"+pdb_db+".sh"
-                start_service_file = cdbdir+"/start_service_"+cdb_db+".sql"
-                start_service_pdb_file = cdbdir+"/start_service_"+cdb_db+"_"+pdb_db+".sql"
-                start_rac_service_file = cdbdir+"/start_service_"+cdb_db+".sh"
-                start_rac_service_pdb_file = cdbdir+"/start_service_"+cdb_db+"_"+pdb_db+".sh"
-                delete_service_file = cdbdir+"/delete_service_"+cdb_db+".sql"
-                delete_service_pdb_file = cdbdir+"/delete_service_"+cdb_db+"_"+pdb_db+".sql"
-                delete_rac_serivce_file = cdbdir+"/delete_services_"+cdb_db+".sh"
-                delete_rac_service_pdb_file = cdbdir+"/delete_servcice_"+cdb_db+"_"+pdb_db+".sh"
-                shell_service_pdb_file = cdbdir+"/add_service_"+pdb_db+".sh"
-                output_shell_file_pdb = open(shell_service_pdb_file,"a+")
-                output_file_stop = open(stop_service_file,"a+")
-                output_file_stop_pdb = open(stop_service_pdb_file,"a+")
-                output_file_stop_rac = open(stop_rac_service_file,"a+")
-                output_file_stop_rac_pdb = open(stop_rac_service_pdb_file,"a+")
-                output_file_start = open(start_service_file,"a+")
-                output_file_start_pdb = open(start_service_pdb_file,"a+")
-                output_file_start_rac = open(start_rac_service_file,"a+")
-                output_file_start_rac_pdb = open(start_rac_service_pdb_file,"a+")
-                output_file_delete = open(delete_service_file,"a+")
-                output_file_delete_pdb = open(delete_service_pdb_file,"a+")
-                output_file_delete_rac = open(delete_rac_serivce_file,"a+")
-                output_file_delete_rac_pdb = open(delete_rac_service_pdb_file,"a+")
-                stop_service(cdb_db,pdb_db,db_service,output_file_stop)
-                stop_service(cdb_db,pdb_db,db_service,output_file_stop_pdb)
-                stop_rac_service(cdb_db,pdb_db,db_service,output_file_stop_rac)
-                stop_rac_service(cdb_db,pdb_db,db_service,output_file_stop_rac_pdb)
-                start_service(cdb_db,pdb_db,db_service,output_file_start)
-                start_service(cdb_db,pdb_db,db_service,output_file_start_pdb)
-                start_rac_service(cdb_db,pdb_db,db_service,output_file_start_rac)
-                start_rac_service(cdb_db,pdb_db,db_service,output_file_start_rac_pdb)
-                delete_service(cdb_db,pdb_db,db_service,output_file_delete)
-                delete_service(cdb_db,pdb_db,db_service,output_file_delete_pdb)
-                delete_rac_service(cdb_db,pdb_db,db_service,output_file_delete_rac)
-                delete_rac_service(cdb_db,pdb_db,db_service,output_file_delete_rac_pdb)
-                shell_script_add_srvctl(pdb_db,db_service,output_shell_file_pdb)
+                stop_service_file = cdbdir + "/stop_services_" + cdb_db + ".sql"
+                stop_service_pdb_file = cdbdir + "/stop_service_" + cdb_db + "_" + pdb_db + ".sql"
+                stop_rac_service_file = cdbdir + "/stop_rac_services_" + cdb_db + ".sh"
+                stop_rac_service_pdb_file = cdbdir + "/stop_rac_service_" + cdb_db + "_" + pdb_db + ".sh"
+                start_service_file = cdbdir + "/start_service_" + cdb_db + ".sql"
+                start_service_pdb_file = cdbdir + "/start_service_" + cdb_db + "_" + pdb_db + ".sql"
+                start_rac_service_file = cdbdir + "/start_service_" + cdb_db + ".sh"
+                start_rac_service_pdb_file = cdbdir + "/start_service_" + cdb_db + "_" + pdb_db + ".sh"
+                delete_service_file = cdbdir + "/delete_service_" + cdb_db + ".sql"
+                delete_service_pdb_file = cdbdir + "/delete_service_" + cdb_db + "_" + pdb_db + ".sql"
+                delete_rac_service_file = cdbdir + "/delete_services_" + cdb_db + ".sh"
+                delete_rac_service_pdb_file = cdbdir + "/delete_service_" + cdb_db + "_" + pdb_db + ".sh"
+                shell_service_pdb_file = cdbdir + "/add_service_" + pdb_db + ".sh"
+                output_shell_file_pdb = open(shell_service_pdb_file, "a+")
+                output_file_stop = open(stop_service_file, "a+")
+                output_file_stop_pdb = open(stop_service_pdb_file, "a+")
+                output_file_stop_rac = open(stop_rac_service_file, "a+")
+                output_file_stop_rac_pdb = open(stop_rac_service_pdb_file, "a+")
+                output_file_start = open(start_service_file, "a+")
+                output_file_start_pdb = open(start_service_pdb_file, "a+")
+                output_file_start_rac = open(start_rac_service_file, "a+")
+                output_file_start_rac_pdb = open(start_rac_service_pdb_file, "a+")
+                output_file_delete = open(delete_service_file, "a+")
+                output_file_delete_pdb = open(delete_service_pdb_file, "a+")
+                output_file_delete_rac = open(delete_rac_service_file, "a+")
+                output_file_delete_rac_pdb = open(delete_rac_service_pdb_file, "a+")
+                stop_service(cdb_db, pdb_db, db_service, output_file_stop)
+                stop_service(cdb_db, pdb_db, db_service, output_file_stop_pdb)
+                stop_rac_service(cdb_db, pdb_db, db_service, output_file_stop_rac)
+                stop_rac_service(cdb_db, pdb_db, db_service, output_file_stop_rac_pdb)
+                start_service(cdb_db, pdb_db, db_service, output_file_start)
+                start_service(cdb_db, pdb_db, db_service, output_file_start_pdb)
+                start_rac_service(cdb_db, pdb_db, db_service, output_file_start_rac)
+                start_rac_service(cdb_db, pdb_db, db_service, output_file_start_rac_pdb)
+                delete_service(cdb_db, pdb_db, db_service, output_file_delete)
+                delete_service(cdb_db, pdb_db, db_service, output_file_delete_pdb)
+                delete_rac_service(cdb_db, pdb_db, db_service, output_file_delete_rac)
+                delete_rac_service(cdb_db, pdb_db, db_service, output_file_delete_rac_pdb)
+                shell_script_add_srvctl(pdb_db, db_service, output_shell_file_pdb)
                 output_file_stop.close()
                 output_file_stop_pdb.close()
                 output_file_stop_rac.close()
@@ -421,12 +438,8 @@ def main():
                 if pdb_db == db_service:
                     tns_stop_list.append(db_service)
 
+
 if __name__ == "__main__":
-    use_dns = ''
-    dns_connect = ''
-    ssh_port = ''
-    stop_list = []
-    host_list = []
     cluster_list = []
     servicename_list = []
     tns_stop_list = []

@@ -26,7 +26,7 @@ r"""
 # This databases should be plugged database in container NLLUTF with an
 # appliction Container called NLLAPPCON.
 #
-# All you have to do is copy & paste the list of database in mail
+# All you have to do is copy & paste the inlist of database in mail
 # and put them in a file called "newplugs.txt" and then run this script.
 #
 # Input: Script will ask for Container and Appcontainer where the plugs should be created.
@@ -45,7 +45,10 @@ import os
     Author: Ulf Hellstrom, oraminute@gmail.com
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 """
+
+
 class Logger(object):
+
     def __init__(self):
         logfile = datetime.now().strftime('databasecfg_%Y_%m_%d_%H_%M.log')
         self.terminal = sys.stdout
@@ -53,13 +56,14 @@ class Logger(object):
 
     def write(self, message):
         self.terminal.write(message)
-        self.log.write(message)  
+        self.log.write(message)
 
     def flush(self):
-        #this flush method is needed for python 3 compatibility.
-        #this handles the flush command by doing nothing.
-        #you might want to specify some extra behavior here.
+        # this flush method is needed for python 3 compatibility.
+        # this handles the flush command by doing nothing.
+        # you might want to specify some extra behavior here.
         pass
+
 
 """
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -68,6 +72,8 @@ class Logger(object):
     Author: Ulf Hellstrom, EpicoTech 2019
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 """
+
+
 def gen_header():
 
     header = """###############################################################################
@@ -87,48 +93,54 @@ def gen_header():
 """
     return header
 
+
 """
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 # gen_pdb_name()
 # Returns the internal databasename
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 """
+
+
 def gen_pdb_name(servicename):
 
-    return "PDB"+servicename.upper()
+    return "PDB" + servicename.upper()
+
 
 """
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     Main starts here. Eg this is where we run the code
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 """
+
+
 def main():
+
     # Get current workding directory
     workingdir = os.getcwd()
-    os.system('cls' if os.name == 'nt' else 'clear') 
+    os.system('cls' if os.name == 'nt' else 'clear')
     # Get oracle user name 
-    if sys.version_info[0] < 3:
-        containerdb = raw_input("Enter Container database: ")
-    else:
-        containerdb = input("Enter Container database: ")
-    if sys.version_info[0] < 3:
-        appcondb = raw_input("Enter Application container: ")
-    else:
-        appcondb = input("Enter Application Container: ") 
 
-    inputfile = open("newplugs.txt","r")
-    targetfile = workingdir+"/databases.cfg"
-    outputfile = open(targetfile,"w")
+    containerdb = input("Enter Container database: ")
+    appcondb = input("Enter Application Container: ")
+
+    inputfile = open("newplugs.txt", "r")
+    targetfile = workingdir + "/databases.cfg"
+    outputfile = open(targetfile, "w")
     outputfile.write(gen_header())
     outputfile.close()
-    outputfile = open(targetfile,"a")
+    outputfile = open(targetfile, "a")
     if inputfile.mode == "r":
         for line in inputfile:
-            plugdb = containerdb.upper() + ":" +appcondb.upper() + ":" + gen_pdb_name(line.rstrip().upper()) + ":" + line.rstrip().upper()
+            plugdb = containerdb.upper() + ":" + appcondb.upper() + ":" + gen_pdb_name(
+                line.rstrip().upper()) + ":" + line.rstrip().upper()
             print(plugdb)
-            outputfile.write(plugdb+"\n")
+            outputfile.write(plugdb + "\n")
     inputfile.close()
-    outputfile.close()        
+    outputfile.close()
+
+
 if __name__ == "__main__":
+
     configlist = []
     main()

@@ -15,13 +15,13 @@ r"""
 # about strange characters within this comment :-)
 # Do not remove the leading "r"!!
 #
-#               Oramodule cx_Oracle module with common Orcle functions
+#               Oramodule cx_Oracle module with common Oracle functions
 #               for different tools in this suite.
 #               This module handles things like:
 #                   * create and destroy connections
 #                   * Lots of functionality for Multitentant environment
 #                   * Support for PDB,CDB,AppContainers
-#                   * Support for creating Pluggable databas
+#                   * Support for creating Pluggable database
 #                   * Calling SQL*PLUS from Python
 #                   * Lot's of check functions (Is PDB open, what type of PDB etc...)
 #
@@ -38,63 +38,65 @@ r"""
 import cx_Oracle
 import subprocess
 import getpass
-import getopt
 import base64
 import time
-import sys
 import os
 
 """
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     split_list()
-    Function that splits a python list and return a single element from that list
-    E.g the list x = ['A','B'] and split_list(x,',',0) will return 'A'
+    Function that splits a python inlist and return a single element from that inlist
+    E.g the inlist x = ['A','B'] and split_list(x,',',0) will return 'A'
                                and split_list(x,',',1) will return 'B'
     Author: Ulf Hellstrom, oraminute@gmail.com                           
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 """
-def split_list(list,separator,element):
 
-    item_str = ''.join(list)
+
+def split_list(inlist, separator, element):
+    item_str = ''.join(inlist)
     temp_list = item_str.split(separator)
     return temp_list[element]
+
 
 """
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     get_alternative_ssh_port()
-    Function that checks alternative_ssh_port list in config.cfg and
+    Function that checks alternative_ssh_port inlist in config.cfg and
     return the ssh_port for that node so that ansible playbook can do it's job.
     Author: Ulf Hellstrom, oraminute@gmail.com
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 """
-def get_alternative_ssh_port(node,ssh_port_list,ssh_port):
 
+
+def get_alternative_ssh_port(node, ssh_port_list, ssh_port):
     ssh_alternative_port = 0
     alternative_ssh_port = False
 
-    ## Check if alternative_ssh_port in config.cfg is empty or not
+    # Check if alternative_ssh_port in config.cfg is empty or not
     if ssh_port_list:
-        ## Loop over comma separated values in the list and check if node match 
-        ## nodes we collect for in that case return alternative ssh port else
-        ## return the value set as standard ssh_port in config.cfg
-        for val in ssh_port_list:
-            nodename = split_list(val,':',0)
-            port_ssh = split_list(val,':',1)
+        # Loop over comma separated values in the inlist and check if node match
+        # nodes we collect for in that case return alternative ssh port else
+        # return the value set as standard ssh_port in config.cfg
+        for val_in_list in ssh_port_list:
+            nodename = split_list(val_in_list, ':', 0)
+            port_ssh = split_list(val_in_list, ':', 1)
             if nodename.upper() == node.upper():
-                print("We have node:"+val+" with an alternative ssh port of "+port_ssh)
+                print("We have node:" + val_in_list + " with an alternative ssh port of " + port_ssh)
                 time.sleep(5)
                 ssh_alternative_port = port_ssh
                 alternative_ssh_port = True
                 break
-        ## We found a alternative ssh port so return it    
+        # We found a alternative ssh port so return it
         if alternative_ssh_port:
             return ssh_alternative_port
-        ## No matching values for current node so return standard ssh port    
+        # No matching values for current node so return standard ssh port
         else:
             return ssh_port
-    ## alternative_ssh_port is empty in config.cfg so return default port        
+    # alternative_ssh_port is empty in config.cfg so return default port
     else:
-        return ssh_port            
+        return ssh_port
+
 
 """
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -103,17 +105,17 @@ def get_alternative_ssh_port(node,ssh_port_list,ssh_port):
     Author: Ulf Hellstrom, oraminute@gmail.com                           
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 """
+
+
 def check_if_dir_exists(directoryname):
-
-    retval = False
-
     check_folder = os.path.isdir(directoryname)
     if not check_folder:
-        retval = False
+        dir_retval = False
     else:
-        retval = True
+        dir_retval = True
 
-    return retval
+    return dir_retval
+
 
 """
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -136,20 +138,22 @@ def check_if_dir_exists(directoryname):
     Author: Ulf Hellstrom, oraminute@gmail.com                           
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 """
-def check_if_listener_is_cluster(cluster_list,listener_name):
-    
-    retval = False
-    for val in cluster_list:
-        listener_1 = split_list(val,':',0)
-        listener_2 = split_list(val,':',1)
-        if (listener_name == listener_1):
-            retval = True
+
+
+def check_if_listener_is_cluster(cluster_list, listener_name):
+    cluster_is = None
+    for cluster_val in cluster_list:
+        listener_1 = split_list(cluster_val, ':', 0)
+        listener_2 = split_list(cluster_val, ':', 1)
+        if listener_name == listener_1:
+            cluster_is = True
             break
-        if (listener_name == listener_2):
-            retval = True
+        if listener_name == listener_2:
+            cluster_is = True
             break
-            
-    return retval
+
+    return cluster_is
+
 
 """
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -177,36 +181,42 @@ def check_if_listener_is_cluster(cluster_list,listener_name):
     Author: Ulf Hellstrom, oraminute@gmail.com                           
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 """
-def get_failover_listener(cluster_list,listener_name):
-    for val in cluster_list:
-        listener_1 = split_list(val,':',0)
-        listener_2 = split_list(val,':',1)
-        if (listener_name == listener_1):
-            retval = listener_2
+
+
+def get_failover_listener(cluster_list, listener_name):
+    cluster_val = None
+    for cluster in cluster_list:
+        listener_1 = split_list(cluster, ':', 0)
+        listener_2 = split_list(cluster, ':', 1)
+        if listener_name == listener_1:
+            cluster_val = listener_2
             break
-        if (listener_name == listener_2):
-            retval = listener_1
+        if listener_name == listener_2:
+            cluster_val = listener_1
             break
-            
-    return retval
+
+    return cluster_val
+
 
 """
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
    ret_hosts_list
-   Function that returns list of hosts from config file to create ansible hosts file
+   Function that returns inlist of hosts from config file to create ansible hosts file
    Value comes from hosts_tns in the config file where a value is like
-   [host:tns:port,n:n:n,...] and we want the value of host for all elements in the list
-
+   [host:tns:port,n:n:n,...] and we want the value of host for all elements in the inlist
    Author: Ulf Hellstrom, oraminute@gmail.com
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 """
+
+
 def ret_hosts_list(list_of_hosts):
     hosts_list = []
-    for val in list_of_hosts:
-        node = split_list(val,':',0)
+    for hostvalue in list_of_hosts:
+        node = split_list(hostvalue, ':', 0)
         hosts_list.append(node)
 
     return hosts_list
+
 
 """
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -214,110 +224,127 @@ def ret_hosts_list(list_of_hosts):
     Returns values stored in hosts_tns in this frameworks config.cfg file.
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 """
+
+
 def ret_tns_list(list_of_hosts):
     tns_list = []
-    for val in list_of_hosts:
-        node = split_list(val,':',0)
-        tnsname = split_list(val,':',1)
-        value = node+":"+tnsname
+    for host_value in list_of_hosts:
+        node = split_list(host_value, ':', 0)
+        tnsname = split_list(host_value, ':', 1)
+        value = node + ":" + tnsname
         tns_list.append(value)
-        
+
     return tns_list
+
 
 """
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     ret_scan_list
-    Function that returns a unique list of "hosts" or scan listeners that we should
-    be able to call ansible playbooks over. The list is fetched from config.cfg
+    Function that returns a unique inlist of "hosts" or scan listeners that we should
+    be able to call ansible playbooks over. The inlist is fetched from config.cfg
     Example:
-        From the list ["host1:scan1:1521","host2:scan1:1521","host3:scan2:1521"]
-        This function will return a list with
+        From the inlist ["host1:scan1:1521","host2:scan1:1521","host3:scan2:1521"]
+        This function will return a inlist with
         [[scan1]
          [scan2]]
 
     Author: Ulf Hellstrom, oraminute@gmail.com
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%         
 """
+
+
 def ret_scan_list(list_of_hosts):
     scan_list = []
     for v in list_of_hosts:
-        oralistener = split_list(v,':',1)
+        oralistener = split_list(v, ':', 1)
         if oralistener not in scan_list:
             scan_list.append(oralistener)
-            
+
     return scan_list
+
 
 """
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     get_tns_port
     Function that returns a portno for a host/(scan)listener defined in config.cfg
-    hosts_tns list.
+    hosts_tns inlist.
     Example:
-        From the list ["host1:scan1:1521","host2:scan1:1521","host3:scan2:1522"]
-        This function will return a list with
+        From the inlist ["host1:scan1:1521","host2:scan1:1521","host3:scan2:1522"]
+        This function will return a inlist with
         1522 if called with ("scan2",["host1:scan1:1521","host2:scan1:1521","host3:scan2:1522"])
          
     Author: Ulf Hellstrom, oraminute@gmail.com
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%         
 """
-def get_tns_port(listener_name,host_list):
-    
-    for val in host_list:
-        scan_listener = split_list(val,':',1)
+
+
+def get_tns_port(listener_name, host_list):
+    portno = None
+    for host_value in host_list:
+        scan_listener = split_list(host_value, ':', 1)
         if listener_name == scan_listener:
-            portno = split_list(val,':',2)
+            portno = split_list(host_value, ':', 2)
             break
 
     return portno
 
+
 """
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     Author: Ulf Hellstrom, oraminute@gmail.com
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 """
-def get_listener_name(cdb_name,workingdir):
-    
+
+
+def get_listener_name(cdb_name, workingdir):
     retval = None
-    
-    input_file = open(workingdir+"/cdb.log",'r')
+
+    input_file = open(workingdir + "/cdb.log", 'r')
     for line in input_file:
         db_name = line.rstrip()
-        db = split_list(db_name,':',0)
+        db = split_list(db_name, ':', 0)
         if db.upper() == cdb_name.upper():
-            retval = split_list(db_name,':',1)
-            break   
-    print(retval)        
+            retval = split_list(db_name, ':', 1)
+            break
+
     return retval
 
+
 """
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     Author: Ulf Hellstrom, oraminute@gmail.com
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 """
-def get_user(scan_name,user_list):
-    
-    for val in user_list:
-        scan_listener = split_list(val,':',2)
+
+
+def get_user(scan_name, user_list):
+    user = None
+    for list_value in user_list:
+        scan_listener = split_list(list_value, ':', 2)
         if scan_name == scan_listener:
-            user = split_list(val,':',0)
+            user = split_list(list_value, ':', 0)
             break
-    
+
     return user
 
+
 """
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     Author: Ulf Hellstrom, oraminute@gmail.com
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 """
-def get_pwd(scan_name,user_list):
-   
-    for val in user_list:
-        scan_listener = split_list(val,':',2)
+
+
+def get_pwd(scan_name, user_list):
+    pwd = None
+    for user_value in user_list:
+        scan_listener = split_list(user_value, ':', 2)
         if scan_name == scan_listener:
-            pwd = split_list(val,':',1)
+            pwd = split_list(user_value, ':', 1)
             break
 
-    return pwd    
+    return pwd
+
 
 """
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -326,22 +353,25 @@ def get_pwd(scan_name,user_list):
     Author: Ulf Hellstrom, oraminute@gmail.com
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 """
+
+
 def run_ansible_script(workingdir):
     os.system('cls' if os.name == 'nt' else 'clear')
-    retval = True
-    if os.path.isfile(workingdir+"/cdb.log"):
-        if os.path.isfile(workingdir+"/hosts"):
+
+    if os.path.isfile(workingdir + "/cdb.log"):
+        if os.path.isfile(workingdir + "/hosts"):
             r_ansible = input("Do you want to rerun scan of all hosts/nodes ? (Y/N)")
-            if r_ansible in ('Y','y','YES','Yes','yes'):
+            if r_ansible in ('Y', 'y', 'YES', 'Yes', 'yes'):
                 retval = True
             else:
                 retval = False
         else:
-            retval = True        
+            retval = True
     else:
-        retval = True            
+        retval = True
 
     return retval
+
 
 """
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -350,38 +380,45 @@ def run_ansible_script(workingdir):
    Author: Ulf Hellstrom, oraminute@gmail.com
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 """
-def run_ansible(port,playbook,cwdir,dblistener):
-    output = subprocess.call(["ansible-playbook ../config/"+ playbook +" -i "+cwdir+"/hosts -e ansible_ssh_port="+port],shell=True)
+
+
+def run_ansible(port, playbook, cwdir, dblistener):
+    output = subprocess.call(
+        ["ansible-playbook ../config/" + playbook + " -i " + cwdir + "/hosts -e ansible_ssh_port=" + port], shell=True)
     print(output)
-    callscript="../config/output.sh "+dblistener
-    output = subprocess.call([callscript],shell=True)
+    callscript = "../config/output.sh " + dblistener
+    output = subprocess.call([callscript], shell=True)
     print(output)
-    
+
+
 """
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     gen_ansible_host_file
     Function that writes a hosts file for ansible based on the values defined in
-    the config.cfg parameter hosts_tns list
+    the config.cfg parameter hosts_tns inlist
     e.g from [host1:listener:1521,host2:listener:1521] we will write a file 
     host1
     host2
     The host file is then used by ansible-playbook.
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 """
-def gen_ansible_host_file(list_of_hosts,working_dir):
+
+
+def gen_ansible_host_file(list_of_hosts, working_dir):
     scan_list = ret_scan_list(list_of_hosts)
     tns_list = ret_tns_list(list_of_hosts)
-    output_file = open(working_dir+"/hosts","w")
+    output_file = open(working_dir + "/hosts", "w")
     for val in scan_list:
-        output_file.write("[nodes-"+val+"]\n")
+        output_file.write("[nodes-" + val + "]\n")
         for x in tns_list:
-            host = split_list(x,':',0)
-            orascan = split_list(x,':',1)
-            if (val in orascan):
+            host = split_list(x, ':', 0)
+            orascan = split_list(x, ':', 1)
+            if val in orascan:
                 output_file.write(host)
                 output_file.write("\n")
 
-    output_file.close()    
+    output_file.close()
+
 
 """
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -390,37 +427,41 @@ def gen_ansible_host_file(list_of_hosts,working_dir):
     Author: Ulf Hellstrom, oraminute@gmail.com
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 """
+
+
 def gen_user_pwd_list(scan_list):
     dblisteners = ''
     retlist = []
     # Get oracle user name 
     endloop = False
     while endloop is False:
-        check_if_same_pwd = input("Does the following hosts:listeners have the same user/pwd "+dblisteners+ " (Y/N) ?")
-        #Get common username    
-        if  check_if_same_pwd in ('Y','y','YES','Yes','yes'):
+        check_if_same_pwd = input(
+            "Does the following hosts:listeners have the same user/pwd " + dblisteners + " (Y/N) ?")
+        # Get common username
+        if check_if_same_pwd in ('Y', 'y', 'YES', 'Yes', 'yes'):
             user = input("Oracle Username: ")
             # Get password and encrypt it
-            pwd = getpass.getpass(prompt="Please give "+user +" password: ")
-            pwd =  base64.urlsafe_b64encode(pwd.encode('UTF-8)')).decode('ascii')
+            pwd = getpass.getpass(prompt="Please give " + user + " password: ")
+            pwd = base64.urlsafe_b64encode(pwd.encode('UTF-8)')).decode('ascii')
             for val in scan_list:
-                stringval = user+':'+pwd+':'+val
+                stringval = user + ':' + pwd + ':' + val
                 retlist.append(stringval)
                 endloop = True
-        #Different usernames and passwords for different scan-listeners,dbs       
-        elif check_if_same_pwd in ('N','n','NO','no'):
+        # Different usernames and passwords for different scan-listeners,dbs
+        elif check_if_same_pwd in ('N', 'n', 'NO', 'no'):
             for val in scan_list:
-                user = input("Oracle Username for host/listener "+val+" :")
+                user = input("Oracle Username for host/listener " + val + " :")
                 # Get password and encrypt it
-                pwd = getpass.getpass(prompt="Please give "+user+" password for host/listener "+val+" :")
-                pwd =  base64.urlsafe_b64encode(pwd.encode('UTF-8)')).decode('ascii')
-                stringval = user+":"+pwd+":"+val
+                pwd = getpass.getpass(prompt="Please give " + user + " password for host/listener " + val + " :")
+                pwd = base64.urlsafe_b64encode(pwd.encode('UTF-8)')).decode('ascii')
+                stringval = user + ":" + pwd + ":" + val
                 retlist.append(stringval)
                 endloop = True
         else:
             endloop = False
- 
+
     return retlist
+
 
 """
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -429,9 +470,12 @@ def gen_user_pwd_list(scan_list):
    Author: Ulf Hellstrom, oraminute@gmail.com
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 """
-def ret_tns_string(dns,service):
-    ret_string = dns.replace("{$SERVICE_NAME}",service,1)
+
+
+def ret_tns_string(dns, service):
+    ret_string = dns.replace("{$SERVICE_NAME}", service, 1)
     return ret_string
+
 
 """
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -439,15 +483,17 @@ def ret_tns_string(dns,service):
     Run a sql command or group of commands against a database using sqlplus.
     Author: Ulf Hellstrom, oraminute@gmail.com
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-""" 
-def run_sqlplus(sqlplus_script):
+"""
 
-    p = subprocess.Popen(['sqlplus','/nolog'],stdin=subprocess.PIPE,
-        stdout=subprocess.PIPE,stderr=subprocess.PIPE)
-    (stdout,stderr) = p.communicate(sqlplus_script.encode('utf-8'))
+
+def run_sqlplus(sqlplus_script):
+    p = subprocess.Popen(['sqlplus', '/nolog'], stdin=subprocess.PIPE,
+                         stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    (stdout, stderr) = p.communicate(sqlplus_script.encode('utf-8'))
     stdout_lines = stdout.decode('utf-8').split("\n")
 
     return stdout_lines
+
 
 """
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -457,29 +503,31 @@ def run_sqlplus(sqlplus_script):
     Example of usage:
     conn = oramodule.get_oracle_connection('dbname','<host>','1521','sys','pwd')
     Example
-    conn = oramudle.get_oracle_connection('XE','localhost','1521','sys','ora123')
+    conn = oramodule.get_oracle_connection('XE','localhost','1521','sys','ora123')
 
     Author: Ulf Hellstrom, oraminute@gmail.com
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 """
-def get_oracle_connection(db_name,tns,port,user,password):
 
+
+def get_oracle_connection(db_name, tns, port, user, password):
     tnsalias = tns + ":" + port + "/" + db_name
 
     try:
         if user.upper() == 'SYS':
             connection = cx_Oracle.connect("sys", password, tnsalias, mode=cx_Oracle.SYSDBA)
         else:
-            connection = cx_Oracle.connect(user,password,tnsalias)
+            connection = cx_Oracle.connect(user, password, tnsalias)
     except cx_Oracle.DatabaseError as e:
-            error, = e.args
-            print(error.code)
-            print(error.message)
-            print(error.context)
-            connection = "ERROR"
-            pass
+        error, = e.args
+        print(error.code)
+        print(error.message)
+        print(error.context)
+        connection = "ERROR"
+        pass
 
     return connection
+
 
 """
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -488,24 +536,26 @@ def get_oracle_connection(db_name,tns,port,user,password):
     Author: Ulf Hellstrom, oraminute@gmail.com
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 """
-def get_oracle_dns_connection(db_name,dns,user,password):
 
-    tnsalias = ret_tns_string(dns,db_name)
-    print("Using DNS connection for database:",db_name)
+
+def get_oracle_dns_connection(db_name, dns, user, password):
+    tnsalias = ret_tns_string(dns, db_name)
+    print("Using DNS connection for database:", db_name)
     try:
         if user.upper() == 'SYS':
             connection = cx_Oracle.connect("sys", password, tnsalias, mode=cx_Oracle.SYSDBA)
         else:
-            connection = cx_Oracle.connect(user,password,tnsalias)
+            connection = cx_Oracle.connect(user, password, tnsalias)
     except cx_Oracle.DatabaseError as e:
-            error, = e.args
-            print(error.code)
-            print(error.message)
-            print(error.context)
-            connection = "ERROR"
-            pass
+        error, = e.args
+        print(error.code)
+        print(error.message)
+        print(error.context)
+        connection = "ERROR"
+        pass
 
     return connection
+
 
 """
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -515,18 +565,19 @@ def get_oracle_dns_connection(db_name,dns,user,password):
    Author: Ulf Hellstrom, oraminute@gmail.com
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 """
-def get_version_info(db_name,tns,port,use_dns,dns_connect,user,password):
 
+
+def get_version_info(db_name, tns, port, use_dns, dns_connect, user, password):
     if use_dns.startswith('Y') or use_dns.startswith('y'):
-        connection = get_oracle_dns_connection(db_name,dns_connect,user,password)
+        connection = get_oracle_dns_connection(db_name, dns_connect, user, password)
     else:
-        connection = get_oracle_connection(db_name,tns,port,user,password)
+        connection = get_oracle_connection(db_name, tns, port, user, password)
     if not connection == "ERROR":
         print('Checking Oracle version.')
         c1 = connection.cursor()
         c1.execute("""select to_number(substr(version,1,2)) as dbver from dba_registry where comp_id = 'CATALOG'""")
         ver = c1.fetchone()[0]
-        print('Oracle version: ',ver)
+        print('Oracle version: ', ver)
 
         c1.close()
         connection.close()
@@ -535,21 +586,23 @@ def get_version_info(db_name,tns,port,use_dns,dns_connect,user,password):
 
     return ver
 
+
 """
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     check_if_domain_exists
-    Boolean function that chack if a PDB is created with or without domain
+    Boolean function that check if a PDB is created with or without domain
     e.g PDBXXX.mydomain.com (return true) or PDBXXX (return false)
     if using PDB do alter session set container before calling this routine.
     Author: Ulf Hellstrom, oraminute@gmail.com
  %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 """
+
+
 def check_if_domain_exits(connection):
-    retvalue = False
-    sql_stmt = ("select global_name" +"\n"+
-                "from global_name"+"\n")
+    sql_stmt = ("select global_name" + "\n" +
+                "from global_name" + "\n")
     c1 = connection.cursor()
-    c1.execute(sql_stmt)     
+    c1.execute(sql_stmt)
     """
         Here we need to find out if domain or not..
         E.g  PDBUFFETEST.YYY.ORG
@@ -562,8 +615,10 @@ def check_if_domain_exits(connection):
         retvalue = True
     else:
         print("We are not using domain")
-    c1.close()           
+        retvalue = False
+    c1.close()
     return retvalue
+
 
 """
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -572,22 +627,28 @@ def check_if_domain_exits(connection):
     Author: Ulf Hellstrom, oraminute@gmail.com 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 """
-def check_if_pdb_exists(connection,new_pdb_name):
-    
+
+
+def check_if_pdb_exists(connection, new_pdb_name):
     print("Check if PDB already exists...")
-    retvalue = False
-    sql_stmt = ("select count(name) as antal"+"\n"+ 
-                "from v$pdbs"+"\n"+
-                "where name ='"+new_pdb_name.upper()+"'\n"
+
+    sql_stmt = ("select count(name) as antal" + "\n" +
+                "from v$pdbs" + "\n" +
+                "where name ='" + new_pdb_name.upper() + "'\n"
                 )
     c1 = connection.cursor()
     c1.execute(sql_stmt)
     # convert tuple to integer
     value = int(c1.fetchone()[0])
+    c1.close()
+
     if value > 0:
         retvalue = True
-    c1.close()
+    else:
+        retvalue = False
+
     return retvalue
+
 
 """
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -596,18 +657,24 @@ def check_if_pdb_exists(connection,new_pdb_name):
     AUthor: Ulf Hellstrom, oraminute@gmail.com
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 """
-def check_if_pdb_is_open(db_name,tns,port,use_dns,dns_connect,user,password,pdb_name):
-    retval = False
+
+
+def check_if_pdb_is_open(db_name, tns, port, use_dns, dns_connect, user, password, pdb_name):
+    retval = None
     if use_dns.startswith('Y') or use_dns.startswith('y'):
-        connection = get_oracle_dns_connection(db_name,dns_connect,user,password)
+        connection = get_oracle_dns_connection(db_name, dns_connect, user, password)
     else:
-        connection = get_oracle_connection(db_name,tns,port,user,password)
+        connection = get_oracle_connection(db_name, tns, port, user, password)
 
     if connection != "ERROR":
-        if check_pdb_mode(connection,pdb_name):
+        if check_pdb_mode(connection, pdb_name):
             retval = True
-    connection.close        
+        else:
+            retval = False
+
+    connection.close()
     return retval
+
 
 """
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -616,17 +683,19 @@ def check_if_pdb_is_open(db_name,tns,port,use_dns,dns_connect,user,password,pdb_
     AUthor: Ulf Hellstrom, oraminute@gmail.com
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 """
-def check_if_pdb_is_appcon(db_name,tns,port,use_dns,dns_connect,user,password,pdb_name):
-    retval = False
+
+
+def check_if_pdb_is_appcon(db_name, tns, port, use_dns, dns_connect, user, password, pdb_name):
+    retval = None
     if use_dns.startswith('Y') or use_dns.startswith('y'):
-        connection = get_oracle_dns_connection(db_name,dns_connect,user,password)
+        connection = get_oracle_dns_connection(db_name, dns_connect, user, password)
     else:
-        connection = get_oracle_connection(db_name,tns,port,user,password)
+        connection = get_oracle_connection(db_name, tns, port, user, password)
     if connection != "ERROR":
-        sql_stmt = ("select count(*)"+"\n" +
-                    "from v$pdbs" +"\n"+
-                    "where application_root = 'YES'" + "\n"+
-                    " and name ='"+pdb_name.upper()+"'\n"
+        sql_stmt = ("select count(*)" + "\n" +
+                    "from v$pdbs" + "\n" +
+                    "where application_root = 'YES'" + "\n" +
+                    " and name ='" + pdb_name.upper() + "'\n"
                     )
         c1 = connection.cursor()
         c1.execute(sql_stmt)
@@ -634,9 +703,13 @@ def check_if_pdb_is_appcon(db_name,tns,port,use_dns,dns_connect,user,password,pd
         value = int(c1.fetchone()[0])
         if value > 0:
             retval = True
+        else:
+            retval = False
+
         c1.close()
-    connection.close    
+    connection.close()
     return retval
+
 
 """
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -646,29 +719,35 @@ def check_if_pdb_is_appcon(db_name,tns,port,use_dns,dns_connect,user,password,pd
     Author: Ulf Hellstrom, oraminute@gmail.com
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 """
-def check_if_pdb_is_application_root_clone(db_name,tns,port,use_dns,dns_connect,user,password,pdb_name):
-    retval = False
+
+
+def check_if_pdb_is_application_root_clone(db_name, tns, port, use_dns, dns_connect, user, password, pdb_name):
+    retval = None
     if use_dns.startswith('Y') or use_dns.startswith('y'):
-        connection = get_oracle_dns_connection(db_name,dns_connect,user,password)
+        connection = get_oracle_dns_connection(db_name, dns_connect, user, password)
     else:
-        connection = get_oracle_connection(db_name,tns,port,user,password)
+        connection = get_oracle_connection(db_name, tns, port, user, password)
     if connection != "ERROR":
-        sql_stmt = ("select count(*)"+"\n" +
-                    "from v$pdbs" +"\n"+
-                    "where application_root = 'YES'" + "\n"+
-                    "  and application_pdb = 'YES'" + "\n"+
-                    "  and application_root_clone = 'YES'" + "\n"+
-                    "  and name ='"+pdb_name.upper()+"'\n"
-                    )            
+        sql_stmt = ("select count(*)" + "\n" +
+                    "from v$pdbs" + "\n" +
+                    "where application_root = 'YES'" + "\n" +
+                    "  and application_pdb = 'YES'" + "\n" +
+                    "  and application_root_clone = 'YES'" + "\n" +
+                    "  and name ='" + pdb_name.upper() + "'\n"
+                    )
         c1 = connection.cursor()
         c1.execute(sql_stmt)
         # convert tuple to integer
         value = int(c1.fetchone()[0])
         if value > 0:
             retval = True
-        c1.close()    
-    connection.close    
+        else:
+            retval = False
+        c1.close()
+
+    connection.close()
     return retval
+
 
 """
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -677,21 +756,25 @@ def check_if_pdb_is_application_root_clone(db_name,tns,port,use_dns,dns_connect,
     Author: Ulf Hellstrom, oraminute@gmail.com
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 """
-def check_pdb_mode(connection,new_pdb_name):
 
-    retvalue = False
-    sql_stmt = ("select count(*) as antal"+"\n"+
-                "from v$pdbs"+"\n"+
-                "where name = '"+new_pdb_name.upper()+"'\n"+
-                "  and open_mode = 'READ WRITE'")            
+
+def check_pdb_mode(connection, new_pdb_name):
+    sql_stmt = ("select count(*) as antal" + "\n" +
+                "from v$pdbs" + "\n" +
+                "where name = '" + new_pdb_name.upper() + "'\n" +
+                "  and open_mode = 'READ WRITE'")
     c1 = connection.cursor()
     c1.execute(sql_stmt)
     # convert tuple to integer
     value = int(c1.fetchone()[0])
     if value > 0:
         retvalue = True
+    else:
+        retvalue = False
+
     c1.close()
     return retvalue
+
 
 """
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -700,19 +783,22 @@ def check_pdb_mode(connection,new_pdb_name):
     Author: Ulf Hellstrom, oraminute@gmail.com
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 """
-def check_if_tablespace_exists(connection,tablespace_name):
-    
-    retvalue = False
-    sql_stmt = ("select count(*) as antal"+"\n"+
-                "from dba_tablespaces"+"\n"+
-                "where tablespace_name='"+tablespace_name.upper()+"'\n")
+
+
+def check_if_tablespace_exists(connection, tablespace_name):
+    sql_stmt = ("select count(*) as antal" + "\n" +
+                "from dba_tablespaces" + "\n" +
+                "where tablespace_name='" + tablespace_name.upper() + "'\n")
     c1 = connection.cursor()
     c1.execute(sql_stmt)
     value = int(c1.fetchone()[0])
     if value > 0:
         retvalue = True
+    else:
+        retvalue = False
     c1.close()
     return retvalue
+
 
 """
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -721,16 +807,18 @@ def check_if_tablespace_exists(connection,tablespace_name):
     Author: Ulf Hellstrom, oraminute@gmail.com
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 """
+
+
 def check_default_tablespace(connection):
-    
-    sql_stmt = ("select nvl(property_value,'/NOT SET AT ALL/') as property_value\n"+
-                "from database_properties\n"+
+    sql_stmt = ("select nvl(property_value,'/NOT SET AT ALL/') as property_value\n" +
+                "from database_properties\n" +
                 "where property_name = 'DEFAULT_PERMANENT_TABLESPACE'\n")
     c1 = connection.cursor()
     c1.execute(sql_stmt)
     retvalue = c1.fetchone()[0]
     c1.close()
     return retvalue
+
 
 """
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -739,19 +827,22 @@ def check_default_tablespace(connection):
     Author: Ulf Hellstrom, oraminute@gmail.com
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 """
-def check_if_db_user_exists(connection,username):
-    
-    retvalue = False
-    sql_stmt = ("select count(*) as antal\n"+
-                "from dba_users\n"+
-                "where username = '"+username.upper()+"'\n")
+
+
+def check_if_db_user_exists(connection, username):
+    sql_stmt = ("select count(*) as antal\n" +
+                "from dba_users\n" +
+                "where username = '" + username.upper() + "'\n")
     c1 = connection.cursor()
     c1.execute(sql_stmt)
     value = int(c1.fetchone()[0])
     if value > 0:
-       retvalue = True
+        retvalue = True
+    else:
+        retvalue = False
     c1.close()
     return retvalue
+
 
 """
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -760,44 +851,47 @@ def check_if_db_user_exists(connection,username):
     Author: Ulf Hellstrom, oraminute@gmail.com
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 """
-def check_if_object_exists(db_name,tns,port,use_dns,dns_connect,pdb_name,user,password,oraobject,sqlstring):
 
+
+def check_if_object_exists(db_name, tns, port, use_dns, dns_connect, pdb_name, user, password, oraobject, sqlstring):
+    val = None
     print("check if object " + oraobject + " exists!")
-    #print("DEBUG: what is value of pdb_name: ",pdb_name)
+    # print("DEBUG: what is value of pdb_name: ",pdb_name)
     if use_dns.startswith('Y') or use_dns.startswith('y'):
-        connection = get_oracle_dns_connection(db_name,dns_connect,user,password)
+        connection = get_oracle_dns_connection(db_name, dns_connect, user, password)
     else:
-        connection = get_oracle_connection(db_name,tns,port,user,password)
+        connection = get_oracle_connection(db_name, tns, port, user, password)
 
-    if not connection == "ERROR":    
+    if not connection == "ERROR":
         if pdb_name == "<12c":
-            sqlstr = sqlstring
+            sql_stmt = sqlstring
             c2 = connection.cursor()
-            c2.execute(sqlstr)
+            c2.execute(sql_stmt)
             for info in c2:
                 val = info
             c2.close()
             connection.close()
             return val
-        else:    
-            switchtoplug = switch_plug(pdb_name,connection)
+        else:
+            switchtoplug = switch_plug(pdb_name, connection)
             if switchtoplug == "SUCCESS":
                 print("switching to plugdatabase " + pdb_name)
-                sqlstr = sqlstring
+                sql_stmt = sqlstring
                 c2 = connection.cursor()
-                c2.execute(sqlstr)
+                c2.execute(sql_stmt)
                 for info in c2:
                     val = info
                 c2.close()
                 connection.close()
                 return val
             else:
-                print("Error trying to switch to: ",pdb_name)   
-                return "ERROR"   
+                print("Error trying to switch to: ", pdb_name)
+                return "ERROR"
     else:
-        print("Not checking any data due to errors: ",db_name)
+        print("Not checking any data due to errors: ", db_name)
         return "ERROR"
-        
+
+
 """
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     check_if_profile_exists
@@ -805,19 +899,23 @@ def check_if_object_exists(db_name,tns,port,use_dns,dns_connect,pdb_name,user,pa
     Author: Ulf Hellstrom, oraminute@gmail.com
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 """
-def check_if_profile_exists(connection,profilename):
 
-    retvalue = False
-    sql_stmt = ("select count(*) from dba_profiles\n"+
-                "where profile = '"+profilename.upper()+"'\n")                
+
+def check_if_profile_exists(connection, profilename):
+    sql_stmt = ("select count(*) from dba_profiles\n" +
+                "where profile = '" + profilename.upper() + "'\n")
     c1 = connection.cursor()
     c1.execute(sql_stmt)
     value = int(c1.fetchone()[0])
     if value > 0:
         retvalue = True
+    else:
+        retvalue = False
+
     c1.close()
 
     return retvalue
+
 
 """
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -826,44 +924,52 @@ def check_if_profile_exists(connection,profilename):
     Author: Ulf Hellstrom , oraminute@gmail.com
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 """
-def check_if_user_use_profile(connection,username,profilename):
 
-    retvalue = False
-    sql_stmt = ("select count(*) as antal\n"+
-                "from dba_users\n"+
-                "where username = '"+username.upper()+"'\n"+
-                "and profile = '"+profilename.upper()+"'\n"+
-                "and account_status = 'OPEN'")                
+
+def check_if_user_use_profile(connection, username, profilename):
+    sql_stmt = ("select count(*) as antal\n" +
+                "from dba_users\n" +
+                "where username = '" + username.upper() + "'\n" +
+                "and profile = '" + profilename.upper() + "'\n" +
+                "and account_status = 'OPEN'")
     c1 = connection.cursor()
     c1.execute(sql_stmt)
-    value = int(c1.fetchone()[0]) 
+    value = int(c1.fetchone()[0])
     if value > 0:
         retvalue = True
+    else:
+        retvalue = False
+
     c1.close()
 
-    return retvalue           
+    return retvalue
+
 
 """
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     check_if_connected_cdb
-    Boolan function that check if connection is same as given CDB
+    Boolean function that check if connection is same as given CDB
     Author: Ulf Hellstrom, oraminute@gmail.com
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 """
-def check_if_connected_cdb(connection,container_name):
 
-    retvalue = False
-    sql_stmt =("select count(*) as antal"+"\n"+ 
-               "from v$database"+"\n"+
-               "where name = '"+container_name.upper()+"'\n")  
+
+def check_if_connected_cdb(connection, container_name):
+    sql_stmt = ("select count(*) as antal" + "\n" +
+                "from v$database" + "\n" +
+                "where name = '" + container_name.upper() + "'\n")
     c1 = connection.cursor()
     c1.execute(sql_stmt)
-    value= int(c1.fetchone()[0])
+    value = int(c1.fetchone()[0])
     if value > 0:
-        print("Connected to container: "+container_name.upper())
+        print("Connected to container: " + container_name.upper())
         retvalue = True
-    c1.close()               
+    else:
+        retvalue = False
+
+    c1.close()
     return retvalue
+
 
 """
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -873,20 +979,22 @@ def check_if_connected_cdb(connection,container_name):
     Author: Ulf Hellstrom, oraminute@gmail.com
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 """
-def check_if_service_exists(connection,servicename):
 
+
+def check_if_service_exists(connection, servicename):
     retvalue = False
-    sql_stmt = ("select count(*) as antal\n"+ 
-                "from v$services\n"+
-                "where upper(name) = '"+servicename.upper()+"'")            
+    sql_stmt = ("select count(*) as antal\n" +
+                "from v$services\n" +
+                "where upper(name) = '" + servicename.upper() + "'")
     c1 = connection.cursor()
     c1.execute(sql_stmt)
-    value= int(c1.fetchone()[0])
+    value = int(c1.fetchone()[0])
     if value > 0:
         retvalue = True
-    c1.close()               
+    c1.close()
 
     return retvalue
+
 
 """
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -895,11 +1003,11 @@ def check_if_service_exists(connection,servicename):
     Author: Ulf Hellstrom, oraminute@gmail.com 2
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 """
-def check_if_omf_exists(connection):
 
-    retvalue = False
-    sql_stmt = ("select nvl(value,'N') as omf_use\n"+
-                "from v$parameter\n"+
+
+def check_if_omf_exists(connection):
+    sql_stmt = ("select nvl(value,'N') as omf_use\n" +
+                "from v$parameter\n" +
                 "where name = 'db_create_file_dest'")
     c1 = connection.cursor()
     c1.execute(sql_stmt)
@@ -912,6 +1020,7 @@ def check_if_omf_exists(connection):
 
     return retvalue
 
+
 """
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
   check_if_service_trigger_exists()
@@ -919,12 +1028,13 @@ def check_if_omf_exists(connection):
   Author: Ulf Hellstrom, oraminute@gmail.com
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 """
-def check_if_service_trigger_exists(connection,pdb_name):
 
+
+def check_if_service_trigger_exists(connection):
     retvalue = False
-    sql_stmt = ("select count(*) as antal\n"+
-                "from all_triggers\n"+
-                "where owner = 'SYS'\n"+ 
+    sql_stmt = ("select count(*) as antal\n" +
+                "from all_triggers\n" +
+                "where owner = 'SYS'\n" +
                 "and trigger_name = 'TR_START_SERVICE'")
 
     c1 = connection.cursor()
@@ -934,7 +1044,8 @@ def check_if_service_trigger_exists(connection,pdb_name):
         retvalue = True
     c1.close()
 
-    return retvalue          
+    return retvalue
+
 
 """
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -943,21 +1054,23 @@ def check_if_service_trigger_exists(connection,pdb_name):
     Author: Ulf Hellstrom, oraminute@gmail.com
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 """
-def return_services(connection,pdb_name):
 
+
+def return_services(connection):
     service_names = []
-    sql_stmt = ("select name\n"+
+    sql_stmt = ("select name\n" +
                 "from v$services\n"
                 "where upper(name) not like('PDB%')")
 
     c1 = connection.cursor()
     c1.execute(sql_stmt)
     for name in c1:
-        val = ''.join(name) # make tuple to string
-        service_names.append(val) # append string to list
+        val = ''.join(name)  # make tuple to string
+        service_names.append(val)  # append string to inlist
 
     c1.close()
     return service_names
+
 
 """
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -968,24 +1081,26 @@ def return_services(connection,pdb_name):
     Author: Ulf Hellstrom, oraminute@gmail.com
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 """
-def return_seed_filenames(connection):
 
+
+def return_seed_filenames(connection):
     pdbseed_files = []
     # Get filenames from PDB$SEED
-    sql_stmt = ("select name from v$datafile\n"+
-                "where con_id = 2\n"+
-                "union\n"+ 
-                "select name from v$tempfile\n"+
-                "where con_id = 2\n"+
+    sql_stmt = ("select name from v$datafile\n" +
+                "where con_id = 2\n" +
+                "union\n" +
+                "select name from v$tempfile\n" +
+                "where con_id = 2\n" +
                 "order by name")
     c1 = connection.cursor()
     c1.execute(sql_stmt)
     for name in c1:
-        val = ''.join(name)         # make tuple to string
-        pdbseed_files.append(val)   # append string to list
+        val = ''.join(name)  # make tuple to string
+        pdbseed_files.append(val)  # append string to inlist
     c1.close()
 
     return pdbseed_files
+
 
 """
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -994,25 +1109,25 @@ def return_seed_filenames(connection):
     We use this function when we have a CDB without OMF
     Author: Ulf Hellstrom, oraminute@gmail.com
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-"""   
-def return_file_name_convert(connection,pdb_name):
+"""
 
+
+def return_file_name_convert(connection, pdb_name):
     tmp_string = ""
-    tmplate_string = "FILE_NAME_CONVERT=("
-    seed_file_name_list = []
+    template_string = "FILE_NAME_CONVERT=("
     seed_file_name_list = return_seed_filenames(connection)
     for val in seed_file_name_list:
-        tmp_string = tmp_string + "\n'"+val+"','"+val.replace('pdbseed',pdb_name.upper(),1)+"',"
-    tmplate_string = tmplate_string + tmp_string
+        tmp_string = tmp_string + "\n'" + val + "','" + val.replace('pdbseed', pdb_name.upper(), 1) + "',"
+    template_string = template_string + tmp_string
     # Remove last comma
-    tmplate_string = tmplate_string[:-1]
+    template_string = template_string[:-1]
     # Add end string
-    tmplate_string = (tmplate_string  + "\n"+
-    ")\n"+
-    "STORAGE UNLIMITED TEMPFILE REUSE")
+    template_string = (template_string + "\n" +
+                       ")\n" +
+                       "STORAGE UNLIMITED TEMPFILE REUSE")
 
-    return tmplate_string
-        
+    return template_string
+
 
 """
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -1020,14 +1135,14 @@ def return_file_name_convert(connection,pdb_name):
     Function that is used when OMF is not used to get the default path for
     where tablespaces are stored in a Multitenant environment and where
     we do not use any ASM storage like for Oracle Express Edition 18c.
-
     Author: Ulf Hellstrom, oraminute@gmail.com
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 """
-def get_tablespace_path(connection):
 
-    sql_stmt = ("select substr(name,1,instr(name,'/',-1)) as filepath\n"+
-                "from v$datafile\n"+
+
+def get_tablespace_path(connection):
+    sql_stmt = ("select substr(name,1,instr(name,'/',-1)) as filepath\n" +
+                "from v$datafile\n" +
                 "where rownum < 2")
 
     c1 = connection.cursor()
@@ -1035,9 +1150,9 @@ def get_tablespace_path(connection):
     retvalue = c1.fetchone()[0]
     c1.close()
 
-    return retvalue    
-    
-                          
+    return retvalue
+
+
 """
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     create_pluggable_database():
@@ -1046,18 +1161,20 @@ def get_tablespace_path(connection):
     Author: Ulf Hellstrom, oraminute@gmail.com
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 """
-def create_pluggable_database(connection,new_pdb_name,password):
 
-    sql_stmt = "CREATE PLUGGABLE DATABASE " + new_pdb_name.upper() +" ADMIN USER admin identified by "+password
+
+def create_pluggable_database(connection, new_pdb_name, password):
+    sql_stmt = "CREATE PLUGGABLE DATABASE " + new_pdb_name.upper() + " ADMIN USER admin identified by " + password
     # Check if we do not use OMF. If not then FILE_NAME_CONVERT is necessary.
-    if check_if_omf_exists(connection) == False:
-        tmpstring = return_file_name_convert(connection,new_pdb_name)
+    if not check_if_omf_exists(connection):
+        tmpstring = return_file_name_convert(connection, new_pdb_name)
         sql_stmt = sql_stmt + "\n" + tmpstring
 
-    print("CREATE PLUGGABLE DATABASE " + new_pdb_name.upper() +" ADMIN USER admin identified by xxxxxx")
+    print("CREATE PLUGGABLE DATABASE " + new_pdb_name.upper() + " ADMIN USER admin identified by xxxxxx")
     c1 = connection.cursor()
     c1.execute(sql_stmt)
     c1.close()
+
 
 """
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -1066,8 +1183,10 @@ def create_pluggable_database(connection,new_pdb_name,password):
     we remove the domain part and set PDB to PDBTESTUFFE
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 """
-def remove_domain_from_pdb(connection,new_pdb_name):
-    sql_stmt = 'update global_name'+'\n'+'set global_name = ' + "'" + new_pdb_name.upper() + "'" + '\n'
+
+
+def remove_domain_from_pdb(connection, new_pdb_name):
+    sql_stmt = 'update global_name' + '\n' + 'set global_name = ' + "'" + new_pdb_name.upper() + "'" + '\n'
     print(sql_stmt)
     c1 = connection.cursor()
     c1.execute(sql_stmt)
@@ -1084,14 +1203,16 @@ def remove_domain_from_pdb(connection,new_pdb_name):
     Author: Ulf Hellstrom, oraminute@gmail.com
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 """
-def open_pluggable_database(connection,pdb_name):
 
+
+def open_pluggable_database(connection, pdb_name):
     sql_stmt = "ALTER PLUGGABLE DATABASE " + pdb_name.upper() + " OPEN READ WRITE INSTANCES=ALL"
     print(sql_stmt)
     c1 = connection.cursor()
     c1.execute(sql_stmt)
     time.sleep(20)
     c1.close()
+
 
 """
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -1100,14 +1221,16 @@ def open_pluggable_database(connection,pdb_name):
     Author: Ulf Hellstrom, oraminute@gmail.com
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 """
-def open_pluggable_database_restricted(connection,pdb_name):
-    
+
+
+def open_pluggable_database_restricted(connection, pdb_name):
     sql_stmt = "alter pluggable database " + pdb_name.upper() + " open restricted instances=all"
     print(sql_stmt)
     c1 = connection.cursor()
     c1.execute(sql_stmt)
     c1.close()
-    
+
+
 """
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     close_pluggable_database
@@ -1115,8 +1238,9 @@ def open_pluggable_database_restricted(connection,pdb_name):
     Author: Ulf Hellstrom, oraminute@gmail.com
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 """
-def close_pluggable_database(connection,pdb_name):
 
+
+def close_pluggable_database(connection, pdb_name):
     sql_stmt = "alter pluggable database " + pdb_name.upper() + " close immediate"
     print(sql_stmt)
     c1 = connection.cursor()
@@ -1131,46 +1255,48 @@ def close_pluggable_database(connection,pdb_name):
     Author: Ulf Hellstrom, oraminute@gmail.com
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 """
-def create_pdb_tablespace(connection,bigfile,tablespace_name):
-    
-    if check_if_tablespace_exists(connection,tablespace_name):
-        print("Tablespace "+tablespace_name.upper()+ " already exists...")
-    else: # Check if we use OMF 
+
+
+def create_pdb_tablespace(connection, bigfile, tablespace_name):
+    if check_if_tablespace_exists(connection, tablespace_name):
+        print("Tablespace " + tablespace_name.upper() + " already exists...")
+    else:  # Check if we use OMF
         if check_if_omf_exists(connection):
             if bigfile == "Y":
-                sql_stmt = "CREATE BIGFILE TABLESPACE "+tablespace_name.upper()
+                sql_stmt = "CREATE BIGFILE TABLESPACE " + tablespace_name.upper()
             else:
-                sql_stmt = "CREATE TABLESPACE "+tablespace_name.upper()
+                sql_stmt = "CREATE TABLESPACE " + tablespace_name.upper()
             print(sql_stmt)
             c1 = connection.cursor()
             c1.execute(sql_stmt)
             c1.close()
-        else: # We do not use any OMF so we have to give PATH and size
+        else:  # We do not use any OMF so we have to give PATH and size
             tablespace_path = get_tablespace_path(connection)
             if bigfile == "Y":
-                sql_stmt = ("CREATE BIGFILE TABLESPACE "+tablespace_name.upper()+"\n"+
-                            "DATAFILE '"+tablespace_path+tablespace_name.lower()+"01.dbf'\n"+
-                            "SIZE 1G\n"+
-                            "AUTOEXTEND ON\n"+
-                            "NEXT 104857600\n"+
-                            "MAXSIZE UNLIMITED"
-                            )
-                print(sql_stmt)
-                c1 = connection.cursor()
-                c1.execute(sql_stmt)
-                c1.close()            
-            else:
-                sql_stmt = ("CREATE TABLESPACE "+tablespace_name.upper()+"\n"+
-                            "DATAFILE '"+tablespace_path+tablespace_name.lower()+"01.dbf'\n"+
-                            "SIZE 100M\n"+
-                            "AUTOEXTEND ON\n"+
-                            "NEXT 104857600\n"+
+                sql_stmt = ("CREATE BIGFILE TABLESPACE " + tablespace_name.upper() + "\n" +
+                            "DATAFILE '" + tablespace_path + tablespace_name.lower() + "01.dbf'\n" +
+                            "SIZE 1G\n" +
+                            "AUTOEXTEND ON\n" +
+                            "NEXT 104857600\n" +
                             "MAXSIZE UNLIMITED"
                             )
                 print(sql_stmt)
                 c1 = connection.cursor()
                 c1.execute(sql_stmt)
                 c1.close()
+            else:
+                sql_stmt = ("CREATE TABLESPACE " + tablespace_name.upper() + "\n" +
+                            "DATAFILE '" + tablespace_path + tablespace_name.lower() + "01.dbf'\n" +
+                            "SIZE 100M\n" +
+                            "AUTOEXTEND ON\n" +
+                            "NEXT 104857600\n" +
+                            "MAXSIZE UNLIMITED"
+                            )
+                print(sql_stmt)
+                c1 = connection.cursor()
+                c1.execute(sql_stmt)
+                c1.close()
+
 
 """
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -1179,14 +1305,17 @@ def create_pdb_tablespace(connection,bigfile,tablespace_name):
     Author: Ulf Hellstrom, oraminute@gmail.com
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 """
-def set_pdb_default_tablespace(connection,tablespace_name):
-    if check_if_tablespace_exists(connection,tablespace_name):
-        print("Setting default tablespace to: "+tablespace_name)
-        sql_stmt = "ALTER DATABASE DEFAULT TABLESPACE "+tablespace_name.upper()
+
+
+def set_pdb_default_tablespace(connection, tablespace_name):
+    if check_if_tablespace_exists(connection, tablespace_name):
+        print("Setting default tablespace to: " + tablespace_name)
+        sql_stmt = "ALTER DATABASE DEFAULT TABLESPACE " + tablespace_name.upper()
         print(sql_stmt)
         c1 = connection.cursor()
         c1.execute(sql_stmt)
         c1.close()
+
 
 """
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -1195,20 +1324,22 @@ def set_pdb_default_tablespace(connection,tablespace_name):
     Author: Ulf Hellstrom, oraminute@gmail.com
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 """
-def create_pdb_tablespaces(connection,tablespace_list,new_pdb):
 
+
+def create_pdb_tablespaces(connection, tablespace_list, new_pdb):
     for tablespaces in tablespace_list:
-        tablespace_name = split_list(tablespaces,':',0)
-        tablespace_type = split_list(tablespaces,':',1)
+        tablespace_name = split_list(tablespaces, ':', 0)
+        tablespace_type = split_list(tablespaces, ':', 1)
         print("Tablespace name is " + tablespace_name)
         print("Tablespace type is " + tablespace_type)
-        if check_if_tablespace_exists(connection,tablespace_name):
-            print("Tablespace "+tablespace_name.upper()+" already exists in "+new_pdb)
+        if check_if_tablespace_exists(connection, tablespace_name):
+            print("Tablespace " + tablespace_name.upper() + " already exists in " + new_pdb)
         else:
             if tablespace_type.upper() == "BIGFILE":
-                create_pdb_tablespace(connection,"Y",tablespace_name)
+                create_pdb_tablespace(connection, "Y", tablespace_name)
             else:
-                create_pdb_tablespace(connection,"N",tablespace_name)
+                create_pdb_tablespace(connection, "N", tablespace_name)
+
 
 """
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -1218,10 +1349,10 @@ def create_pdb_tablespaces(connection,tablespace_list,new_pdb):
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 """
 
-def switch_plug(pdb_name,connection):
 
+def switch_plug(pdb_name, connection):
     try:
-        print('Connecting to plugdatabase: ',pdb_name)
+        print('Connecting to plugdatabase: ', pdb_name)
         c1str = 'alter session set container = ' + pdb_name
         print(c1str)
         c1 = connection.cursor()
@@ -1236,7 +1367,8 @@ def switch_plug(pdb_name,connection):
         setdb = "ERROR"
         pass
 
-    return setdb    
+    return setdb
+
 
 """
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -1245,6 +1377,8 @@ def switch_plug(pdb_name,connection):
     Author: Ulf Hellstrom, oraminute@gmail.com
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 """
+
+
 def switch_to_cdb(connection):
     try:
         print('Connecting to container CDB$ROOT')
@@ -1263,6 +1397,7 @@ def switch_to_cdb(connection):
 
     return setdb
 
+
 """
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     save_state_to_pdb()
@@ -1270,7 +1405,9 @@ def switch_to_cdb(connection):
     Author: Ulf Hellstrom, oraminute@gmail.com
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 """
-def save_state_to_pdb(connection,pdb_name):
+
+
+def save_state_to_pdb(connection, pdb_name):
     try:
         print("Setting save state to " + pdb_name)
         sql_stmt = 'alter pluggable database ' + pdb_name.upper() + ' save state'
@@ -1292,19 +1429,20 @@ def save_state_to_pdb(connection,pdb_name):
 """
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     get_pdbs()
-    Returns a list of active and open PDBS in a multitentant enviroronment.
+    Returns a inlist of active and open PDBS in a multitentant enviroronment.
     Used if Multitenant is used and Oracle version > 11
     Author: Ulf Hellstrom, oraminute@gmail.com
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 """
-def get_pdbs(cdb_name,tns,port,use_dns,dns_connect,user,password):
 
+
+def get_pdbs(cdb_name, tns, port, use_dns, dns_connect, user, password):
     pdb_list = []
 
     if use_dns.startswith('Y') or use_dns.startswith('y'):
-        connection = get_oracle_dns_connection(cdb_name,dns_connect,user,password)
+        connection = get_oracle_dns_connection(cdb_name, dns_connect, user, password)
     else:
-        connection = get_oracle_connection(cdb_name,tns,port,user,password)
+        connection = get_oracle_connection(cdb_name, tns, port, user, password)
 
     if not connection == "ERROR":
         print('Connection Ok ' + cdb_name)
@@ -1317,8 +1455,8 @@ def get_pdbs(cdb_name,tns,port,use_dns,dns_connect,user,password):
             and name <> 'PDB$SEED'
             order by name""")
         for name in c1:
-            val = ''.join(name) # make tuple to string
-            pdb_list.append(val) # append string to list
+            val = ''.join(name)  # make tuple to string
+            pdb_list.append(val)  # append string to inlist
 
         c1.close()
         connection.close()

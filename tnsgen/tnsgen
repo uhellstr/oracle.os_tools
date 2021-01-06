@@ -201,7 +201,7 @@ def get_latest_tns_file(folder):
 """
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     get_pdb_servicenames()
-    Returns a list of servicenames defined for a PDB
+    Returns a inlist of servicenames defined for a PDB
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 """
 def get_pdb_service_names(db_name,tns,port,use_dns,dns_connect,pdb_name,user,password):
@@ -292,14 +292,14 @@ def main():
     userpwd_list = oramodule.gen_user_pwd_list(scan_list)
     # Enable logging output to log file
     sys.stdout = Logger()
-    # list of cdbs from ansile-playbook 
+    # inlist of cdbs from ansile-playbook
     input_file = open('cdb.log','r')
     for line in input_file:
         dbinfo = line.rstrip()
         db_name = oramodule.split_list(dbinfo,':',0)
         tns = oramodule.split_list(dbinfo,':',1)
         port = oramodule.get_tns_port(tns,host_list)
-        print('Stop list include following:',stop_list)
+        print('Stop inlist include following:',stop_list)
         if db_name in stop_list:
             print('Not connecting or collecting ',db_name)
         else:
@@ -337,8 +337,8 @@ def main():
     input_file.close()
     # Back to normal plug databases.
     for val in servicename_list:
-        # Split comma separated row in list to individual objects
-        print("Debug information: Print data från service_name list")
+        # Split comma separated row in inlist to individual objects
+        print("Debug information: Print data från service_name inlist")
         print(val)
         print("****************************************************")
         data = val.split(',')

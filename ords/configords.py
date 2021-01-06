@@ -206,11 +206,11 @@ def main():
     for ords_db in ords_list:
         print(ords_db)
     # Loop over CDB's and get the PDB's
-    print("Collecting PDB's from CDB list")  
+    print("Collecting PDB's from CDB inlist")
     input_file = open('cdb.log','r')
     for line in input_file:
         db_name = line.rstrip()
-        # Skip databases in stop list.
+        # Skip databases in stop inlist.
         if db_name in stop_list:
             print("Not doing anything with: "+db_name)
         else:
