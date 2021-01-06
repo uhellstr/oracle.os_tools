@@ -83,6 +83,8 @@ class Logger(object):
     get_sys_pwd:
     For syncing pdb's built on-top on Application Container we must runt
     sql*plus due to some script in EHM environment must runt as SYS.
+    
+    Author: Ulf Hellstrom, oraminute@gmail.com
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 """
 
@@ -102,7 +104,7 @@ def get_sys_pwd():
     Boolean function that checks that given CDB in new_pds in autoconfig.cfg
     really do exists in the cdb.log file returned from ansible script checking
     what container databases are in [nodes] inlist.
-
+    
     Author: Ulf Hellstrom, oraminute@gmail.com
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 """
@@ -126,7 +128,7 @@ def container_exists(containerlist, cdb_name):
     using an Application Container.
     "prep_appcon_pdb.sql" Should include steps to prepare a PDB for sync and
     the syncing steps necessary.
-
+    
     Author: Ulf Hellstrom, oraminute@gmail.com
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 """
@@ -152,6 +154,7 @@ def sync_pdb_with_appcon(db_name, pdb_name, working_directory):
     verify_existing_pdb()
     Verify already existing PDB
     E.g checking tablespaces, default tablespace etc.
+    
     Author: Ulf Hellstrom, oraminute@gmail.com
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 """
