@@ -16,7 +16,7 @@ begin
       ,program_type => 'STORED_PROCEDURE'
       ,program_action => 'audit_maintenance_pkg.auto_maintenence_auditing'
       ,enabled => false
-      ,comments => 'Auto add new tables or views to FORVALT roles and DBA role'
+      ,comments => 'Auto add new tables or views to FORVALT roles and DBDBA role'
     );
 end;
 /

@@ -24,6 +24,13 @@ create or replace package DBAUDIT_LOGIK.audit_maintenance_pkg as
              );
 
   --%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+  
+    procedure create_sys_privs_policy_for_role
+             (
+               p_in_role_name in varchar2
+             );
+             
+  --%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%             
 
   procedure audit_dba_role;
 
@@ -43,7 +50,15 @@ create or replace package DBAUDIT_LOGIK.audit_maintenance_pkg as
   function get_objects_granted_to_role
              (
                p_in_role_name in varchar2
-             ) return t_all_role_objects_list;    
+             ) return t_all_role_objects_list;
+             
+
+  --%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+  -- TODO
+  function get_sys_privs_granted_to_role
+             (
+               p_in_role_name in varchar2
+             ) return t_all_role_objects_list;             
 
   --%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -71,17 +86,16 @@ create or replace package DBAUDIT_LOGIK.audit_maintenance_pkg as
   procedure create_role
              (
                p_in_schema_name in varchar2,
-               p_in_DBdba_role boolean default false
+               p_in_dbdba_role boolean default false
              );
 
   --%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-  procedure add_user_to_role
-              (
-                p_in_username in varchar2,
-                p_in_role_name in varchar2
-              );             
-
+  
+  procedure create_role_based_on_system_privs
+             (
+               p_in_schema_name in varchar2
+             );
+             
 
   --%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%              
 

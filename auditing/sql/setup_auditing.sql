@@ -6,6 +6,7 @@ REM **************************
 @DBAUDIT_DATA_SCHEMA.sql
 @DBAUDIT_DATA_GRANTS.sql
 @DBAUDIT_DATA_OBJS.sql
+@GRANT_PRIVS_ON_DIR_TO_LOGIK_PROC.sql
 REM **************************
 REM Setup DBAUDIT LOGIK
 REM Note all jobs are disabled
