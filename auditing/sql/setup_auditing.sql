@@ -1,4 +1,3 @@
-
 @PREPARE_AUDITING.sql
 REM **************************
 REM Setup DBAUDIT_DATA
@@ -27,3 +26,7 @@ REM **************************
 @DBAUDIT_COMMON_GRANTS.sql
 @AUDIT_MAINTENANCE_PKG.sql
 @AUDIT_MAINTENANCE_BODY_PKG.sql
+REM **************************
+REM Enable scheduled jobs 
+REM *************************
+@ENABLE_DBAUDIT_LOGIK_JOBS.sql

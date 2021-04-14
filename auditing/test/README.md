@@ -7,3 +7,5 @@ After installing the AIDIT_|DATA|LOGIK|ACCESS schemas
 2. Use AUDIT_HR_LOGIK_DEMO.sql to enable database roles and audit policies.
 
 3. RUN HR_ACCESS_RUN.sql to create a HR_ACCESS schema and Proxy user.
+
+4. RUN  FIX_HR_PWDS.sql

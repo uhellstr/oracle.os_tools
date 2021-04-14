@@ -1,4 +1,6 @@
-
+REM
+REM Run this after going thru the steps of AUDIT_HR_LOGIK_DEMO.sql
+REM
 -- Access schema
 create user hr_access identified by "oracle"
 default tablespace data

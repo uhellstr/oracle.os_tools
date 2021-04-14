@@ -12,6 +12,13 @@ begin
 end;
 /
 
+-- Audit all accounts with DBA role
+set serveroutput on
+begin
+  dbaudit_logik.audit_maintenance_pkg.audit_dba_role;
+end;
+/
+
 -- THIS IS THE SETUP FOR HR_LOGIK WHERE WE CREATE ROLE AND POLICY
 
 
@@ -52,7 +59,7 @@ end;
 
 -- Find all unique policies
 
-select distinct policy_name as antal
+select distinct policy_name 
 from audit_unified_policies
 order by policy_name;
 
