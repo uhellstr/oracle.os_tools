@@ -10,18 +10,74 @@ whenever sqlerror exit rollback;
 set echo off
 set verify off
 set serveroutput on
+
 declare
+
+  -- variables
   db_tblspace number;
+  sql_stmt_1 clob := q'#CREATE BIGFILE TABLESPACE SYSAUD
+                        DATAFILE SIZE 1G
+                        SEGMENT SPACE MANAGEMENT AUTO
+                        EXTENT MANAGEMENT LOCAL AUTOALLOCATE#';
+  sql_stmt_2 clob := q'#CREATE BIGFILE TABLESPACE SYSAUD
+                        DATAFILE $[dbfile] SIZE 1G
+                        SEGMENT SPACE MANAGEMENT AUTO
+                        EXTENT MANAGEMENT LOCAL AUTOALLOCATE#';
+  sql_stmt_3 clob;
+  lv_filename clob;
+  
+  -- inline helper function
+  function check_if_omf return boolean 
+  is
+
+    lv_retval boolean;
+    omf_usage varchar2(100); 
+  
+  begin
+
+    lv_retval := false;
+    
+    select nvl(value,'N') into omf_usage
+    from v$parameter
+    where name = 'db_create_file_dest';
+
+    if omf_usage <> 'N' then
+      lv_retval := true;
+    end if;
+
+    return lv_retval;
+
+  end check_if_omf;
+
+  -- inline helper function
+  function return_file_path
+  return varchar2 
+  is
+    lv_retval varchar2(2001);
+  begin
+
+    select substr(name,1,instr(name,'/',-1)) into lv_retval
+    from v$datafile
+    where rownum < 2;
+    
+    return lv_retval;
+  end return_file_path;
+  
 begin 
+
  select count(*) into db_tblspace from dba_tablespaces where tablespace_name='SYSAUD';
   if db_tblspace > 0
       then
         dbms_output.put_line('Tablespace SYSAUD already exists...');
       else  
-        execute immediate q'[CREATE BIGFILE TABLESPACE SYSAUD
-                             DATAFILE SIZE 1G
-                             SEGMENT SPACE MANAGEMENT AUTO
-                             EXTENT MANAGEMENT LOCAL AUTOALLOCATE]';
+        if check_if_omf then
+          execute immediate sql_stmt_1;
+        else
+          lv_filename := ''''||return_file_path||'SYSAUD.DBF'||'''';
+          sql_stmt_3 := replace(sql_stmt_2,'$[dbfile]',lv_filename);
+          execute immediate sql_stmt_3;
+          dbms_output.put_line('No OMF PATH tablespace file will be '||sql_stmt_3);
+        end if;
         dbms_output.put_line ('Tablespace SYSAUD created');
    end if;    
 end;
