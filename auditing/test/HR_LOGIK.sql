@@ -53,49 +53,49 @@
 --------------------------------------------------------
 
   CREATE OR REPLACE FORCE EDITIONABLE VIEW "HR_LOGIK"."V_COUNTRIES" ("COUNTRY_ID", "COUNTRY_NAME", "REGION_ID") AS 
-  select "COUNTRY_ID","COUNTRY_NAME","REGION_ID" from hr.countries
+  select "COUNTRY_ID","COUNTRY_NAME","REGION_ID" from "HR_DATA".countries
 ;
 --------------------------------------------------------
 --  DDL for View V_DEPARTMENTS
 --------------------------------------------------------
 
   CREATE OR REPLACE FORCE EDITIONABLE VIEW "HR_LOGIK"."V_DEPARTMENTS" ("DEPARTMENT_ID", "DEPARTMENT_NAME", "MANAGER_ID", "LOCATION_ID") AS 
-  select "DEPARTMENT_ID","DEPARTMENT_NAME","MANAGER_ID","LOCATION_ID" from hr.departments
+  select "DEPARTMENT_ID","DEPARTMENT_NAME","MANAGER_ID","LOCATION_ID" from "HR_DATA".departments
 ;
 --------------------------------------------------------
 --  DDL for View V_EMPLOYEES
 --------------------------------------------------------
 
   CREATE OR REPLACE FORCE EDITIONABLE VIEW "HR_LOGIK"."V_EMPLOYEES" ("EMPLOYEE_ID", "FIRST_NAME", "LAST_NAME", "EMAIL", "PHONE_NUMBER", "HIRE_DATE", "JOB_ID", "SALARY", "COMMISSION_PCT", "MANAGER_ID", "DEPARTMENT_ID") AS 
-  select "EMPLOYEE_ID","FIRST_NAME","LAST_NAME","EMAIL","PHONE_NUMBER","HIRE_DATE","JOB_ID","SALARY","COMMISSION_PCT","MANAGER_ID","DEPARTMENT_ID" from hr.employees
+  select "EMPLOYEE_ID","FIRST_NAME","LAST_NAME","EMAIL","PHONE_NUMBER","HIRE_DATE","JOB_ID","SALARY","COMMISSION_PCT","MANAGER_ID","DEPARTMENT_ID" from "HR_DATA".employees
 ;
 --------------------------------------------------------
 --  DDL for View V_JOB_HISTORY
 --------------------------------------------------------
 
   CREATE OR REPLACE FORCE EDITIONABLE VIEW "HR_LOGIK"."V_JOB_HISTORY" ("EMPLOYEE_ID", "START_DATE", "END_DATE", "JOB_ID", "DEPARTMENT_ID") AS 
-  select "EMPLOYEE_ID","START_DATE","END_DATE","JOB_ID","DEPARTMENT_ID" from hr.job_history
+  select "EMPLOYEE_ID","START_DATE","END_DATE","JOB_ID","DEPARTMENT_ID" from "HR_DATA".job_history
 ;
 --------------------------------------------------------
 --  DDL for View V_JOBS
 --------------------------------------------------------
 
   CREATE OR REPLACE FORCE EDITIONABLE VIEW "HR_LOGIK"."V_JOBS" ("JOB_ID", "JOB_TITLE", "MIN_SALARY", "MAX_SALARY") AS 
-  select "JOB_ID","JOB_TITLE","MIN_SALARY","MAX_SALARY" from hr.jobs
+  select "JOB_ID","JOB_TITLE","MIN_SALARY","MAX_SALARY" from "HR_DATA".jobs
 ;
 --------------------------------------------------------
 --  DDL for View V_LOCATIONS
 --------------------------------------------------------
 
   CREATE OR REPLACE FORCE EDITIONABLE VIEW "HR_LOGIK"."V_LOCATIONS" ("LOCATION_ID", "STREET_ADDRESS", "POSTAL_CODE", "CITY", "STATE_PROVINCE", "COUNTRY_ID") AS 
-  select "LOCATION_ID","STREET_ADDRESS","POSTAL_CODE","CITY","STATE_PROVINCE","COUNTRY_ID" from hr.locations
+  select "LOCATION_ID","STREET_ADDRESS","POSTAL_CODE","CITY","STATE_PROVINCE","COUNTRY_ID" from "HR_DATA".locations
 ;
 --------------------------------------------------------
 --  DDL for View V_REGIONS
 --------------------------------------------------------
 
   CREATE OR REPLACE FORCE EDITIONABLE VIEW "HR_LOGIK"."V_REGIONS" ("REGION_ID", "REGION_NAME") AS 
-  select "REGION_ID","REGION_NAME" from hr.regions
+  select "REGION_ID","REGION_NAME" from "HR_DATA".regions
 ;
 --------------------------------------------------------
 --  DDL for Procedure EMP_TO_JSON
@@ -124,7 +124,7 @@ begin
   department_id)
   bulk collect into  p_emp_out_arr
 from
-  hr.employees
+  "HR_DATA".employees
   where department_id = nvl(p_in_deptno,90);
 
 end emp_to_json;
