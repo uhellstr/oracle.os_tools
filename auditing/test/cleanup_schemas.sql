@@ -1,5 +1,65 @@
 @CLEANUP_HR_DEMO.sql
-drop user HR_ACCESS cascade;
-drop user HR_LOGIK cascade;
-drop user HR_DATA cascade;
-drop user testuser_proxy cascade;
+
+DECLARE
+  lv_count number := 0;
+BEGIN
+
+  SELECT COUNT(*) 
+  INTO lv_count
+  FROM DBA_USERS
+  WHERE USERNAME = 'HR_ACCESS';
+
+  IF lv_count > 0 THEN      
+    EXECUTE IMMEDIATE 'DROP USER HR_ACCESS CASCADE';
+  END IF;
+
+END;
+/
+
+DECLARE
+  lv_count number := 0;
+BEGIN
+
+  SELECT COUNT(*) 
+  INTO lv_count
+  FROM DBA_USERS
+  WHERE USERNAME = 'HR_LOGIK';
+
+  IF lv_count > 0 THEN      
+    EXECUTE IMMEDIATE 'DROP USER HR_LOGIK CASCADE';
+  END IF;
+
+END;
+/
+
+DECLARE
+  lv_count number := 0;
+BEGIN
+
+  SELECT COUNT(*) 
+  INTO lv_count
+  FROM DBA_USERS
+  WHERE USERNAME = 'HR_DATA';
+
+  IF lv_count > 0 THEN      
+    EXECUTE IMMEDIATE 'DROP USER HR_DATA CASCADE';
+  END IF;
+
+END;
+/
+
+DECLARE
+  lv_count number := 0;
+BEGIN
+
+  SELECT COUNT(*) 
+  INTO lv_count
+  FROM DBA_USERS
+  WHERE USERNAME = 'TESTUSER_PROXY';
+
+  IF lv_count > 0 THEN      
+    EXECUTE IMMEDIATE 'DROP USER TESTUSER_PROXY CASCADE';
+  END IF;
+
+END;
+/
