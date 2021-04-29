@@ -63,3 +63,12 @@ BEGIN
 
 END;
 /
+
+-- clean audit trail
+begin
+  dbms_audit_mgmt.clean_audit_trail
+    (
+       audit_trail_type=>dbms_audit_mgmt.audit_trail_unified
+       ,use_last_arch_timestamp => FALSE);
+end;
+/
