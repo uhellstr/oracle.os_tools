@@ -6,3 +6,4 @@ collectdbinfo.log
 .DS_Store
 venv/
 oraclepackage/__pycache__/
+autosetup/errorlog

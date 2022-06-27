@@ -3,15 +3,15 @@
 
 r"""
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-#                                
-#  ___  _ __ __ _ _ __ ___   ___   __| |_   _| | ___ 
+#
+#  ___  _ __ __ _ _ __ ___   ___   __| |_   _| |
 # / _ \| '__/ _` | '_ ` _ \ / _ \ / _` | | | | |/ _ \
 #| (_) | | | (_| | | | | | | (_) | (_| | |_| | |  __/
 # \___/|_|  \__,_|_| |_| |_|\___/ \__,_|\__,_|_|\___|
 #
-#   
+#
 # The "r" on row 4 is there to make this comment
-# in raw format so that pylint not complains 
+# in raw format so that pylint not complains
 # about strange characters within this comment :-)
 # Do not remove the leading "r"!!
 #
@@ -27,49 +27,46 @@ r"""
 #
 #               * Requires Oracle 12c instant client or higher
 #               * ansible should be installed
-#               * Python 2.7 or higher with cx_Oracle module installed
+#               * Python 3.x or higher with cx_Oracle module installed
 #               By Ulf Hellstrom,oraminute@gmail.com , EpicoTech 2019
 #
 #               How to use THE SHORT VERSION:
-#               
-#            
+#
+#
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 """
-import cx_Oracle
 import subprocess
 import getpass
 import base64
 import time
 import os
-
-"""
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-    split_list()
-    Function that splits a python inlist and return a single element from that inlist
-    E.g the inlist x = ['A','B'] and split_list(x,',',0) will return 'A'
-                               and split_list(x,',',1) will return 'B'
-    Author: Ulf Hellstrom, oraminute@gmail.com                           
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-"""
+import cx_Oracle
 
 
 def split_list(inlist, separator, element):
+    """
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    split_list()
+    Function that splits a python list and return a single element from that list
+    E.g the inlist x = ['A','B'] and split_list(x,',',0) will return 'A'
+                               and split_list(x,',',1) will return 'B'
+    Author: Ulf Hellstrom, oraminute@gmail.com
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    """
     item_str = ''.join(inlist)
     temp_list = item_str.split(separator)
     return temp_list[element]
 
 
-"""
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+def get_alternative_ssh_port(node, ssh_port_list, ssh_port):
+    """
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     get_alternative_ssh_port()
     Function that checks alternative_ssh_port inlist in config.cfg and
     return the ssh_port for that node so that ansible playbook can do it's job.
     Author: Ulf Hellstrom, oraminute@gmail.com
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-"""
-
-
-def get_alternative_ssh_port(node, ssh_port_list, ssh_port):
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    """
     ssh_alternative_port = 0
     alternative_ssh_port = False
 
@@ -98,16 +95,14 @@ def get_alternative_ssh_port(node, ssh_port_list, ssh_port):
         return ssh_port
 
 
-"""
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+def check_if_dir_exists(directoryname):
+    """
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     check_if_dir_exists
     Function that returns true or false depending on if directory exists or not
-    Author: Ulf Hellstrom, oraminute@gmail.com                           
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-"""
-
-
-def check_if_dir_exists(directoryname):
+    Author: Ulf Hellstrom, oraminute@gmail.com
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    """
     check_folder = os.path.isdir(directoryname)
     if not check_folder:
         dir_retval = False
@@ -117,13 +112,14 @@ def check_if_dir_exists(directoryname):
     return dir_retval
 
 
-"""
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+def check_if_listener_is_cluster(cluster_list, listener_name):
+    """
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     check_if_listener_is_cluster
-    
+
     Function that takes the parameter cluster from config.cfg and check if
-    listener given as inparameter is in a cluster 
-    E.g We have a RAC cluster with t1 listener and t2 listener. 
+    listener given as inparameter is in a cluster
+    E.g We have a RAC cluster with t1 listener and t2 listener.
     A Rac database can failover to t2 listener so a tns-entry HOST must include
     both t1 and t2, This function returns True if there is a failover listener
     in the RAC
@@ -135,12 +131,9 @@ def check_if_dir_exists(directoryname):
     check_if_listener_is_cluster(cluster,"td4-scan") -> True
     since td3-scan is our failover listener.
 
-    Author: Ulf Hellstrom, oraminute@gmail.com                           
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-"""
-
-
-def check_if_listener_is_cluster(cluster_list, listener_name):
+    Author: Ulf Hellstrom, oraminute@gmail.com
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    """
     cluster_is = None
     for cluster_val in cluster_list:
         listener_1 = split_list(cluster_val, ':', 0)
@@ -155,13 +148,14 @@ def check_if_listener_is_cluster(cluster_list, listener_name):
     return cluster_is
 
 
-"""
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+def get_failover_listener(cluster_list, listener_name):
+    """
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     get_failover_listener:
-    
+
     Function that takes the parameter cluster from config.cfg and returns
     the failover listener
-    E.g We have a RAC cluster with t1 listener and t2 listener. 
+    E.g We have a RAC cluster with t1 listener and t2 listener.
     A Rac database can failover to t2 listener so a tns-entry HOST must include
     both t1 and t2, This function returns True if there is a failover listener
     in the RAC
@@ -178,12 +172,9 @@ def check_if_listener_is_cluster(cluster_list, listener_name):
     if check_if_listener_is_cluster(cluster_list,"td4-scan")
         failover_listener = get_failover_listener(cluster_list,"td4-scan)
 
-    Author: Ulf Hellstrom, oraminute@gmail.com                           
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-"""
-
-
-def get_failover_listener(cluster_list, listener_name):
+    Author: Ulf Hellstrom, oraminute@gmail.com
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    """
     cluster_val = None
     for cluster in cluster_list:
         listener_1 = split_list(cluster, ':', 0)
@@ -198,18 +189,16 @@ def get_failover_listener(cluster_list, listener_name):
     return cluster_val
 
 
-"""
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-   ret_hosts_list
-   Function that returns inlist of hosts from config file to create ansible hosts file
-   Value comes from hosts_tns in the config file where a value is like
-   [host:tns:port,n:n:n,...] and we want the value of host for all elements in the inlist
-   Author: Ulf Hellstrom, oraminute@gmail.com
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-"""
-
-
 def ret_hosts_list(list_of_hosts):
+    """
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    ret_hosts_list
+    Function that returns inlist of hosts from config file to create ansible hosts file
+    Value comes from hosts_tns in the config file where a value is like
+    [host:tns:port,n:n:n,...] and we want the value of host for all elements in the inlist
+    Author: Ulf Hellstrom, oraminute@gmail.com
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    """
     hosts_list = []
     for hostvalue in list_of_hosts:
         node = split_list(hostvalue, ':', 0)
@@ -218,15 +207,13 @@ def ret_hosts_list(list_of_hosts):
     return hosts_list
 
 
-"""
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+def ret_tns_list(list_of_hosts):
+    """
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     ret_tns_list():
     Returns values stored in hosts_tns in this frameworks config.cfg file.
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-"""
-
-
-def ret_tns_list(list_of_hosts):
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    """
     tns_list = []
     for host_value in list_of_hosts:
         node = split_list(host_value, ':', 0)
@@ -237,8 +224,9 @@ def ret_tns_list(list_of_hosts):
     return tns_list
 
 
-"""
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+def ret_scan_list(list_of_hosts):
+    """
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     ret_scan_list
     Function that returns a unique inlist of "hosts" or scan listeners that we should
     be able to call ansible playbooks over. The inlist is fetched from config.cfg
@@ -249,11 +237,8 @@ def ret_tns_list(list_of_hosts):
          [scan2]]
 
     Author: Ulf Hellstrom, oraminute@gmail.com
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%         
-"""
-
-
-def ret_scan_list(list_of_hosts):
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    """
     scan_list = []
     for v in list_of_hosts:
         oralistener = split_list(v, ':', 1)
@@ -263,8 +248,9 @@ def ret_scan_list(list_of_hosts):
     return scan_list
 
 
-"""
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+def get_tns_port(listener_name, host_list):
+    """
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     get_tns_port
     Function that returns a portno for a host/(scan)listener defined in config.cfg
     hosts_tns inlist.
@@ -272,13 +258,10 @@ def ret_scan_list(list_of_hosts):
         From the inlist ["host1:scan1:1521","host2:scan1:1521","host3:scan2:1522"]
         This function will return a inlist with
         1522 if called with ("scan2",["host1:scan1:1521","host2:scan1:1521","host3:scan2:1522"])
-         
+
     Author: Ulf Hellstrom, oraminute@gmail.com
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%         
-"""
-
-
-def get_tns_port(listener_name, host_list):
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    """
     portno = None
     for host_value in host_list:
         scan_listener = split_list(host_value, ':', 1)
@@ -289,14 +272,12 @@ def get_tns_port(listener_name, host_list):
     return portno
 
 
-"""
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-    Author: Ulf Hellstrom, oraminute@gmail.com
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-"""
-
-
 def get_listener_name(cdb_name, workingdir):
+    """
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    Author: Ulf Hellstrom, oraminute@gmail.com
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    """
     retval = None
 
     input_file = open(workingdir + "/cdb.log", 'r')
@@ -310,14 +291,12 @@ def get_listener_name(cdb_name, workingdir):
     return retval
 
 
-"""
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-    Author: Ulf Hellstrom, oraminute@gmail.com
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-"""
-
-
 def get_user(scan_name, user_list):
+    """
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    Author: Ulf Hellstrom, oraminute@gmail.com
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    """
     user = None
     for list_value in user_list:
         scan_listener = split_list(list_value, ':', 2)
@@ -328,14 +307,12 @@ def get_user(scan_name, user_list):
     return user
 
 
-"""
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-    Author: Ulf Hellstrom, oraminute@gmail.com
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-"""
-
-
 def get_pwd(scan_name, user_list):
+    """
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    Author: Ulf Hellstrom, oraminute@gmail.com
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    """
     pwd = None
     for user_value in user_list:
         scan_listener = split_list(user_value, ':', 2)
@@ -346,16 +323,14 @@ def get_pwd(scan_name, user_list):
     return pwd
 
 
-"""
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+def run_ansible_script(workingdir):
+    """
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     run_ansible_script:
     Ask and verify if possible to skip the ansible part of script
     Author: Ulf Hellstrom, oraminute@gmail.com
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-"""
-
-
-def run_ansible_script(workingdir):
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    """
     os.system('cls' if os.name == 'nt' else 'clear')
 
     if os.path.isfile(workingdir + "/cdb.log"):
@@ -373,16 +348,14 @@ def run_ansible_script(workingdir):
     return retval
 
 
-"""
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-   run_ansible()
-   Shell callout running ansible playbook
-   Author: Ulf Hellstrom, oraminute@gmail.com
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-"""
-
-
 def run_ansible(port, playbook, cwdir, dblistener):
+    """
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    run_ansible()
+    Shell callout running ansible playbook
+    Author: Ulf Hellstrom, oraminute@gmail.com
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    """
     output = subprocess.call(
         ["ansible-playbook ../config/" + playbook + " -i " + cwdir + "/hosts -e ansible_ssh_port=" + port], shell=True)
     print(output)
@@ -391,20 +364,18 @@ def run_ansible(port, playbook, cwdir, dblistener):
     print(output)
 
 
-"""
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+def gen_ansible_host_file(list_of_hosts, working_dir):
+    """
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     gen_ansible_host_file
     Function that writes a hosts file for ansible based on the values defined in
     the config.cfg parameter hosts_tns inlist
-    e.g from [host1:listener:1521,host2:listener:1521] we will write a file 
+    e.g from [host1:listener:1521,host2:listener:1521] we will write a file
     host1
     host2
     The host file is then used by ansible-playbook.
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-"""
-
-
-def gen_ansible_host_file(list_of_hosts, working_dir):
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    """
     scan_list = ret_scan_list(list_of_hosts)
     tns_list = ret_tns_list(list_of_hosts)
     output_file = open(working_dir + "/hosts", "w")
@@ -420,19 +391,17 @@ def gen_ansible_host_file(list_of_hosts, working_dir):
     output_file.close()
 
 
-"""
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+def gen_user_pwd_list(scan_list):
+    """
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     gen_user_pwd_list:
     Ask for username/password for hosts or listeners (scan)
     Author: Ulf Hellstrom, oraminute@gmail.com
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-"""
-
-
-def gen_user_pwd_list(scan_list):
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    """
     dblisteners = ''
     retlist = []
-    # Get oracle user name 
+    # Get oracle user name
     endloop = False
     while endloop is False:
         check_if_same_pwd = input(
@@ -463,30 +432,26 @@ def gen_user_pwd_list(scan_list):
     return retlist
 
 
-"""
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-   ret_tns_string()
-   Function that returns tnn entry for connection to Oracle
-   Author: Ulf Hellstrom, oraminute@gmail.com
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-"""
-
-
 def ret_tns_string(dns, service):
+    """
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    ret_tns_string()
+    Function that returns tnn entry for connection to Oracle
+    Author: Ulf Hellstrom, oraminute@gmail.com
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    """
     ret_string = dns.replace("{$SERVICE_NAME}", service, 1)
     return ret_string
 
 
-"""
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-    run_sqlplus() 
+def run_sqlplus(sqlplus_script):
+    """
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    run_sqlplus()
     Run a sql command or group of commands against a database using sqlplus.
     Author: Ulf Hellstrom, oraminute@gmail.com
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-"""
-
-
-def run_sqlplus(sqlplus_script):
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    """
     p = subprocess.Popen(['sqlplus', '/nolog'], stdin=subprocess.PIPE,
                          stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     (stdout, stderr) = p.communicate(sqlplus_script.encode('utf-8'))
@@ -495,22 +460,20 @@ def run_sqlplus(sqlplus_script):
     return stdout_lines
 
 
-"""
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+def get_oracle_connection(db_name, tns, port, user, password):
+    """
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     get_oracle_connection()
     Function that returns a connection for Oracle database instance.
-    
+
     Example of usage:
     conn = oramodule.get_oracle_connection('dbname','<host>','1521','sys','pwd')
     Example
     conn = oramodule.get_oracle_connection('XE','localhost','1521','sys','ora123')
 
     Author: Ulf Hellstrom, oraminute@gmail.com
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-"""
-
-
-def get_oracle_connection(db_name, tns, port, user, password):
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    """
     tnsalias = tns + ":" + port + "/" + db_name
 
     try:
@@ -529,16 +492,14 @@ def get_oracle_connection(db_name, tns, port, user, password):
     return connection
 
 
-"""
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+def get_oracle_dns_connection(db_name, dns, user, password):
+    """
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     get_oracle_dns_connection()
     Function that returns a connection for Oracle database instance using TNS entry.
     Author: Ulf Hellstrom, oraminute@gmail.com
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-"""
-
-
-def get_oracle_dns_connection(db_name, dns, user, password):
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    """
     tnsalias = ret_tns_string(dns, db_name)
     print("Using DNS connection for database:", db_name)
     try:
@@ -557,17 +518,15 @@ def get_oracle_dns_connection(db_name, dns, user, password):
     return connection
 
 
-"""
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-   get_version_info()
-   Function that returns version number eg 11,12,18,19 from the database.
-   Used to determine if we have Multitenant or not.
-   Author: Ulf Hellstrom, oraminute@gmail.com
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-"""
-
-
 def get_version_info(db_name, tns, port, use_dns, dns_connect, user, password):
+    """
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    get_version_info()
+    Function that returns version number eg 11,12,18,19 from the database.
+    Used to determine if we have Multitenant or not.
+    Author: Ulf Hellstrom, oraminute@gmail.com
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    """
     if use_dns.startswith('Y') or use_dns.startswith('y'):
         connection = get_oracle_dns_connection(db_name, dns_connect, user, password)
     else:
@@ -587,26 +546,24 @@ def get_version_info(db_name, tns, port, use_dns, dns_connect, user, password):
     return ver
 
 
-"""
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+def check_if_domain_exits(connection):
+    """
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     check_if_domain_exists
     Boolean function that check if a PDB is created with or without domain
     e.g PDBXXX.mydomain.com (return true) or PDBXXX (return false)
     if using PDB do alter session set container before calling this routine.
     Author: Ulf Hellstrom, oraminute@gmail.com
- %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-"""
-
-
-def check_if_domain_exits(connection):
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    """
     sql_stmt = ("select global_name" + "\n" +
                 "from global_name" + "\n")
     c1 = connection.cursor()
     c1.execute(sql_stmt)
     """
-        Here we need to find out if domain or not..
-        E.g  PDBUFFETEST.YYY.ORG
-        means domain and PDBUFFETEST means nodomain.
+    Here we need to find out if domain or not..
+    E.g  PDBUFFETEST.YYY.ORG
+    means domain and PDBUFFETEST means nodomain.
     """
     value = c1.fetchone()[0]
     if value.count('.') > 0:
@@ -620,16 +577,14 @@ def check_if_domain_exits(connection):
     return retvalue
 
 
-"""
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+def check_if_pdb_exists(connection, new_pdb_name):
+    """
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     check_if_pdb_exists
     Boolean function that check if a pluggable database already exists or not.
-    Author: Ulf Hellstrom, oraminute@gmail.com 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-"""
-
-
-def check_if_pdb_exists(connection, new_pdb_name):
+    Author: Ulf Hellstrom, oraminute@gmail.com
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    """
     print("Check if PDB already exists...")
 
     sql_stmt = ("select count(name) as antal" + "\n" +
@@ -650,16 +605,14 @@ def check_if_pdb_exists(connection, new_pdb_name):
     return retvalue
 
 
-"""
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+def check_if_pdb_is_open(db_name, tns, port, use_dns, dns_connect, user, password, pdb_name):
+    """
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     check_if_pdb_is_open
     Boolean function that verify that PDB is not in MOUNTED mode
     AUthor: Ulf Hellstrom, oraminute@gmail.com
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-"""
-
-
-def check_if_pdb_is_open(db_name, tns, port, use_dns, dns_connect, user, password, pdb_name):
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    """
     retval = None
     if use_dns.startswith('Y') or use_dns.startswith('y'):
         connection = get_oracle_dns_connection(db_name, dns_connect, user, password)
@@ -676,16 +629,14 @@ def check_if_pdb_is_open(db_name, tns, port, use_dns, dns_connect, user, passwor
     return retval
 
 
-"""
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+def check_if_pdb_is_appcon(db_name, tns, port, use_dns, dns_connect, user, password, pdb_name):
+    """
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     check_if_pdb_is_appcon
     Boolean function that check if PDB is a APPLICATION ROOT container
     AUthor: Ulf Hellstrom, oraminute@gmail.com
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-"""
-
-
-def check_if_pdb_is_appcon(db_name, tns, port, use_dns, dns_connect, user, password, pdb_name):
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    """
     retval = None
     if use_dns.startswith('Y') or use_dns.startswith('y'):
         connection = get_oracle_dns_connection(db_name, dns_connect, user, password)
@@ -711,17 +662,15 @@ def check_if_pdb_is_appcon(db_name, tns, port, use_dns, dns_connect, user, passw
     return retval
 
 
-"""
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+def check_if_pdb_is_application_root_clone(db_name, tns, port, use_dns, dns_connect, user, password, pdb_name):
+    """
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     check_if_pdb_is_application_root_clone
     Boolean function that check if PDB is a APPLICATION ROOT clone PDB
     e.g a APPLICATION container that has applications that is upgraded or patched.
     Author: Ulf Hellstrom, oraminute@gmail.com
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-"""
-
-
-def check_if_pdb_is_application_root_clone(db_name, tns, port, use_dns, dns_connect, user, password, pdb_name):
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    """
     retval = None
     if use_dns.startswith('Y') or use_dns.startswith('y'):
         connection = get_oracle_dns_connection(db_name, dns_connect, user, password)
@@ -749,16 +698,14 @@ def check_if_pdb_is_application_root_clone(db_name, tns, port, use_dns, dns_conn
     return retval
 
 
-"""
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+def check_pdb_mode(connection, new_pdb_name):
+    """
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     check_pdb_mode
     Boolean function that checks if a pluggable database is in read write mode
     Author: Ulf Hellstrom, oraminute@gmail.com
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-"""
-
-
-def check_pdb_mode(connection, new_pdb_name):
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    """
     sql_stmt = ("select count(*) as antal" + "\n" +
                 "from v$pdbs" + "\n" +
                 "where name = '" + new_pdb_name.upper() + "'\n" +
@@ -776,16 +723,14 @@ def check_pdb_mode(connection, new_pdb_name):
     return retvalue
 
 
-"""
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+def check_if_tablespace_exists(connection, tablespace_name):
+    """
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     check_if_tablespace_exists
     Function that checks if a tablespace exists or not.
     Author: Ulf Hellstrom, oraminute@gmail.com
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-"""
-
-
-def check_if_tablespace_exists(connection, tablespace_name):
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    """
     sql_stmt = ("select count(*) as antal" + "\n" +
                 "from dba_tablespaces" + "\n" +
                 "where tablespace_name='" + tablespace_name.upper() + "'\n")
@@ -800,16 +745,14 @@ def check_if_tablespace_exists(connection, tablespace_name):
     return retvalue
 
 
-"""
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+def check_default_tablespace(connection):
+    """
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     check_default_tablespace
     Function that checks if a tablespace exists or not.
     Author: Ulf Hellstrom, oraminute@gmail.com
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-"""
-
-
-def check_default_tablespace(connection):
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    """
     sql_stmt = ("select nvl(property_value,'/NOT SET AT ALL/') as property_value\n" +
                 "from database_properties\n" +
                 "where property_name = 'DEFAULT_PERMANENT_TABLESPACE'\n")
@@ -820,16 +763,14 @@ def check_default_tablespace(connection):
     return retvalue
 
 
-"""
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+def check_if_db_user_exists(connection, username):
+    """
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     check_if_db_user_exists
     Boolean function that returns true if user schema exists
     Author: Ulf Hellstrom, oraminute@gmail.com
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-"""
-
-
-def check_if_db_user_exists(connection, username):
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    """
     sql_stmt = ("select count(*) as antal\n" +
                 "from dba_users\n" +
                 "where username = '" + username.upper() + "'\n")
@@ -844,16 +785,14 @@ def check_if_db_user_exists(connection, username):
     return retvalue
 
 
-"""
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+def check_if_object_exists(db_name, tns, port, use_dns, dns_connect, pdb_name, user, password, oraobject, sqlstring):
+    """
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     check_if_object_exists
     Check if object(tablespace,users,table etc) XXXX do exists or not
     Author: Ulf Hellstrom, oraminute@gmail.com
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-"""
-
-
-def check_if_object_exists(db_name, tns, port, use_dns, dns_connect, pdb_name, user, password, oraobject, sqlstring):
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    """
     val = None
     print("check if object " + oraobject + " exists!")
     # print("DEBUG: what is value of pdb_name: ",pdb_name)
@@ -892,16 +831,14 @@ def check_if_object_exists(db_name, tns, port, use_dns, dns_connect, pdb_name, u
         return "ERROR"
 
 
-"""
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+def check_if_profile_exists(connection, profilename):
+    """
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     check_if_profile_exists
     Boolean function returning true if a profile exists
     Author: Ulf Hellstrom, oraminute@gmail.com
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-"""
-
-
-def check_if_profile_exists(connection, profilename):
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    """
     sql_stmt = ("select count(*) from dba_profiles\n" +
                 "where profile = '" + profilename.upper() + "'\n")
     c1 = connection.cursor()
@@ -917,16 +854,14 @@ def check_if_profile_exists(connection, profilename):
     return retvalue
 
 
-"""
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+def check_if_user_use_profile(connection, username, profilename):
+    """
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     check_if_user_user_profile
     Boolean function checking if a database schema using a given profile
     Author: Ulf Hellstrom , oraminute@gmail.com
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-"""
-
-
-def check_if_user_use_profile(connection, username, profilename):
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    """
     sql_stmt = ("select count(*) as antal\n" +
                 "from dba_users\n" +
                 "where username = '" + username.upper() + "'\n" +
@@ -945,16 +880,14 @@ def check_if_user_use_profile(connection, username, profilename):
     return retvalue
 
 
-"""
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+def check_if_connected_cdb(connection, container_name):
+    """
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     check_if_connected_cdb
     Boolean function that check if connection is same as given CDB
     Author: Ulf Hellstrom, oraminute@gmail.com
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-"""
-
-
-def check_if_connected_cdb(connection, container_name):
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    """
     sql_stmt = ("select count(*) as antal" + "\n" +
                 "from v$database" + "\n" +
                 "where name = '" + container_name.upper() + "'\n")
@@ -971,17 +904,15 @@ def check_if_connected_cdb(connection, container_name):
     return retvalue
 
 
-"""
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-    check_if_service_exists() 
+def check_if_service_exists(connection, servicename):
+    """
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    check_if_service_exists()
     Boolean function tatha checks that given service_name exists in a PDB
     (This is check of extra services besides the default created.)
     Author: Ulf Hellstrom, oraminute@gmail.com
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-"""
-
-
-def check_if_service_exists(connection, servicename):
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    """
     retvalue = False
     sql_stmt = ("select count(*) as antal\n" +
                 "from v$services\n" +
@@ -996,16 +927,14 @@ def check_if_service_exists(connection, servicename):
     return retvalue
 
 
-"""
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-    check_if_omf_exists() 
+def check_if_omf_exists(connection):
+    """
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    check_if_omf_exists()
     Boolean function that checks if Oracle Managed File is in use
     Author: Ulf Hellstrom, oraminute@gmail.com 2
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-"""
-
-
-def check_if_omf_exists(connection):
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    """
     sql_stmt = ("select nvl(value,'N') as omf_use\n" +
                 "from v$parameter\n" +
                 "where name = 'db_create_file_dest'")
@@ -1021,16 +950,14 @@ def check_if_omf_exists(connection):
     return retvalue
 
 
-"""
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-  check_if_service_trigger_exists()
-  Boolean function checking that after startup trigger TR_START_SERVICE exists
-  Author: Ulf Hellstrom, oraminute@gmail.com
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-"""
-
-
 def check_if_service_trigger_exists(connection):
+    """
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    check_if_service_trigger_exists()
+    Boolean function checking that after startup trigger TR_START_SERVICE exists
+    Author: Ulf Hellstrom, oraminute@gmail.com
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    """
     retvalue = False
     sql_stmt = ("select count(*) as antal\n" +
                 "from all_triggers\n" +
@@ -1047,16 +974,14 @@ def check_if_service_trigger_exists(connection):
     return retvalue
 
 
-"""
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+def return_services(connection):
+    """
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     return_services
     Function that returns own created services in database
     Author: Ulf Hellstrom, oraminute@gmail.com
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-"""
-
-
-def return_services(connection):
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    """
     service_names = []
     sql_stmt = ("select name\n" +
                 "from v$services\n"
@@ -1072,18 +997,16 @@ def return_services(connection):
     return service_names
 
 
-"""
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+def return_seed_filenames(connection):
+    """
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     return_seed_filenames
-    Function that returns seed file names from PDB$DEES 
+    Function that returns seed file names from PDB$DEES
     We use this function when we have a CDB without OMF
     Note: Must be called on CDB$ROOT level!!
     Author: Ulf Hellstrom, oraminute@gmail.com
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-"""
-
-
-def return_seed_filenames(connection):
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    """
     pdbseed_files = []
     # Get filenames from PDB$SEED
     sql_stmt = ("select name from v$datafile\n" +
@@ -1102,17 +1025,15 @@ def return_seed_filenames(connection):
     return pdbseed_files
 
 
-"""
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+def return_file_name_convert(connection, pdb_name):
+    """
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     return_file_name_convert
     Function that returns string with file_name_convert
     We use this function when we have a CDB without OMF
     Author: Ulf Hellstrom, oraminute@gmail.com
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-"""
-
-
-def return_file_name_convert(connection, pdb_name):
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    """
     tmp_string = ""
     template_string = "FILE_NAME_CONVERT=("
     seed_file_name_list = return_seed_filenames(connection)
@@ -1129,18 +1050,16 @@ def return_file_name_convert(connection, pdb_name):
     return template_string
 
 
-"""
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+def get_tablespace_path(connection):
+    """
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     get_tablespace_path
     Function that is used when OMF is not used to get the default path for
     where tablespaces are stored in a Multitenant environment and where
     we do not use any ASM storage like for Oracle Express Edition 18c.
     Author: Ulf Hellstrom, oraminute@gmail.com
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-"""
-
-
-def get_tablespace_path(connection):
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    """
     sql_stmt = ("select substr(name,1,instr(name,'/',-1)) as filepath\n" +
                 "from v$datafile\n" +
                 "where rownum < 2")
@@ -1153,17 +1072,15 @@ def get_tablespace_path(connection):
     return retvalue
 
 
-"""
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+def create_pluggable_database(connection, new_pdb_name, password):
+    """
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     create_pluggable_database():
     Create a new pluggable database in choosed container.
     This has to be done from CDB$ROOT or Approot container
     Author: Ulf Hellstrom, oraminute@gmail.com
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-"""
-
-
-def create_pluggable_database(connection, new_pdb_name, password):
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    """
     sql_stmt = "CREATE PLUGGABLE DATABASE " + new_pdb_name.upper() + " ADMIN USER admin identified by " + password
     # Check if we do not use OMF. If not then FILE_NAME_CONVERT is necessary.
     if not check_if_omf_exists(connection):
@@ -1176,16 +1093,14 @@ def create_pluggable_database(connection, new_pdb_name, password):
     c1.close()
 
 
-"""
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+def remove_domain_from_pdb(connection, new_pdb_name):
+    """
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     remove_domain_from_pdb
     Remove domain from PDB  e.g if PBD name is PDBTESTUFFE.SYSTEST.RECEPTPARTNER.SE
     we remove the domain part and set PDB to PDBTESTUFFE
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-"""
-
-
-def remove_domain_from_pdb(connection, new_pdb_name):
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    """
     sql_stmt = 'update global_name' + '\n' + 'set global_name = ' + "'" + new_pdb_name.upper() + "'" + '\n'
     print(sql_stmt)
     c1 = connection.cursor()
@@ -1196,16 +1111,14 @@ def remove_domain_from_pdb(connection, new_pdb_name):
     c1.close()
 
 
-"""
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+def open_pluggable_database(connection, pdb_name):
+    """
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     open_pluggable_database
     Open up a mounted pluggable database in read,write mode
     Author: Ulf Hellstrom, oraminute@gmail.com
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-"""
-
-
-def open_pluggable_database(connection, pdb_name):
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    """
     sql_stmt = "ALTER PLUGGABLE DATABASE " + pdb_name.upper() + " OPEN READ WRITE INSTANCES=ALL"
     print(sql_stmt)
     c1 = connection.cursor()
@@ -1214,16 +1127,14 @@ def open_pluggable_database(connection, pdb_name):
     c1.close()
 
 
-"""
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+def open_pluggable_database_restricted(connection, pdb_name):
+    """
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     open_pluggable_database_restricted
     Open up a mounted pluggable database in restricted mode
     Author: Ulf Hellstrom, oraminute@gmail.com
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-"""
-
-
-def open_pluggable_database_restricted(connection, pdb_name):
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    """
     sql_stmt = "alter pluggable database " + pdb_name.upper() + " open restricted instances=all"
     print(sql_stmt)
     c1 = connection.cursor()
@@ -1231,16 +1142,14 @@ def open_pluggable_database_restricted(connection, pdb_name):
     c1.close()
 
 
-"""
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+def close_pluggable_database(connection, pdb_name):
+    """
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     close_pluggable_database
     Close a pluggable database in read,write mode
     Author: Ulf Hellstrom, oraminute@gmail.com
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-"""
-
-
-def close_pluggable_database(connection, pdb_name):
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    """
     sql_stmt = "alter pluggable database " + pdb_name.upper() + " close immediate"
     print(sql_stmt)
     c1 = connection.cursor()
@@ -1248,16 +1157,14 @@ def close_pluggable_database(connection, pdb_name):
     c1.close()
 
 
-"""
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+def create_pdb_tablespace(connection, bigfile, tablespace_name):
+    """
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     create_pdb_tablespace
     Creates tablespace in a new pluggable database if they do not exist
     Author: Ulf Hellstrom, oraminute@gmail.com
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-"""
-
-
-def create_pdb_tablespace(connection, bigfile, tablespace_name):
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    """
     if check_if_tablespace_exists(connection, tablespace_name):
         print("Tablespace " + tablespace_name.upper() + " already exists...")
     else:  # Check if we use OMF
@@ -1298,16 +1205,14 @@ def create_pdb_tablespace(connection, bigfile, tablespace_name):
                 c1.close()
 
 
-"""
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+def set_pdb_default_tablespace(connection, tablespace_name):
+    """
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     set_pdb_default_tablespace
     Set default tablespace for pluggable database
     Author: Ulf Hellstrom, oraminute@gmail.com
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-"""
-
-
-def set_pdb_default_tablespace(connection, tablespace_name):
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    """
     if check_if_tablespace_exists(connection, tablespace_name):
         print("Setting default tablespace to: " + tablespace_name)
         sql_stmt = "ALTER DATABASE DEFAULT TABLESPACE " + tablespace_name.upper()
@@ -1317,16 +1222,14 @@ def set_pdb_default_tablespace(connection, tablespace_name):
         c1.close()
 
 
-"""
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+def create_pdb_tablespaces(connection, tablespace_list, new_pdb):
+    """
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     create_pdb_tablespaces
     Setting up defined tablespaces or verify that they already are in place
     Author: Ulf Hellstrom, oraminute@gmail.com
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-"""
-
-
-def create_pdb_tablespaces(connection, tablespace_list, new_pdb):
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    """
     for tablespaces in tablespace_list:
         tablespace_name = split_list(tablespaces, ':', 0)
         tablespace_type = split_list(tablespaces, ':', 1)
@@ -1341,16 +1244,14 @@ def create_pdb_tablespaces(connection, tablespace_list, new_pdb):
                 create_pdb_tablespace(connection, "N", tablespace_name)
 
 
-"""
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+def switch_plug(pdb_name, connection):
+    """
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     switch_plug()
     Function that do alter session set container.
     Author: Ulf Hellstrom, oraminute@gmail.com
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-"""
-
-
-def switch_plug(pdb_name, connection):
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    """
     try:
         print('Connecting to plugdatabase: ', pdb_name)
         c1str = 'alter session set container = ' + pdb_name
@@ -1370,16 +1271,14 @@ def switch_plug(pdb_name, connection):
     return setdb
 
 
-"""
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+def switch_to_cdb(connection):
+    """
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     switch_to_cdb()
     Function that do alter session set container to CDB$ROOT.
     Author: Ulf Hellstrom, oraminute@gmail.com
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-"""
-
-
-def switch_to_cdb(connection):
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    """
     try:
         print('Connecting to container CDB$ROOT')
         sql_stmt = 'alter session set container=cdb$root'
@@ -1398,16 +1297,14 @@ def switch_to_cdb(connection):
     return setdb
 
 
-"""
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+def save_state_to_pdb(connection, pdb_name):
+    """
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     save_state_to_pdb()
     Save state for a pdb such as always start PDB when CDB is started
     Author: Ulf Hellstrom, oraminute@gmail.com
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-"""
-
-
-def save_state_to_pdb(connection, pdb_name):
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    """
     try:
         print("Setting save state to " + pdb_name)
         sql_stmt = 'alter pluggable database ' + pdb_name.upper() + ' save state'
@@ -1426,17 +1323,15 @@ def save_state_to_pdb(connection, pdb_name):
     return setdb
 
 
-"""
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+def get_pdbs(cdb_name, tns, port, use_dns, dns_connect, user, password):
+    """
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     get_pdbs()
     Returns a inlist of active and open PDBS in a multitentant enviroronment.
     Used if Multitenant is used and Oracle version > 11
     Author: Ulf Hellstrom, oraminute@gmail.com
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-"""
-
-
-def get_pdbs(cdb_name, tns, port, use_dns, dns_connect, user, password):
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    """
     pdb_list = []
 
     if use_dns.startswith('Y') or use_dns.startswith('y'):
